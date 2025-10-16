@@ -50,17 +50,18 @@ async function chatHandler(req: NextRequest) {
         },
       });
     } else {
-      // Obtener contexto de conversación existente
+      // TODO: Implementar contexto de conversación cuando sea necesario
+      /*
       const context = await conversationMemoryService.getConversationContext(
         currentConversationId,
         10 // Últimos 10 mensajes para contexto
       );
 
-      // Convertir al formato esperado por Gemini
       conversationContext = context.map(msg => ({
         role: msg.role === 'user' ? 'user' : 'model',
         parts: [{ text: msg.content }],
       }));
+      */
     }
 
     // Guardar mensaje del usuario

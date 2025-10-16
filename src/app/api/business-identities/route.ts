@@ -13,7 +13,6 @@ const createBusinessIdentitySchema = z.object({
   website: z.string().url('URL inválida').optional(),
   logo: z.string().optional(),
   slogan: z.string().optional(),
-  isDefault: z.boolean().default(false),
 });
 
 // GET /api/business-identities - Listar identidades de negocio
@@ -45,12 +44,12 @@ export async function GET(request: NextRequest) {
         },
         quoteTemplates: {
           where: { isActive: true },
-          select: { id: true, name: true, isDefault: true },
+          select: { id: true, name: true },
         },
         _count: {
           select: {
-            events: true,
             locations: true,
+            quoteTemplates: true,
           },
         },
       },
@@ -79,12 +78,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Solo TENANT_ADMIN y MANAGER pueden crear identidades
+    const userRoleType = session.user.role.roleId as $Enums.RoleType;
     if (
-      ![
-        $Enums.UserRole.SUPER_ADMIN,
-        $Enums.UserRole.TENANT_ADMIN,
-        $Enums.UserRole.MANAGER,
-      ].includes(session.user.role as $Enums.UserRole)
+      userRoleType !== $Enums.RoleType.SUPER_ADMIN &&
+      userRoleType !== $Enums.RoleType.TENANT_ADMIN &&
+      userRoleType !== $Enums.RoleType.MANAGER
     ) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
@@ -104,21 +102,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Si es la primera identidad o se marca como default, hacer transacción
+    // Transacción para crear la identidad de negocio
     const businessIdentity = await prisma.$transaction(async tx => {
-      // Si se marca como default o es la primera, quitar default de las demás
-      if (validatedData.isDefault || currentCount === 0) {
-        await tx.businessIdentity.updateMany({
-          where: { tenantId: session.user.tenantId },
-          data: { isDefault: false },
-        });
-        validatedData.isDefault = true;
-      }
-
       const createData = {
         tenantId: session.user.tenantId,
         name: validatedData.name,
-        isDefault: validatedData.isDefault ?? false,
         address: validatedData.address ?? null,
         phone: validatedData.phone ?? null,
         email: validatedData.email ?? null,

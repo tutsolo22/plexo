@@ -213,7 +213,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        totalEmbeddings: parseInt(totalResult.total_embeddings.toString()),
+        totalEmbeddings: totalResult ? parseInt(totalResult.total_embeddings.toString()) : 0,
         byType: stats.map(stat => ({
           entityType: stat.entity_type,
           total: parseInt(stat.total.toString()),
