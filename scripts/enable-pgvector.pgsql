@@ -1,6 +1,6 @@
 -- PostgreSQL Script: Habilitar extensión pgvector para vectores de IA
 -- Este archivo debe ejecutarse en PostgreSQL, NO en SQL Server
--- Comando: psql -d tu_database -f enable-pgvector.sql
+-- Comando: psql -d tu_database -f enable-pgvector.pgsql
 
 -- Habilitar extensión pgvector para soporte de vectores
 CREATE EXTENSION IF NOT EXISTS vector;
