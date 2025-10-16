@@ -4,20 +4,19 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { roleManagementService } from '@/lib/services/role-management';
-import { RoleType, PermissionAction, PermissionResource } from '@prisma/client';
+import { auth } from '@/lib/auth';
+import { roleManagementService, CreateRoleInput, AssignRoleInput } from '@/lib/role-management';
+import { $Enums } from '@prisma/client';
 import { z } from 'zod';
 
 // Schemas de validación
 const CreateRoleSchema = z.object({
   name: z.string().min(1, 'Nombre requerido'),
   description: z.string().optional(),
-  type: z.nativeEnum(RoleType),
+  type: z.nativeEnum($Enums.RoleType),
   permissions: z.array(z.object({
-    action: z.nativeEnum(PermissionAction),
-    resource: z.nativeEnum(PermissionResource),
+    action: z.nativeEnum($Enums.PermissionAction),
+    resource: z.nativeEnum($Enums.PermissionResource),
     conditions: z.record(z.any()).optional()
   }))
 });
@@ -25,7 +24,6 @@ const CreateRoleSchema = z.object({
 const AssignRoleSchema = z.object({
   userId: z.string().min(1, 'Usuario requerido'),
   roleId: z.string().min(1, 'Rol requerido'),
-  isPrimary: z.boolean().optional(),
   expiresAt: z.string().datetime().optional()
 });
 
@@ -34,7 +32,7 @@ const AssignRoleSchema = z.object({
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user) {
       return NextResponse.json(
@@ -48,18 +46,11 @@ export async function GET(request: NextRequest) {
 
     // Obtener roles del tenant
     if (!action) {
-      const result = await roleManagementService.getTenantRoles(session.user.tenantId);
-      
-      if (!result.success) {
-        return NextResponse.json(
-          { error: result.error },
-          { status: 400 }
-        );
-      }
+      const result = await roleManagementService.listRoles({ tenantId: session.user.tenantId });
 
       return NextResponse.json({
         success: true,
-        data: result.data
+        data: result
       });
     }
 
@@ -74,7 +65,7 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const userWithRoles = await roleManagementService.getUserWithRoles(userId);
+      const userWithRoles = await roleManagementService.getUserRoles(userId);
       
       if (!userWithRoles) {
         return NextResponse.json(
@@ -104,8 +95,8 @@ export async function GET(request: NextRequest) {
 
       const hasPermission = await roleManagementService.hasPermission(
         userId,
-        actionParam as PermissionAction,
-        resource as PermissionResource
+        actionParam as $Enums.PermissionAction,
+        resource as $Enums.PermissionResource
       );
 
       return NextResponse.json({
@@ -133,7 +124,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user) {
       return NextResponse.json(
@@ -150,23 +141,23 @@ export async function POST(request: NextRequest) {
     if (!action || action === 'create') {
       const validatedData = CreateRoleSchema.parse(body);
       
-      const result = await roleManagementService.createRole({
-        ...validatedData,
+      const createInput: CreateRoleInput = {
+        name: validatedData.name as string,
+        type: validatedData.type as $Enums.RoleType,
         tenantId: session.user.tenantId,
-        createdById: session.user.id
-      });
-
-      if (!result.success) {
-        return NextResponse.json(
-          { error: result.error, message: result.message },
-          { status: 400 }
-        );
+        permissions: validatedData.permissions as CreateRoleInput['permissions']
+      };
+      
+      if (validatedData.description) {
+        createInput.description = validatedData.description as string;
       }
+
+      const result = await roleManagementService.createRole(createInput);
 
       return NextResponse.json({
         success: true,
-        data: result.data,
-        message: result.message
+        data: result,
+        message: 'Rol creado exitosamente'
       }, { status: 201 });
     }
 
@@ -174,38 +165,31 @@ export async function POST(request: NextRequest) {
     if (action === 'assign') {
       const validatedData = AssignRoleSchema.parse(body);
       
-      const result = await roleManagementService.assignRole({
-        ...validatedData,
-        assignedById: session.user.id,
-        expiresAt: validatedData.expiresAt ? new Date(validatedData.expiresAt) : undefined
-      });
-
-      if (!result.success) {
-        return NextResponse.json(
-          { error: result.error, message: result.message },
-          { status: 400 }
-        );
+      const inputData: AssignRoleInput = {
+        userId: validatedData.userId as string,
+        roleId: validatedData.roleId as string,
+        assignedBy: session.user.id
+      };
+      
+      if (validatedData.expiresAt) {
+        inputData.expiresAt = new Date(validatedData.expiresAt as string);
       }
+
+      const assignedRole = await roleManagementService.assignRole(inputData);
 
       return NextResponse.json({
         success: true,
-        data: result.data,
-        message: result.message
+        data: assignedRole,
+        message: 'Rol asignado exitosamente'
       }, { status: 201 });
     }
 
-    // Inicializar roles del sistema
+    // Inicializar roles del sistema - método no disponible en el servicio actual
     if (action === 'initialize') {
-      const result = await roleManagementService.initializeSystemRoles(
-        session.user.tenantId,
-        session.user.id
+      return NextResponse.json(
+        { error: 'Método de inicialización no disponible' },
+        { status: 501 }
       );
-
-      return NextResponse.json({
-        success: true,
-        data: result.data,
-        message: result.message
-      });
     }
 
     return NextResponse.json(
@@ -234,11 +218,82 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * DELETE /api/roles - Remover rol de usuario
+ * PUT /api/roles - Actualizar rol existente
+ */
+export async function PUT(request: NextRequest) {
+  try {
+    const session = await auth();
+    
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: 'No autorizado' },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const { searchParams } = new URL(request.url);
+    const roleId = searchParams.get('roleId');
+
+    if (!roleId) {
+      return NextResponse.json(
+        { error: 'RoleId requerido' },
+        { status: 400 }
+      );
+    }
+
+    const UpdateRoleSchema = z.object({
+      name: z.string().min(1, 'Nombre requerido').optional(),
+      description: z.string().optional(),
+      permissions: z.array(z.object({
+        action: z.nativeEnum($Enums.PermissionAction),
+        resource: z.nativeEnum($Enums.PermissionResource),
+        conditions: z.record(z.any()).optional()
+      })).optional()
+    });
+
+    const validatedData = UpdateRoleSchema.parse(body);
+    
+    // Construir objeto con tipos correctos
+    const updateData: any = {};
+    if (validatedData.name !== undefined) updateData.name = validatedData.name as string;
+    if (validatedData.description !== undefined) updateData.description = validatedData.description as string;
+    if (validatedData.permissions) updateData.permissions = validatedData.permissions;
+
+    const result = await roleManagementService.updateRole(roleId, updateData);
+
+    return NextResponse.json({
+      success: true,
+      data: result,
+      message: 'Rol actualizado exitosamente'
+    });
+
+  } catch (error: any) {
+    console.error('Error en PUT /api/roles:', error);
+    
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { 
+          error: 'Datos de entrada inválidos',
+          details: error.errors
+        },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/roles - Remover rol de usuario o eliminar rol
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user) {
       return NextResponse.json(
@@ -248,9 +303,28 @@ export async function DELETE(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
+    const action = searchParams.get('action');
     const userId = searchParams.get('userId');
     const roleId = searchParams.get('roleId');
 
+    // Eliminar rol del sistema
+    if (action === 'delete-role') {
+      if (!roleId) {
+        return NextResponse.json(
+          { error: 'RoleId requerido' },
+          { status: 400 }
+        );
+      }
+
+      await roleManagementService.deleteRole(roleId);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Rol eliminado exitosamente'
+      });
+    }
+
+    // Remover rol de usuario (acción por defecto)
     if (!userId || !roleId) {
       return NextResponse.json(
         { error: 'UserId y RoleId requeridos' },
@@ -258,22 +332,11 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const result = await roleManagementService.removeRole(
-      userId,
-      roleId,
-      session.user.id
-    );
-
-    if (!result.success) {
-      return NextResponse.json(
-        { error: result.error, message: result.message },
-        { status: 400 }
-      );
-    }
+    await roleManagementService.unassignRole(userId, roleId);
 
     return NextResponse.json({
       success: true,
-      message: result.message
+      message: 'Rol removido del usuario exitosamente'
     });
 
   } catch (error: any) {

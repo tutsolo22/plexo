@@ -1,6 +1,5 @@
 import { UserRole } from '@prisma/client'
-import { getServerSession } from 'next-auth'
-import { authOptions } from './config'
+import { auth } from '@/lib/auth'
 
 /**
  * Sistema de permisos y roles para CRM Casona María
@@ -38,7 +37,7 @@ export const hasRoleAccess = (
  * @returns Promise<Session | null>
  */
 export const getCurrentSession = async () => {
-  return await getServerSession(authOptions)
+  return await auth()
 }
 
 /**

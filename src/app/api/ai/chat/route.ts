@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 import { crmAgentService } from '@/lib/ai/crm-agent-v2';
 import { conversationMemoryService } from '@/lib/ai/conversation-memory';
 import { withValidation } from '@/lib/api/middleware/validation';
@@ -22,7 +21,7 @@ const chatRequestSchema = z.object({
 async function chatHandler(req: NextRequest) {
   try {
     // Verificar autenticación de sesión
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       return ApiResponses.unauthorized('Acceso no autorizado');
     }

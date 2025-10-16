@@ -4,8 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 import { roleManagementService } from '@/lib/services/role-management';
 import { PermissionAction, PermissionResource } from '@prisma/client';
 
@@ -36,7 +35,7 @@ export function withPermission(
   return function (handler: RequestHandler) {
     return async function (request: NextRequest, ...args: any[]) {
       try {
-        const session = await getServerSession(authOptions);
+        const session = await auth();
 
         if (!session?.user) {
           return NextResponse.json(
@@ -106,7 +105,7 @@ export function withAnyPermission(
   return function (handler: RequestHandler) {
     return async function (request: NextRequest, ...args: any[]) {
       try {
-        const session = await getServerSession(authOptions);
+        const session = await auth();
 
         if (!session?.user) {
           return NextResponse.json(

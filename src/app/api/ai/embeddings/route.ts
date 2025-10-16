@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
 import { crmEmbeddingService } from '@/lib/ai/crm-embeddings'
-import { UserRole } from '@prisma/client'
+import { $Enums } from '@prisma/client'
 import { z } from 'zod'
 
 // Schema de validación para búsqueda vectorial
@@ -18,7 +17,7 @@ const searchEmbeddingsSchema = z.object({
 // POST /api/ai/embeddings/search - Búsqueda semántica
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
@@ -69,13 +68,13 @@ export async function POST(request: NextRequest) {
 // PUT /api/ai/embeddings - Re-indexar entidades específicas
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden re-indexar
-    if (![UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN].includes(session.user.role)) {
+    if (![$Enums.LegacyUserRole.SUPER_ADMIN, $Enums.LegacyUserRole.TENANT_ADMIN].includes(session.user.role)) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
 
@@ -142,15 +141,15 @@ export async function PUT(request: NextRequest) {
 }
 
 // GET /api/ai/embeddings/stats - Estadísticas de embeddings
-export async function GET(request: NextRequest) {
+export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     // Solo roles administrativos pueden ver estadísticas
-    if (![UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.MANAGER].includes(session.user.role)) {
+    if (![$Enums.LegacyUserRole.SUPER_ADMIN, $Enums.LegacyUserRole.TENANT_ADMIN, $Enums.LegacyUserRole.MANAGER].includes(session.user.role)) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
 
