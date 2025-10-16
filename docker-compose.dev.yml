@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # Base de Datos PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: gestion-eventos-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: gestion_de_eventos_db
+      POSTGRES_USER: gestion_user
+      POSTGRES_PASSWORD: gestion_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - gestion-network
+
+  # Redis para Cache (Opcional)
+  redis:
+    image: redis:7-alpine
+    container_name: gestion-eventos-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - gestion-network
+
+  # Adminer para gestión de BD (Desarrollo)
+  adminer:
+    image: adminer:latest
+    container_name: gestion-eventos-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    networks:
+      - gestion-network
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  gestion-network:
+    driver: bridge
