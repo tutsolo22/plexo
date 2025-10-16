@@ -10,6 +10,7 @@ import { z } from 'zod';
 const chatRequestSchema = z.object({
   message: z.string().min(1, 'El mensaje no puede estar vacío').max(1000, 'El mensaje es demasiado largo'),
   conversationId: z.string().optional(),
+  sessionId: z.string().optional(), // Para compatibilidad con la demo
   userId: z.string().optional(),
   platform: z.enum(['web', 'whatsapp']).default('web'),
   userPhone: z.string().optional(),
@@ -18,9 +19,10 @@ const chatRequestSchema = z.object({
 async function chatHandler(req: NextRequest) {
   try {
     const body = await req.json();
-    const { message, conversationId, userId, platform, userPhone } = chatRequestSchema.parse(body);
+    const { message, conversationId, sessionId, userId, platform, userPhone } = chatRequestSchema.parse(body);
 
-    let currentConversationId = conversationId;
+    // Usar sessionId como conversationId si no se proporciona conversationId
+    let currentConversationId = conversationId || sessionId;
     let conversationContext: any[] = [];
 
     // Si no hay conversación, crear una nueva

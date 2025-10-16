@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo Casona - Agente AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .demo-section {
+            margin-bottom: 40px;
+            padding: 25px;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            background: #f9f9f9;
+        }
+        
+        .demo-title {
+            font-size: 1.5em;
+            color: #444;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .response {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            min-height: 100px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            font-style: italic;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .timing {
+            font-size: 12px;
+            color: #666;
+            text-align: right;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎪 Demo Casona - Agente AI</h1>
+        
+        <div class="demo-section" style="text-align: center; margin-bottom: 30px;">
+            <div class="demo-title">⚙️ Configuración del Agente</div>
+            <div style="margin: 15px 0;">
+                <label for="aiMode" style="font-weight: bold; margin-right: 10px;">Modo de IA:</label>
+                <select id="aiMode" style="padding: 8px 15px; border-radius: 5px; border: 2px solid #667eea; font-size: 16px;">
+                    <option value="demo">🎭 Simulado (Demo seguro)</option>
+                    <option value="gemini" selected>🌟 Google Gemini (IA Real)</option>
+                    <option value="real">🤖 OpenAI (Sin créditos)</option>
+                    <option value="chat">🧠 Original (Completo con funciones)</option>
+                </select>
+            </div>
+            <div id="geminiModelSection" style="margin: 15px 0; display: block;">
+                <label for="geminiModel" style="font-weight: bold; margin-right: 10px;">Modelo Gemini:</label>
+                <select id="geminiModel" style="padding: 8px 15px; border-radius: 5px; border: 2px solid #4CAF50; font-size: 16px;">
+                    <option value="gemini-pro" selected>gemini-pro (Estable)</option>
+                    <option value="text-bison-001">text-bison-001 (Alternativo)</option>
+                    <option value="gemini-1.5-flash">gemini-1.5-flash (Nuevo)</option>
+                    <option value="gemini-1.5-pro">gemini-1.5-pro (Avanzado)</option>
+                </select>
+            </div>
+            <div id="modeDescription" style="margin-top: 10px; font-size: 14px; color: #666; font-style: italic;">
+                Google Gemini: IA real de Google con datos simplificados y respuestas auténticas
+            </div>
+        </div>
+        
+        <!-- Escenario 1: Búsqueda de Eventos -->
+        <div class="demo-section">
+            <div class="demo-title">
+                <span>🔍</span> Escenario 1: Búsqueda Inteligente de Eventos
+            </div>
+            <div class="input-group">
+                <label for="search-message">Consulta:</label>
+                <textarea id="search-message" placeholder="Ejemplo: Muéstrame todos los eventos de bodas de los últimos 3 meses">Hola, soy el gerente de Casona. Muéstrame todos los eventos de bodas que hemos realizado en los últimos 3 meses</textarea>
+            </div>
+            <button onclick="runDemo('search')">▶️ Ejecutar Demo</button>
+            <div class="loading" id="search-loading">⏳ Procesando consulta...</div>
+            <div class="response" id="search-response">Respuesta aparecerá aquí...</div>
+            <div class="timing" id="search-timing"></div>
+        </div>
+        
+        <!-- Escenario 2: Verificación de Disponibilidad -->
+        <div class="demo-section">
+            <div class="demo-title">
+                <span>📅</span> Escenario 2: Verificación de Disponibilidad
+            </div>
+            <div class="input-group">
+                <label for="availability-message">Consulta:</label>
+                <textarea id="availability-message" placeholder="Ejemplo: ¿Está disponible el Salón Principal el 15 de febrero?">Necesito verificar si el Salón Principal está disponible el sábado 15 de febrero de 2025 para una boda de 130 personas</textarea>
+            </div>
+            <button onclick="runDemo('availability')">▶️ Ejecutar Demo</button>
+            <div class="loading" id="availability-loading">⏳ Verificando disponibilidad...</div>
+            <div class="response" id="availability-response">Respuesta aparecerá aquí...</div>
+            <div class="timing" id="availability-timing"></div>
+        </div>
+        
+        <!-- Escenario 3: Cotización Automática -->
+        <div class="demo-section">
+            <div class="demo-title">
+                <span>💰</span> Escenario 3: Cotización Automática
+            </div>
+            <div class="input-group">
+                <label for="quote-message">Consulta:</label>
+                <textarea id="quote-message" placeholder="Ejemplo: Prepara una cotización completa para una boda de 140 personas...">Prepara una cotización completa para esa boda del 15 de febrero. Incluye catering ejecutivo, DJ profesional, decoración premium y fotografía para 130 personas</textarea>
+            </div>
+            <button onclick="runDemo('quote')">▶️ Ejecutar Demo</button>
+            <div class="loading" id="quote-loading">⏳ Generando cotización...</div>
+            <div class="response" id="quote-response">Respuesta aparecerá aquí...</div>
+            <div class="timing" id="quote-timing"></div>
+        </div>
+        
+        <!-- Escenario 4: Análisis de Cliente -->
+        <div class="demo-section">
+            <div class="demo-title">
+                <span>👤</span> Escenario 4: Análisis de Cliente
+            </div>
+            <div class="input-group">
+                <label for="client-message">Consulta:</label>
+                <textarea id="client-message" placeholder="Ejemplo: Dame un análisis completo del cliente María González...">Dame un análisis completo del cliente María González de Constructora González</textarea>
+            </div>
+            <button onclick="runDemo('client')">▶️ Ejecutar Demo</button>
+            <div class="loading" id="client-loading">⏳ Analizando cliente...</div>
+            <div class="response" id="client-response">Respuesta aparecerá aquí...</div>
+            <div class="timing" id="client-timing"></div>
+        </div>
+    </div>
+
+    <script>
+        let sessionId = 'demo-casona-' + Date.now();
+        
+        // Manejar cambio de modo
+        document.getElementById('aiMode').addEventListener('change', function() {
+            const mode = this.value;
+            const description = document.getElementById('modeDescription');
+            const geminiSection = document.getElementById('geminiModelSection');
+            
+            // Mostrar/ocultar selector de modelo Gemini
+            if (mode === 'gemini') {
+                geminiSection.style.display = 'block';
+            } else {
+                geminiSection.style.display = 'none';
+            }
+            
+            switch(mode) {
+                case 'demo':
+                    description.textContent = 'Modo simulado: Respuestas predefinidas para demostración confiable';
+                    break;
+                case 'gemini':
+                    description.textContent = 'Google Gemini: IA real de Google con datos simplificados y respuestas auténticas';
+                    break;
+                case 'real':
+                    description.textContent = 'Real OpenAI: IA real con datos simplificados (SIN CRÉDITOS DISPONIBLES)';
+                    break;
+                case 'chat':
+                    description.textContent = 'Original completo: Sistema completo con funciones, base de datos y vectores';
+                    break;
+            }
+        });
+        
+        function getApiEndpoint() {
+            const mode = document.getElementById('aiMode').value;
+            switch(mode) {
+                case 'demo': return '/api/ai/demo';
+                case 'gemini': return '/api/ai/gemini';
+                case 'real': return '/api/ai/real';
+                case 'chat': return '/api/ai/chat';
+                default: return '/api/ai/demo';
+            }
+        }
+        
+        function getModeName() {
+            const mode = document.getElementById('aiMode').value;
+            switch(mode) {
+                case 'demo': return 'Demo Simulado';
+                case 'gemini': return 'Google Gemini';
+                case 'real': return 'OpenAI Real';
+                case 'chat': return 'Sistema Completo';
+                default: return 'Demo';
+            }
+        }
+        
+        async function runDemo(type) {
+            const button = document.querySelector(`#${type}-loading`).previousElementSibling;
+            const loading = document.getElementById(`${type}-loading`);
+            const response = document.getElementById(`${type}-response`);
+            const timing = document.getElementById(`${type}-timing`);
+            const message = document.getElementById(`${type}-message`).value;
+            
+            // Mostrar estado de carga
+            button.disabled = true;
+            loading.style.display = 'block';
+            response.innerHTML = 'Procesando...';
+            
+            const startTime = Date.now();
+            
+            try {
+                const endpoint = getApiEndpoint();
+                const mode = document.getElementById('aiMode').value;
+                const requestBody = {
+                    message: message,
+                    sessionId: sessionId,
+                    platform: 'web'
+                };
+                
+                // Agregar modelo seleccionado si es Gemini
+                if (mode === 'gemini') {
+                    requestBody.model = document.getElementById('geminiModel').value;
+                }
+                
+                const result = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                const endTime = Date.now();
+                const duration = ((endTime - startTime) / 1000).toFixed(2);
+                
+                if (result.ok) {
+                    const data = await result.json();
+                    
+                    if (data.success && data.data && data.data.message) {
+                        // Mostrar la respuesta del agente AI
+                        const modeName = getModeName();
+                        const modelInfo = data.data.metadata ? 
+                            `Modelo: ${data.data.metadata.model || 'OpenAI GPT-4'}` : 
+                            `Modo: ${modeName}`;
+                            
+                        response.innerHTML = `
+                            <div class="status success">
+                                ✅ Respuesta exitosa en ${duration}s - ${modeName}
+                            </div>
+                            <div style="margin-top: 15px; white-space: pre-wrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6;">
+                                ${data.data.message}
+                            </div>
+                            <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 12px; color: #666;">
+                                <strong>${modeName}:</strong> Conversación: ${data.data.conversationId} | Plataforma: ${data.data.platform || 'web'} | ${modelInfo}
+                            </div>
+                        `;
+                        timing.innerHTML = `⚡ Tiempo respuesta: ${duration}s | ${modeName}`;
+                    } else {
+                        response.innerHTML = JSON.stringify(data, null, 2);
+                        timing.innerHTML = `⚡ Tiempo de respuesta: ${duration} segundos`;
+                    }
+                } else {
+                    const error = await result.text();
+                    response.innerHTML = `Error ${result.status}: ${error}`;
+                    timing.innerHTML = `❌ Error después de ${duration} segundos`;
+                    
+                    // Mostrar status de error
+                    const status = document.createElement('div');
+                    status.className = 'status error';
+                    status.innerHTML = `❌ Error ${result.status}`;
+                    response.insertBefore(status, response.firstChild);
+                }
+            } catch (error) {
+                const endTime = Date.now();
+                const duration = ((endTime - startTime) / 1000).toFixed(2);
+                
+                response.innerHTML = `Error de conexión: ${error.message}`;
+                timing.innerHTML = `❌ Error de conexión después de ${duration} segundos`;
+                
+                // Mostrar status de error
+                const status = document.createElement('div');
+                status.className = 'status error';
+                status.innerHTML = `❌ Error de conexión`;
+                response.insertBefore(status, response.firstChild);
+            } finally {
+                button.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+        
+        // Mostrar información de conexión
+        console.log('🎪 Demo Casona iniciada');
+        console.log('📡 Session ID:', sessionId);
+        console.log('🌐 API Base:', window.location.origin);
+    </script>
+</body>
+</html>
