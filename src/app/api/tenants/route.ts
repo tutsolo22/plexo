@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { UserRole } from '@prisma/client'
+import { $Enums } from '@prisma/client'
 
 // Schema de validación para tenants
 const createTenantSchema = z.object({
@@ -16,13 +16,13 @@ const createTenantSchema = z.object({
 // GET /api/tenants - Listar tenants (Solo SUPER_ADMIN)
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     // Solo SUPER_ADMIN puede listar tenants
-    if (session.user.role !== UserRole.SUPER_ADMIN) {
+    if (session.user.role?.roleId !== $Enums.RoleType.SUPER_ADMIN) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
 
@@ -38,13 +38,13 @@ export async function GET(request: NextRequest) {
     const where: Record<string, unknown> = {}
 
     if (search) {
-      where.OR = [
+      where["OR"] = [
         { name: { contains: search, mode: 'insensitive' } },
         { domain: { contains: search, mode: 'insensitive' } }
       ]
     }
 
-    if (isActive !== null) where.isActive = isActive === 'true'
+    if (isActive !== null) where["isActive"] = isActive === 'true'
 
     const [tenants, total] = await Promise.all([
       prisma.tenant.findMany({
@@ -90,13 +90,13 @@ export async function GET(request: NextRequest) {
 // POST /api/tenants - Crear tenant (Solo SUPER_ADMIN)
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     // Solo SUPER_ADMIN puede crear tenants
-    if (session.user.role !== UserRole.SUPER_ADMIN) {
+    if (session.user.role?.roleId !== $Enums.RoleType.SUPER_ADMIN) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
 
@@ -118,15 +118,18 @@ export async function POST(request: NextRequest) {
     const tenant = await prisma.$transaction(async (tx) => {
       // Crear el tenant
       const newTenant = await tx.tenant.create({
-        data: validatedData
+        data: {
+          name: validatedData.name,
+          domain: validatedData.domain,
+          isActive: validatedData.isActive
+        }
       })
 
       // Crear identidad de negocio por defecto
       await tx.businessIdentity.create({
         data: {
           name: validatedData.name,
-          tenantId: newTenant.id,
-          isDefault: true
+          tenantId: newTenant.id
         }
       })
 
@@ -134,7 +137,6 @@ export async function POST(request: NextRequest) {
       await tx.priceList.create({
         data: {
           name: 'General',
-          type: 'GENERAL',
           tenantId: newTenant.id,
           isActive: true
         }

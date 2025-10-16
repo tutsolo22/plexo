@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { UserRole } from '@prisma/client'
+import { $Enums } from '@prisma/client'
 
 // Schema de validación para configuraciones
 const updateConfigSchema = z.object({
@@ -13,7 +13,7 @@ const updateConfigSchema = z.object({
 // GET /api/configurations - Obtener configuraciones
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       tenantId: session.user.tenantId
     }
 
-    if (key) where.key = key
+    if (key) where["key"] = key
 
     const configurations = await prisma.configuration.findMany({
       where,
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     if (key && configurations.length === 1) {
       return NextResponse.json({
         success: true,
-        data: configurations[0].value
+        data: configurations[0]?.value
       })
     }
 
@@ -63,13 +63,14 @@ export async function GET(request: NextRequest) {
 // PUT /api/configurations - Actualizar configuración
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     // Solo ciertos roles pueden actualizar configuraciones
-    if (![UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.MANAGER].includes(session.user.role)) {
+    const allowedRoles: $Enums.RoleType[] = [$Enums.RoleType.SUPER_ADMIN, $Enums.RoleType.TENANT_ADMIN, $Enums.RoleType.MANAGER]
+    if (!session.user.role?.roleId || !allowedRoles.includes(session.user.role.roleId as $Enums.RoleType)) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
 
@@ -126,13 +127,14 @@ export async function PUT(request: NextRequest) {
 // POST /api/configurations - Crear múltiples configuraciones
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     // Solo TENANT_ADMIN y SUPER_ADMIN pueden crear configuraciones en lote
-    if (![UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN].includes(session.user.role)) {
+    const allowedRoles: $Enums.RoleType[] = [$Enums.RoleType.SUPER_ADMIN, $Enums.RoleType.TENANT_ADMIN]
+    if (!session.user.role?.roleId || !allowedRoles.includes(session.user.role.roleId as $Enums.RoleType)) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
 
@@ -143,9 +145,9 @@ export async function POST(request: NextRequest) {
       configs.map(config => 
         prisma.configuration.upsert({
           where: {
-            key_tenantId: {
-              key: config.key,
-              tenantId: session.user.tenantId
+            tenantId_key: {
+              tenantId: session.user.tenantId,
+              key: config.key
             }
           },
           update: { value: config.value },

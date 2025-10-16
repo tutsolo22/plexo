@@ -10,7 +10,7 @@ const createEventSchema = z.object({
   startDate: z.string().transform((str) => new Date(str)),
   endDate: z.string().transform((str) => new Date(str)),
   roomId: z.string().min(1, 'La sala es requerida'),
-  clientId: z.string().optional(),
+  clientId: z.string().min(1, 'El cliente es requerido'),
   notes: z.string().optional(),
   status: z.enum(['RESERVED', 'QUOTED', 'CONFIRMED', 'CANCELLED']).default('RESERVED')
 })
@@ -30,7 +30,7 @@ const createEventSchema = z.object({
 // GET /api/events - Listar eventos
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
@@ -53,27 +53,27 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      where.OR = [
+      where["OR"] = [
         { title: { contains: search, mode: 'insensitive' } },
         { notes: { contains: search, mode: 'insensitive' } },
         { client: { name: { contains: search, mode: 'insensitive' } } }
       ]
     }
 
-    if (status) where.status = status
-    if (roomId) where.roomId = roomId
-    if (clientId) where.clientId = clientId
+    if (status) where["status"] = status as $Enums.EventStatus
+    if (roomId) where["roomId"] = roomId
+    if (clientId) where["clientId"] = clientId
 
     if (startDate && endDate) {
-      where.startDate = {
+      where["startDate"] = {
         gte: new Date(startDate),
         lte: new Date(endDate)
       }
     }
 
     // CLIENT_EXTERNAL solo puede ver sus propios eventos
-    if (session.user.role === UserRole.CLIENT_EXTERNAL) {
-      where.client = { userId: session.user.id }
+    if (session.user.role?.roleId === $Enums.RoleType.CLIENT_EXTERNAL) {
+      where["client"] = { userId: session.user.id }
     }
 
     const [events, total] = await Promise.all([
@@ -96,10 +96,7 @@ export async function GET(request: NextRequest) {
               }
             }
           },
-          user: {
-            select: { id: true, name: true, email: true }
-          },
-          quotes: {
+          quote: {
             select: { id: true, quoteNumber: true, status: true, total: true }
           }
         },
@@ -131,13 +128,14 @@ export async function GET(request: NextRequest) {
 // POST /api/events - Crear evento
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     // Solo ciertos roles pueden crear eventos
-    if (![UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.MANAGER, UserRole.USER].includes(session.user.role)) {
+    const allowedRoles: $Enums.RoleType[] = [$Enums.RoleType.SUPER_ADMIN, $Enums.RoleType.TENANT_ADMIN, $Enums.RoleType.MANAGER, $Enums.RoleType.USER]
+    if (!session.user.role?.roleId || !allowedRoles.includes(session.user.role.roleId as $Enums.RoleType)) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
 
@@ -175,7 +173,7 @@ export async function POST(request: NextRequest) {
     const conflictingEvent = await prisma.event.findFirst({
       where: {
         roomId: validatedData.roomId,
-        status: { in: [EventStatus.RESERVED, EventStatus.QUOTED, EventStatus.CONFIRMED] },
+        status: { in: [$Enums.EventStatus.RESERVED, $Enums.EventStatus.QUOTED, $Enums.EventStatus.CONFIRMED] },
         OR: [
           {
             AND: [
@@ -225,9 +223,14 @@ export async function POST(request: NextRequest) {
 
     const event = await prisma.event.create({
       data: {
-        ...validatedData,
-        tenantId: session.user.tenantId,
-        userId: session.user.id
+        title: validatedData.title,
+        notes: validatedData.notes ?? null,
+        startDate: validatedData.startDate,
+        endDate: validatedData.endDate,
+        roomId: validatedData.roomId,
+        clientId: validatedData.clientId,
+        status: validatedData.status as $Enums.EventStatus,
+        tenantId: session.user.tenantId
       },
       include: {
         client: {
@@ -243,9 +246,6 @@ export async function POST(request: NextRequest) {
               }
             }
           }
-        },
-        user: {
-          select: { id: true, name: true, email: true }
         }
       }
     })

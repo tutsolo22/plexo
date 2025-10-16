@@ -2,14 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { UserRole } from '@prisma/client'
+import { $Enums } from '@prisma/client'
+import { Decimal } from '@prisma/client/runtime/library'
 
 // Schema de validación para servicios
 const createServiceSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
   description: z.string().optional(),
-  category: z.string().optional(),
-  unit: z.string().default('hora'),
+  price: z.number().min(0, 'El precio debe ser mayor o igual a 0').transform(val => new Decimal(val)),
+  itemType: z.enum(['VENTA', 'COMBO']).default('VENTA'),
+  unit: z.string().default('servicio'),
   isActive: z.boolean().default(true)
 })
 
@@ -18,7 +20,7 @@ const createServiceSchema = z.object({
 // GET /api/services - Listar servicios
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
@@ -27,7 +29,6 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
     const search = searchParams.get('search') || ''
-    const category = searchParams.get('category')
     const isActive = searchParams.get('isActive')
 
     const skip = (page - 1) * limit
@@ -38,14 +39,13 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      where.OR = [
+      where["OR"] = [
         { name: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } }
       ]
     }
 
-    if (category) where.category = category
-    if (isActive !== null) where.isActive = isActive === 'true'
+    if (isActive !== null) where["isActive"] = isActive === 'true'
 
     const [services, total] = await Promise.all([
       prisma.service.findMany({
@@ -53,14 +53,15 @@ export async function GET(request: NextRequest) {
         skip,
         take: limit,
         include: {
-          servicePrices: {
+          supplierServices: {
             include: {
-              priceList: true
+              supplier: {
+                select: { id: true, name: true }
+              }
             }
           },
           _count: {
             select: {
-              quoteItems: true,
               packageItems: true
             }
           }
@@ -93,13 +94,14 @@ export async function GET(request: NextRequest) {
 // POST /api/services - Crear servicio
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     // Solo ciertos roles pueden crear servicios
-    if (![UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.MANAGER].includes(session.user.role)) {
+    const allowedRoles: $Enums.RoleType[] = [$Enums.RoleType.SUPER_ADMIN, $Enums.RoleType.TENANT_ADMIN, $Enums.RoleType.MANAGER]
+    if (!session.user.role?.roleId || !allowedRoles.includes(session.user.role.roleId as $Enums.RoleType)) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
 
@@ -108,13 +110,20 @@ export async function POST(request: NextRequest) {
 
     const service = await prisma.service.create({
       data: {
-        ...validatedData,
+        name: validatedData.name,
+        description: validatedData.description ?? null,
+        price: validatedData.price,
+        itemType: validatedData.itemType as $Enums.ItemType,
+        unit: validatedData.unit,
+        isActive: validatedData.isActive,
         tenantId: session.user.tenantId
       },
       include: {
-        servicePrices: {
+        supplierServices: {
           include: {
-            priceList: true
+            supplier: {
+              select: { id: true, name: true }
+            }
           }
         }
       }
