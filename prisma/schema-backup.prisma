@@ -1,0 +1,523 @@
+// Gestión de Eventos V3 - Schema Principal
+// Basado en la experiencia de CRM Casona María
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+// =====================
+// AUTENTICACIÓN Y USUARIOS
+// =====================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          UserRole  @default(USER)
+
+  // Relaciones NextAuth.js
+  accounts Account[]
+  sessions Session[]
+
+  // Auditoría básica
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones del negocio
+  createdClients Client[] @relation("CreatedByUser")
+  createdEvents  Event[]  @relation("CreatedByUser")
+  createdQuotes  Quote[]  @relation("CreatedByUser")
+  
+  // Relaciones de IA
+  conversations  Conversation[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verificationtokens")
+}
+
+// =====================
+// GESTIÓN DE CLIENTES
+// =====================
+
+model Client {
+  id         String     @id @default(cuid())
+  name       String
+  email      String?    @unique
+  phone      String?
+  company    String?
+  clientType ClientType @default(INDIVIDUAL)
+
+  // Información adicional
+  address String?
+  notes   String?
+
+  // Auditoría
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String
+  createdBy   User     @relation("CreatedByUser", fields: [createdById], references: [id])
+
+  // Relaciones
+  events Event[]
+  quotes Quote[]
+
+  @@map("clients")
+}
+
+// =====================
+// SISTEMA DE EVENTOS
+// =====================
+
+model Event {
+  id          String  @id @default(cuid())
+  title       String
+  description String?
+
+  // Fechas y duración
+  startDate DateTime
+  endDate   DateTime
+  duration  Int // Duración en horas
+
+  // Estado y tipo
+  status    EventStatus @default(QUOTED)
+  eventType String
+
+  // Capacidad y asistentes
+  guestCount      Int
+  confirmedGuests Int @default(0)
+
+  // Relaciones principales
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
+
+  venueId String?
+  venue   Venue?  @relation(fields: [venueId], references: [id])
+
+  // Auditoría
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String
+  createdBy   User     @relation("CreatedByUser", fields: [createdById], references: [id])
+
+  // Relaciones adicionales
+  quotes        Quote[]
+  eventServices EventService[]
+  eventProducts EventProduct[]
+
+  @@map("events")
+}
+
+// =====================
+// VENUES Y ESPACIOS
+// =====================
+
+model Venue {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  location    String?
+  capacity    Int
+
+  // Configuración
+  isActive   Boolean @default(true)
+  hourlyRate Decimal @default(0)
+
+  // Auditoría
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  events     Event[]
+  quoteItems QuoteItem[]
+
+  @@map("venues")
+}
+
+// =====================
+// PRODUCTOS Y SERVICIOS
+// =====================
+
+model Product {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  category    String?
+
+  // Precios
+  basePrice Decimal
+  unit      String  @default("unidad")
+
+  // Configuración
+  isActive Boolean @default(true)
+
+  // Auditoría
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  eventProducts EventProduct[]
+  quoteItems    QuoteItem[]
+
+  @@map("products")
+}
+
+model Service {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  category    String?
+
+  // Precios
+  basePrice Decimal
+  unit      String  @default("hora")
+
+  // Configuración
+  isActive Boolean @default(true)
+
+  // Auditoría
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  eventServices EventService[]
+  quoteItems    QuoteItem[]
+
+  @@map("services")
+}
+
+// =====================
+// COTIZACIONES
+// =====================
+
+model Quote {
+  id     String @id @default(cuid())
+  number String @unique // QUO-2024-001
+
+  // Estado y fechas
+  status     QuoteStatus @default(DRAFT)
+  validUntil DateTime
+
+  // Montos
+  subtotal Decimal @default(0)
+  tax      Decimal @default(0)
+  discount Decimal @default(0)
+  total    Decimal @default(0)
+
+  // Notas
+  notes String?
+  terms String?
+
+  // Relaciones principales
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
+
+  eventId String?
+  event   Event?  @relation(fields: [eventId], references: [id])
+
+  // Auditoría
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String
+  createdBy   User     @relation("CreatedByUser", fields: [createdById], references: [id])
+
+  // Relaciones adicionales
+  items QuoteItem[]
+
+  @@map("quotes")
+}
+
+model QuoteItem {
+  id String @id @default(cuid())
+
+  // Información del item
+  name        String
+  description String?
+  quantity    Int
+  unitPrice   Decimal
+  total       Decimal
+
+  // Tipo de item
+  itemType ItemType
+
+  // Relaciones
+  quoteId String
+  quote   Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  // Referencias opcionales a productos/servicios/venues
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id])
+
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id])
+
+  venueId String?
+  venue   Venue?  @relation(fields: [venueId], references: [id])
+
+  // Auditoría
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("quote_items")
+}
+
+// =====================
+// RELACIONES EVENTO-PRODUCTO/SERVICIO
+// =====================
+
+model EventProduct {
+  id        String  @id @default(cuid())
+  quantity  Int
+  unitPrice Decimal
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, productId])
+  @@map("event_products")
+}
+
+model EventService {
+  id        String  @id @default(cuid())
+  hours     Int
+  unitPrice Decimal
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, serviceId])
+  @@map("event_services")
+}
+
+// =====================
+// ENUMS
+// =====================
+
+enum UserRole {
+  USER
+  MANAGER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum ClientType {
+  INDIVIDUAL
+  CORPORATE
+  GOVERNMENT
+  NONPROFIT
+}
+
+enum EventStatus {
+  QUOTED
+  RESERVED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum QuoteStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  SENT_TO_CLIENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum ItemType {
+  PRODUCT
+  SERVICE
+  VENUE
+  CUSTOM
+}
+
+// =====================
+// SISTEMA DE IA Y EMBEDDINGS
+// =====================
+
+model ContentEmbedding {
+  id          String   @id @default(cuid())
+  contentType String   // 'event', 'client', 'quote', 'venue', 'product', 'service'
+  contentId   String   // ID del contenido referenciado
+  contentText String   // Texto completo para búsqueda
+  embedding   Unsupported("vector(1536)")? // Vector de embeddings OpenAI ada-002
+  metadata    Json?    // Metadata adicional como JSON
+  
+  // Auditoría
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("content_embeddings")
+  @@index([contentType])
+  @@index([contentId])
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  userId    String?  // Usuario asociado (opcional)
+  platform  String   // 'whatsapp', 'web', 'api'
+  sessionId String   @unique // ID de sesión única
+  
+  // Datos de WhatsApp
+  whatsappNumber String? // Número de WhatsApp del usuario
+  whatsappName   String? // Nombre del contacto en WhatsApp
+  
+  // Estado de la conversación
+  isActive  Boolean @default(true)
+  context   Json?   // Contexto de la conversación
+  
+  // Auditoría
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relaciones
+  messages  ConversationMessage[]
+  analytics ConversationAnalytics?
+  user      User?   @relation(fields: [userId], references: [id])
+
+  @@map("conversations")
+  @@index([platform])
+  @@index([whatsappNumber])
+  @@index([isActive])
+}
+
+model ConversationMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  
+  // Contenido del mensaje
+  role           String   // 'user', 'assistant', 'system'
+  content        String   
+  messageType    String   @default("text") // 'text', 'image', 'document', 'audio'
+  
+  // Metadata del mensaje
+  tokens         Int?     // Tokens utilizados (para IA)
+  model          String?  // Modelo de IA utilizado
+  toolCalls      Json?    // Llamadas a herramientas realizadas
+  
+  // Datos específicos de WhatsApp
+  whatsappMessageId String? // ID del mensaje en WhatsApp
+  whatsappStatus    String? // Estado del mensaje ('sent', 'delivered', 'read')
+  
+  // Auditoría
+  createdAt      DateTime @default(now())
+  
+  // Relaciones
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@map("conversation_messages")
+  @@index([conversationId])
+  @@index([role])
+  @@index([createdAt])
+}
+
+model AgentTool {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String
+  parameters  Json     // JSON Schema de los parámetros
+  isActive    Boolean  @default(true)
+  
+  // Configuración de la herramienta
+  handler     String   // Nombre del handler en el código
+  category    String   // Categoría de la herramienta
+  
+  // Métricas de uso
+  usageCount  Int      @default(0)
+  
+  // Auditoría
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("agent_tools")
+  @@index([isActive])
+  @@index([category])
+}
+
+model ConversationAnalytics {
+  id             String   @id @default(cuid())
+  conversationId String   @unique
+  
+  // Métricas de la conversación
+  messageCount      Int     @default(0)
+  userMessages      Int     @default(0)
+  assistantMessages Int     @default(0)
+  totalTokens       Int     @default(0)
+  
+  // Resultados de la conversación
+  wasHelpful        Boolean?
+  userSatisfaction  Int?    // Rating 1-5
+  resolvedQuery     Boolean @default(false)
+  escalatedToHuman  Boolean @default(false)
+  
+  // Categorización
+  intent            String? // Intención detectada
+  category          String? // Categoría de la consulta
+  
+  // Auditoría
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relaciones
+  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@map("conversation_analytics")
+}

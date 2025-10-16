@@ -1,0 +1,164 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * CRM Casona María V2.0 - Variables CSS Globales
+ * 
+ * Definición de colores para modo claro y oscuro
+ * Basado en la paleta de colores Casona María
+ */
+
+@layer base {
+  :root {
+    /* ===============================
+     * MODO CLARO (Light Mode) ☀️
+     * =============================== */
+    
+    /* Fondos y Superficies */
+    --background: 0 0% 98%; /* #F9F9F9 - Fondo principal */
+    --foreground: 0 0% 18%; /* #2F2F2F - Texto principal */
+    --card: 0 0% 100%; /* #FFFFFF - Tarjetas y paneles */
+    --card-foreground: 0 0% 18%; /* #2F2F2F */
+    --popover: 0 0% 100%; /* #FFFFFF */
+    --popover-foreground: 0 0% 18%; /* #2F2F2F */
+    
+    /* Colores Principales Casona María */
+    --primary: 10 76% 55%; /* #E35336 - Terracota */
+    --primary-foreground: 0 0% 98%; /* Texto sobre terracota */
+    --secondary: 24 8% 82%; /* #D1C7C0 - Beige arena */
+    --secondary-foreground: 0 0% 18%; /* #2F2F2F */
+    --accent: 200 100% 67%; /* #59c4ff - Azul acento */
+    --accent-foreground: 0 0% 18%; /* #2F2F2F */
+    
+    /* Estados y Elementos */
+    --muted: 0 0% 92%; /* #EAEAEA - Bordes y separadores */
+    --muted-foreground: 255 4% 43%; /* #6D6A75 - Texto secundario */
+    --destructive: 0 84% 60%; /* #dc3545 - Error */
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 92%; /* #EAEAEA */
+    --input: 0 0% 92%; /* #EAEAEA */
+    --ring: 10 76% 55%; /* #E35336 - Focus ring */
+    --radius: 0.5rem;
+    
+    /* Colores de Estado - Modo Claro */
+    --success: 134 61% 41%; /* #28a745 */
+    --warning: 45 100% 51%; /* #ffc107 */
+    --error: 354 70% 54%; /* #dc3545 */
+    --info: 189 85% 41%; /* #17a2b8 */
+  }
+
+  .dark {
+    /* ===============================
+     * MODO OSCURO (Dark Mode) 🌙
+     * =============================== */
+    
+    /* Fondos y Superficies */
+    --background: 0 0% 10%; /* #1A1A1D - Fondo principal oscuro */
+    --foreground: 0 0% 95%; /* #F1F1F1 - Texto principal claro */
+    --card: 0 0% 15%; /* #252529 - Tarjetas oscuras */
+    --card-foreground: 0 0% 95%; /* #F1F1F1 */
+    --popover: 0 0% 15%; /* #252529 */
+    --popover-foreground: 0 0% 95%; /* #F1F1F1 */
+    
+    /* Colores Principales Casona María - Modo Oscuro */
+    --primary: 10 76% 55%; /* #E35336 - Terracota (mismo color, destaca en oscuro) */
+    --primary-foreground: 0 0% 95%; /* Texto claro sobre terracota */
+    --secondary: 0 0% 20%; /* Gris oscuro para secundario */
+    --secondary-foreground: 0 0% 95%; /* #F1F1F1 */
+    --accent: 200 100% 67%; /* #59c4ff - Azul acento (mismo color) */
+    --accent-foreground: 0 0% 10%; /* Texto oscuro sobre azul */
+    
+    /* Estados y Elementos - Modo Oscuro */
+    --muted: 0 0% 23%; /* #3A3A3F - Bordes oscuros */
+    --muted-foreground: 0 0% 66%; /* #A9A9A9 - Texto secundario claro */
+    --destructive: 0 62% 66%; /* #F85364 - Error más claro */
+    --destructive-foreground: 0 0% 95%;
+    --border: 0 0% 23%; /* #3A3A3F */
+    --input: 0 0% 23%; /* #3A3A3F */
+    --ring: 10 76% 55%; /* #E35336 - Focus ring */
+    
+    /* Colores de Estado - Modo Oscuro */
+    --success: 142 69% 49%; /* #30C551 - Verde más brillante */
+    --warning: 48 100% 60%; /* #FFCD39 - Amarillo más luminoso */
+    --error: 349 89% 67%; /* #F85364 - Rojo más claro */
+    --info: 188 78% 46%; /* #21B3CB - Cian más vibrante */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/**
+ * ===============================
+ * CLASES UTILITARIAS PERSONALIZADAS
+ * ===============================
+ */
+
+@layer components {
+  /* Botones con colores Casona María */
+  .btn-casona-primary {
+    @apply bg-casona-primary hover:bg-casona-primary/90 text-white font-medium px-4 py-2 rounded-md transition-colors;
+  }
+  
+  .btn-casona-secondary {
+    @apply bg-casona-accent hover:bg-casona-accent/90 text-white font-medium px-4 py-2 rounded-md transition-colors;
+  }
+  
+  .btn-casona-outline {
+    @apply border-casona-primary text-casona-primary hover:bg-casona-primary hover:text-white font-medium px-4 py-2 rounded-md border transition-colors;
+  }
+  
+  /* Cards con estilo Casona María */
+  .card-casona {
+    @apply bg-card text-card-foreground rounded-lg border shadow-casona-sm hover:shadow-casona-md transition-shadow;
+  }
+  
+  /* Input fields con colores del tema */
+  .input-casona {
+    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  
+  /* Sidebar navigation con colores Casona */
+  .nav-item-active {
+    @apply bg-casona-primary/10 text-casona-primary border-r-2 border-casona-primary;
+  }
+  
+  .nav-item-hover {
+    @apply hover:bg-casona-primary/5 hover:text-casona-primary transition-colors;
+  }
+  
+  /* Badges de estado */
+  .badge-success {
+    @apply bg-success/10 text-success border border-success/20 px-2 py-1 rounded-full text-xs font-medium;
+  }
+  
+  .badge-warning {
+    @apply bg-warning/10 text-warning border border-warning/20 px-2 py-1 rounded-full text-xs font-medium;
+  }
+  
+  .badge-error {
+    @apply bg-error/10 text-error border border-error/20 px-2 py-1 rounded-full text-xs font-medium;
+  }
+  
+  .badge-info {
+    @apply bg-info/10 text-info border border-info/20 px-2 py-1 rounded-full text-xs font-medium;
+  }
+  
+  /* Gradients con colores Casona */
+  .gradient-casona {
+    @apply bg-gradient-to-r from-casona-primary to-casona-accent;
+  }
+  
+  .gradient-casona-subtle {
+    @apply bg-gradient-to-br from-casona-primary/5 to-casona-accent/5;
+  }
+}

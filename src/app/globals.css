@@ -1,69 +1,232 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "tw-animate-css";
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --radius: 0.5rem;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-  }
+@custom-variant dark (&:is(.dark *));
 
-  .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-  }
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  /* ===============================
+   * CRM CASONA MARÍA V2.0 - MODO CLARO ☀️
+   * Paleta personalizada en formato OKLCH
+   * =============================== */
+  
+  --radius: 0.625rem;
+  
+  /* Fondos y superficies */
+  --background: oklch(0.98 0 0); /* #F9F9F9 - Fondo principal claro */
+  --foreground: oklch(0.18 0 0); /* #2F2F2F - Texto principal */
+  --card: oklch(1 0 0); /* #FFFFFF - Tarjetas */
+  --card-foreground: oklch(0.18 0 0); /* #2F2F2F */
+  --popover: oklch(1 0 0); /* #FFFFFF */
+  --popover-foreground: oklch(0.18 0 0); /* #2F2F2F */
+  
+  /* Colores principales Casona María */
+  --primary: oklch(0.55 0.15 15); /* #E35336 - Terracota característico */
+  --primary-foreground: oklch(0.98 0 0); /* Blanco sobre terracota */
+  --secondary: oklch(0.82 0.02 42); /* #D1C7C0 - Beige arena */
+  --secondary-foreground: oklch(0.18 0 0); /* #2F2F2F */
+  
+  /* Acento y estados */
+  --accent: oklch(0.67 0.15 220); /* #59c4ff - Azul acento */
+  --accent-foreground: oklch(0.18 0 0); /* #2F2F2F */
+  --muted: oklch(0.92 0 0); /* #EAEAEA - Elementos sutiles */
+  --muted-foreground: oklch(0.43 0.01 295); /* #6D6A75 - Texto secundario */
+  --destructive: oklch(0.6 0.2 27); /* #dc3545 - Error */
+  
+  /* Bordes e inputs */
+  --border: oklch(0.92 0 0); /* #EAEAEA */
+  --input: oklch(0.92 0 0); /* #EAEAEA */
+  --ring: oklch(0.55 0.15 15); /* #E35336 - Focus ring terracota */
+  
+  /* Charts con colores Casona */
+  --chart-1: oklch(0.55 0.15 15); /* Terracota */
+  --chart-2: oklch(0.67 0.15 220); /* Azul */
+  --chart-3: oklch(0.82 0.02 42); /* Beige */
+  --chart-4: oklch(0.43 0.01 295); /* Gris */
+  --chart-5: oklch(0.6 0.2 27); /* Rojo */
+  
+  /* Sidebar con tema Casona */
+  --sidebar: oklch(0.98 0 0); /* Fondo claro */
+  --sidebar-foreground: oklch(0.18 0 0); /* Texto oscuro */
+  --sidebar-primary: oklch(0.55 0.15 15); /* Terracota */
+  --sidebar-primary-foreground: oklch(0.98 0 0); /* Blanco */
+  --sidebar-accent: oklch(0.92 0 0); /* Gris claro */
+  --sidebar-accent-foreground: oklch(0.18 0 0); /* Texto oscuro */
+  --sidebar-border: oklch(0.92 0 0); /* Borde sutil */
+  --sidebar-ring: oklch(0.55 0.15 15); /* Focus terracota */
+  
+  /* Colores de estado adicionales */
+  --success: oklch(0.6 0.15 130); /* Verde éxito */
+  --warning: oklch(0.7 0.15 85); /* Amarillo advertencia */
+  --info: oklch(0.6 0.15 210); /* Azul información */
+}
+
+.dark {
+  /* ===============================
+   * CRM CASONA MARÍA V2.0 - MODO OSCURO 🌙
+   * Paleta adaptada para tema oscuro
+   * =============================== */
+  
+  /* Fondos y superficies */
+  --background: oklch(0.10 0 0); /* #1A1A1D - Fondo principal oscuro */
+  --foreground: oklch(0.95 0 0); /* #F1F1F1 - Texto claro */
+  --card: oklch(0.15 0 0); /* #252529 - Tarjetas oscuras */
+  --card-foreground: oklch(0.95 0 0); /* #F1F1F1 */
+  --popover: oklch(0.15 0 0); /* #252529 */
+  --popover-foreground: oklch(0.95 0 0); /* #F1F1F1 */
+  
+  /* Colores principales Casona María - Modo oscuro */
+  --primary: oklch(0.55 0.15 15); /* #E35336 - Terracota (destaca en oscuro) */
+  --primary-foreground: oklch(0.95 0 0); /* Texto claro sobre terracota */
+  --secondary: oklch(0.20 0 0); /* Gris oscuro para secundario */
+  --secondary-foreground: oklch(0.95 0 0); /* #F1F1F1 */
+  
+  /* Acento y estados - Modo oscuro */
+  --accent: oklch(0.67 0.15 220); /* #59c4ff - Azul acento (mismo color) */
+  --accent-foreground: oklch(0.10 0 0); /* Texto oscuro sobre azul */
+  --muted: oklch(0.23 0 0); /* #3A3A3F - Elementos sutiles oscuros */
+  --muted-foreground: oklch(0.66 0 0); /* #A9A9A9 - Texto secundario claro */
+  --destructive: oklch(0.66 0.15 20); /* #F85364 - Error más claro */
+  
+  /* Bordes e inputs - Modo oscuro */
+  --border: oklch(1 0 0 / 10%); /* Borde sutil transparente */
+  --input: oklch(1 0 0 / 15%); /* Input con transparencia */
+  --ring: oklch(0.55 0.15 15); /* #E35336 - Focus ring terracota */
+  
+  /* Charts con colores Casona - Modo oscuro */
+  --chart-1: oklch(0.55 0.15 15); /* Terracota */
+  --chart-2: oklch(0.67 0.15 220); /* Azul brillante */
+  --chart-3: oklch(0.50 0.08 42); /* Beige oscurecido */
+  --chart-4: oklch(0.66 0 0); /* Gris claro */
+  --chart-5: oklch(0.66 0.15 20); /* Rojo claro */
+  
+  /* Sidebar con tema Casona - Modo oscuro */
+  --sidebar: oklch(0.15 0 0); /* Fondo oscuro */
+  --sidebar-foreground: oklch(0.95 0 0); /* Texto claro */
+  --sidebar-primary: oklch(0.55 0.15 15); /* Terracota */
+  --sidebar-primary-foreground: oklch(0.95 0 0); /* Texto claro */
+  --sidebar-accent: oklch(0.20 0 0); /* Gris oscuro */
+  --sidebar-accent-foreground: oklch(0.95 0 0); /* Texto claro */
+  --sidebar-border: oklch(1 0 0 / 10%); /* Borde sutil */
+  --sidebar-ring: oklch(0.55 0.15 15); /* Focus terracota */
+  
+  /* Colores de estado adaptados para modo oscuro */
+  --success: oklch(0.70 0.15 130); /* Verde más brillante */
+  --warning: oklch(0.75 0.15 85); /* Amarillo más luminoso */
+  --info: oklch(0.70 0.15 210); /* Azul información brillante */
 }
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/**
+ * ===============================
+ * CLASES UTILITARIAS CASONA MARÍA
+ * ===============================
+ */
+
+@layer components {
+  /* Botones con estilo Casona María */
+  .btn-casona-primary {
+    @apply bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-4 py-2 rounded-md transition-colors shadow-sm hover:shadow-md;
+  }
+  
+  .btn-casona-secondary {
+    @apply bg-accent hover:bg-accent/90 text-accent-foreground font-medium px-4 py-2 rounded-md transition-colors shadow-sm;
+  }
+  
+  .btn-casona-outline {
+    @apply border border-primary text-primary hover:bg-primary hover:text-primary-foreground font-medium px-4 py-2 rounded-md transition-colors;
+  }
+  
+  /* Cards con diseño Casona */
+  .card-casona {
+    @apply bg-card text-card-foreground rounded-lg border shadow-sm hover:shadow-md transition-shadow;
+  }
+  
+  /* Navegación sidebar */
+  .nav-item-active {
+    @apply bg-primary/10 text-primary border-r-2 border-primary font-medium;
+  }
+  
+  .nav-item-hover {
+    @apply hover:bg-primary/5 hover:text-primary transition-colors;
+  }
+  
+  /* Badges de estado */
+  .badge-success {
+    @apply bg-green-100 text-green-800 border border-green-200 px-2 py-1 rounded-full text-xs font-medium;
+  }
+  
+  .badge-warning {
+    @apply bg-yellow-100 text-yellow-800 border border-yellow-200 px-2 py-1 rounded-full text-xs font-medium;
+  }
+  
+  .badge-error {
+    @apply bg-destructive/10 text-destructive border border-destructive/20 px-2 py-1 rounded-full text-xs font-medium;
+  }
+  
+  .badge-info {
+    @apply bg-blue-100 text-blue-800 border border-blue-200 px-2 py-1 rounded-full text-xs font-medium;
+  }
+  
+  /* Gradientes Casona */
+  .gradient-casona {
+    @apply bg-gradient-to-r from-primary to-accent;
+  }
+  
+  .gradient-casona-subtle {
+    @apply bg-gradient-to-br from-primary/5 to-accent/5;
+  }
+  
+  /* Input personalizado */
+  .input-casona {
+    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
   }
 }

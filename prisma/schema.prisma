@@ -1,44 +1,162 @@
-// Gestión de Eventos V3 - Schema Principal
-// Basado en la experiencia de CRM Casona María
-
+// CRM Casona María V2.0 - Database Schema Limpio
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider   = "postgresql"
-  url        = env("DATABASE_URL")
-  extensions = [vector]
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-// =====================
-// AUTENTICACIÓN Y USUARIOS
-// =====================
+// ===============================
+// ENUMS DEL SISTEMA
+// ===============================
+enum UserRole {
+  SUPER_ADMIN     // Administrador del sistema completo
+  TENANT_ADMIN    // Administrador del tenant
+  MANAGER         // Manager con permisos de aprobación
+  USER            // Usuario básico
+  CLIENT_EXTERNAL // Cliente externo con acceso limitado (NUEVO)
+}
 
+enum ClientType {
+  GENERAL      // Cliente público general
+  COLABORADOR  // Cliente colaborador interno
+  EXTERNO      // Cliente externo con conversión a créditos
+}
+
+enum EventStatus {
+  RESERVED    // Fecha separada sin cotización
+  QUOTED      // Cotización creada pero no aprobada
+  CONFIRMED   // Cotización aprobada y evento confirmado
+  CANCELLED   // Evento cancelado
+}
+
+enum QuoteStatus {
+  DRAFT                 // Borrador del usuario
+  PENDING_MANAGER       // Enviada para aprobación del manager
+  REJECTED_BY_MANAGER   // Rechazada por manager con comentarios
+  APPROVED_BY_MANAGER   // Aprobada por manager, lista para envío
+  SENT_TO_CLIENT        // Enviada al cliente con enlaces públicos
+  CLIENT_REQUESTED_CHANGES // Cliente solicitó modificaciones
+  ACCEPTED_BY_CLIENT    // Aceptada por cliente - evento confirmado
+  EXPIRED               // Vencida por tiempo
+  CANCELLED             // Cancelada
+}
+
+enum PriceType {
+  GENERAL     // Precio público general
+  FRIENDS     // Precio amigos y familia
+  CORPORATE   // Precio corporativo
+  VIP         // Precio VIP
+  CUSTOM      // Precio personalizado
+}
+
+enum PackageType {
+  BASICO     // Paquete básico
+  VIP        // Paquete VIP
+  GOLD       // Paquete Gold
+  DIAMANTE   // Paquete Diamante
+}
+
+enum SupplierType {
+  PRODUCT    // Proveedor de productos
+  SERVICE    // Proveedor de servicios
+}
+
+enum ItemType {
+  CONSUMO    // Para consumo interno
+  VENTA      // Para venta al cliente
+}
+
+// ===============================
+// TENANT SYSTEM
+// ===============================
+// (Eliminado bloque Venue duplicado y corrupto; se mantiene la definición única más abajo)
+
+// ===============================
+// BUSINESS IDENTITIES (NUEVO)
+// Identidades comerciales del negocio - Máximo 5 por tenant
+// Permite manejar múltiples marcas o divisiones del negocio
+// Solo TENANT_ADMIN y MANAGER pueden gestionar
+// ===============================
+model BusinessIdentity {
+  id          String   @id @default(cuid())
+  name        String   // Nombre comercial (ej: "Casona María Centro", "Casona María Eventos")
+  address     String?  // Dirección física de la identidad
+  phone       String?  // Teléfono de contacto específico
+  email       String?  // Email de contacto específico
+  logo        String?  // URL del logo (almacenado en /public/logos/)
+  slogan      String?  // Slogan o frase comercial
+  facebook    String?  // URL del perfil de Facebook
+  instagram   String?  // URL del perfil de Instagram
+  twitter     String?  // URL del perfil de Twitter/X
+  website     String?  // Sitio web oficial
+  isActive    Boolean  @default(true) // Control de activación de identidad
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId       String
+  locations      Location[]     // Locales asociados a esta identidad (1:N)
+  quoteTemplates QuoteTemplate[] // Plantillas de cotización específicas por identidad
+
+  @@map("business_identities")
+  @@index([tenantId])
+  @@index([isActive]) // Para filtrar identidades activas eficientemente
+}
+
+// ===============================
+// LOCATIONS (NUEVO)
+// ===============================
+model Location {
+  id               String   @id @default(cuid())
+  name             String
+  address          String
+  latitude         Float?
+  longitude        Float?
+  description      String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  businessIdentity   BusinessIdentity @relation(fields: [businessIdentityId], references: [id], onDelete: Cascade)
+  businessIdentityId String
+  rooms              Room[]
+
+  @@map("locations")
+  @@index([businessIdentityId])
+}
+
+// ===============================
+// USERS & AUTHENTICATION
+// ===============================
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  role          UserRole  @default(USER)
+  id             String    @id @default(cuid())
+  email          String    @unique
+  password       String?
+  mustChangePassword Boolean @default(false)
+  name           String?
+  role           UserRole  @default(USER)
+  isActive       Boolean   @default(true)
+  emailVerified  DateTime?
+  image          String?
+  activationCode String?   // Para clientes externos
+  isExternal     Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  // Relaciones NextAuth.js
-  accounts Account[]
-  sessions Session[]
-
-  // Auditoría básica
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relaciones del negocio
-  createdClients Client[] @relation("CreatedByUser")
-  createdEvents  Event[]  @relation("CreatedByUser")
-  createdQuotes  Quote[]  @relation("CreatedByUser")
-  
-  // Relaciones de IA
-  conversations  Conversation[]
+  // Relations
+  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId      String
+    accounts      Account[]
+    auditLogs     AuditLog[]
+    client        Client?         // Relación con cliente si es externo
+    clientCredits ClientCredits[]
+    quoteComments QuoteComment[]  // Comentarios en cotizaciones del usuario
+    emailChanges  EmailChange[]
 
   @@map("users")
 }
@@ -63,461 +181,696 @@ model Account {
   @@map("accounts")
 }
 
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("sessions")
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-  @@map("verificationtokens")
-}
-
-// =====================
-// GESTIÓN DE CLIENTES
-// =====================
-
-model Client {
-  id         String     @id @default(cuid())
-  name       String
-  email      String?    @unique
-  phone      String?
-  company    String?
-  clientType ClientType @default(INDIVIDUAL)
-
-  // Información adicional
-  address String?
-  notes   String?
-
-  // Auditoría
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  createdById String
-  createdBy   User     @relation("CreatedByUser", fields: [createdById], references: [id])
-
-  // Relaciones
-  events Event[]
-  quotes Quote[]
-
-  @@map("clients")
-}
-
-// =====================
-// SISTEMA DE EVENTOS
-// =====================
-
-model Event {
-  id          String  @id @default(cuid())
-  title       String
-  description String?
-
-  // Fechas y duración
-  startDate DateTime
-  endDate   DateTime
-  duration  Int // Duración en horas
-
-  // Estado y tipo
-  status    EventStatus @default(QUOTED)
-  eventType String
-
-  // Capacidad y asistentes
-  guestCount      Int
-  confirmedGuests Int @default(0)
-
-  // Relaciones principales
-  clientId String
-  client   Client @relation(fields: [clientId], references: [id])
-
-  venueId String?
-  venue   Venue?  @relation(fields: [venueId], references: [id])
-
-  // Auditoría
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  createdById String
-  createdBy   User     @relation("CreatedByUser", fields: [createdById], references: [id])
-
-  // Relaciones adicionales
-  quotes        Quote[]
-  eventServices EventService[]
-  eventProducts EventProduct[]
-
-  @@map("events")
-}
-
-// =====================
-// VENUES Y ESPACIOS
-// =====================
-
-model Venue {
-  id          String  @id @default(cuid())
-  name        String
-  description String?
-  location    String?
-  capacity    Int
-
-  // Configuración
-  isActive   Boolean @default(true)
-  hourlyRate Decimal @default(0)
-
-  // Auditoría
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  domain    String   @unique
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relaciones
-  events     Event[]
-  quoteItems QuoteItem[]
+  // Relations
+  users              User[]
+  businessIdentities BusinessIdentity[]
+  clients            Client[]
+  events             Event[]
+  products           Product[]
+  services           Service[]
+  quotes             Quote[]
+  configurations     Configuration[]
+  auditLogs          AuditLog[]
+  packages           Package[]
+  suppliers          Supplier[]
+  priceLists         PriceList[]
+  quoteTemplates     QuoteTemplate[]
+  workShifts         WorkShift[]
+  packageTemplates   PackageTemplate[]
+  venues             Venue[]
+  masterEvents       MasterEvent[]
+
+  @@map("tenants")
+}
+
+
+// ===============================
+// WORK SHIFTS (NUEVO)
+// ===============================
+model WorkShift {
+  id          String    @id @default(cuid())
+  name        String
+  startTime   DateTime  // Solo hora, fecha será ignorada
+  endTime     DateTime  // Solo hora, fecha será ignorada
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId    String
+  roomPricing RoomPricing[]
+
+  @@map("work_shifts")
+  @@index([tenantId])
+}
+
+// ===============================
+// PRICE LISTS (NUEVO)
+// ===============================
+model PriceList {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId      String
+  roomPricing   RoomPricing[]
+  clients       Client[]
+
+  @@map("price_lists")
+  @@index([tenantId])
+}
+
+// ===============================
+// ROOMS & PRICING
+// ===============================
+model Room {
+  id            String  @id @default(cuid())
+  name          String
+  description   String?
+  minCapacity   Int
+  maxCapacity   Int
+  color         String  @default("#3B82F6") // Para el calendario
+  isActive      Boolean @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  location    Location      @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  locationId  String
+  venue       Venue         @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  venueId     String
+  events      Event[]
+  roomPricing RoomPricing[]
+
+  @@map("rooms")
+  @@index([locationId])
+  @@index([venueId])
+}
+
+// Relación compleja sala-turno-precio (NUEVO)
+model RoomPricing {
+  id        String   @id @default(cuid())
+  price     Decimal  @db.Decimal(10, 2)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  room        Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId      String
+  workShift   WorkShift @relation(fields: [workShiftId], references: [id], onDelete: Cascade)
+  workShiftId String
+  priceList   PriceList @relation(fields: [priceListId], references: [id], onDelete: Cascade)
+  priceListId String
+
+  @@unique([roomId, workShiftId, priceListId])
+  @@map("room_pricing")
+  @@index([roomId])
+  @@index([workShiftId])
+  @@index([priceListId])
+}
+
+// ===============================
+// PACKAGE TEMPLATES (NUEVO)
+// Paquetes predefinidos que SOLO pueden ser creados y nombrados por MANAGER+
+// Incluyen productos/servicios base y sus respectivos upgrades automáticos
+// ===============================
+model PackageTemplate {
+  id          String      @id @default(cuid())
+  name        String      // Nombre del paquete (ej: "Paquete VIP Sala Principal")
+  description String?     // Descripción detallada del contenido
+  type        PackageType @default(BASICO) // Tipo: BASICO, VIP, GOLD, DIAMANTE
+  basePrice   Decimal?    @db.Decimal(10, 2) // Precio base (sin definir por inflación de insumos)
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  tenant           Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId         String
+  packageItems     PackageTemplateItem[] // Productos/servicios incluidos
+  packageUpgrades  PackageUpgrade[]      // Upgrades disponibles (VIP→GOLD→DIAMANTE)
+  packages         Package[]             // Instancias utilizadas en cotizaciones
+
+  @@map("package_templates")
+  @@index([tenantId])
+  @@index([type]) // Para búsqueda eficiente por tipo de paquete
+}
+
+model PackageTemplateItem {
+  id          String  @id @default(cuid())
+  quantity    Int     @default(1)
+  description String?
+
+  // Relations
+  packageTemplate   PackageTemplate @relation(fields: [packageTemplateId], references: [id], onDelete: Cascade)
+  packageTemplateId String
+  product           Product?        @relation(fields: [productId], references: [id])
+  productId         String?
+  service           Service?        @relation(fields: [serviceId], references: [id])
+  serviceId         String?
+
+  @@map("package_template_items")
+  @@index([packageTemplateId])
+}
+
+model PackageUpgrade {
+  id              String      @id @default(cuid())
+  name            String
+  description     String
+  additionalPrice Decimal     @db.Decimal(10, 2)
+  upgradeType     PackageType
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  packageTemplate   PackageTemplate @relation(fields: [packageTemplateId], references: [id], onDelete: Cascade)
+  packageTemplateId String
+
+  @@map("package_upgrades")
+  @@index([packageTemplateId])
+}
+
+// ===============================
+// SUPPLIERS (NUEVO)
+// ===============================
+model Venue {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  type        VenueType
+  capacity    Int?     // Capacidad del venue
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Imágenes del venue
+  imagenes    String[]
+
+  // Relations
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId    String
+  events      Event[]
+  rooms       Room[]
 
   @@map("venues")
+  @@index([tenantId])
+  @@index([isActive])
+  @@index([type])
 }
 
-// =====================
-// PRODUCTOS Y SERVICIOS
-// =====================
+// --- Chatbot WhatsApp ---
+model BotSession {
+  id           String   @id @default(uuid())
+  tenantId     String
+  phone        String
+  state        String   // INIT, DONE, etc.
+  data         Json
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
+  @@unique([phone, tenantId])
+}
+
+model BotMessage {
+  id        String   @id @default(uuid())
+  tenantId  String
+  phone     String
+  direction String   // 'in' | 'out'
+  text      String?
+  imageUrl  String?
+  createdAt DateTime @default(now())
+}
+
+/// Almacenamiento de embeddings en PostgreSQL usando la extensión pgvector
+model AIEmbedding {
+  id        String   @id @default(cuid())
+  tenantId  String
+  sessionId String?
+  messageId String?
+  content   String
+  // Tipo nativo vector (pgvector). Prisma lo maneja como Unsupported("vector").
+  embedding Unsupported("vector")
+  dim       Int
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([sessionId])
+  @@index([messageId])
+}
+
+model SupplierProduct {
+  id           String   @id @default(cuid())
+  cost         Decimal  @db.Decimal(10, 2)
+  deliveryDays Int      @default(1)
+  minQuantity  Int?     @default(1)
+  notes        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  supplier  Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  supplierId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+
+  @@map("supplier_products")
+  @@index([supplierId])
+  @@index([productId])
+}
+
+model SupplierService {
+  id           String   @id @default(cuid())
+  pricePerUnit Decimal  @db.Decimal(10, 2)
+  unit         String   // "persona", "hora", "evento", "mesa", etc.
+  minQuantity  Int?     @default(1)
+  notes        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  supplier  Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  supplierId String
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  serviceId String
+
+  @@map("supplier_services")
+  @@index([supplierId])
+  @@index([serviceId])
+}
+
+// ===============================
+// CLIENTS & EXTERNAL USERS (ACTUALIZADO)
+// Sistema de clientes con 3 tipos y diferentes comportamientos de precios
+// ===============================
+model Client {
+  id                String     @id @default(cuid())
+  name              String     // Nombre completo del cliente
+  email             String     // Email único por tenant
+  phone             String?    // Teléfono de contacto
+  address           String?    // Dirección física
+  type              ClientType @default(GENERAL) // GENERAL, COLABORADOR, EXTERNO
+  discountPercent   Decimal?   @db.Decimal(5, 2) // Descuento personalizado (0-100%)
+  eventCounter      Int        @default(0)       // Contador eventos para COLABORADOR
+  freeEventsTarget  Int?       // Meta eventos gratis para COLABORADOR (ej: cada 10 eventos)
+  notes             String?    // Notas internas del cliente
+  isActive          Boolean    @default(true)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  // Relations
+  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId      String
+  priceList     PriceList?      @relation(fields: [priceListId], references: [id]) // Lista de precios asignada
+  priceListId   String?         // NULL = usar lista general del tenant
+  user          User?           @relation(fields: [userId], references: [id]) // Solo si type = EXTERNO
+  userId        String?         @unique // Usuario restringido para clientes externos
+  events        Event[]         // Historial de eventos del cliente
+  quotes        Quote[]         // Cotizaciones del cliente
+  clientCredits ClientCredits[] // Créditos acumulados (solo EXTERNO)
+  loyaltyPoints LoyaltyPoints[] // Puntos de fidelidad (solo GENERAL)
+  masterEvents  MasterEvent[]   // Mega Eventos asociados al cliente
+
+  @@unique([email, tenantId]) // Email único por tenant
+  @@map("clients")
+  @@index([tenantId])
+  @@index([type]) // Para filtros eficientes por tipo de cliente
+  @@index([isActive]) // Para consultas de clientes activos
+}
+
+// ===============================
+// CLIENT CREDITS (NUEVO)
+// Sistema de créditos para clientes EXTERNOS
+// Conversión automática: Descuento en pesos = Créditos (1:1)
+// Los créditos NO se devuelven en efectivo, solo se usan en futuros eventos
+// ===============================
+model ClientCredits {
+  id          String   @id @default(cuid())
+  amount      Decimal  @db.Decimal(10, 2) // Cantidad de créditos (positivo o negativo)
+  description String   // Descripción del movimiento
+  type        String   // "EARNED" (ganado por descuento) o "USED" (usado en evento)
+  createdAt   DateTime @default(now())
+
+  // Relations
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId String // Cliente externo que recibe/usa créditos
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   String // Usuario restringido asociado al cliente externo
+  quote    Quote? @relation(fields: [quoteId], references: [id])
+  quoteId  String? // Cotización donde se ganaron/usaron los créditos
+
+  @@map("client_credits")
+  @@index([clientId])
+  @@index([userId])
+  @@index([type]) // Para filtros eficientes por tipo de movimiento
+}
+
+// Puntos de fidelidad para clientes generales (NUEVO)
+model LoyaltyPoints {
+  id          String   @id @default(cuid())
+  points      Int
+  description String
+  type        String   // "EARNED", "REDEEMED"
+  createdAt   DateTime @default(now())
+
+  // Relations
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId String
+  event    Event? @relation(fields: [eventId], references: [id])
+  eventId  String?
+
+  @@map("loyalty_points")
+  @@index([clientId])
+}
+
+// ===============================
+// PRODUCTS & SERVICES
+// ===============================
 model Product {
-  id          String  @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
   description String?
-  category    String?
+  cost        Decimal? @db.Decimal(10, 2) // Costo sin proveedor
+  price       Decimal  @db.Decimal(10, 2) // Precio de venta
+  itemType    ItemType @default(VENTA)
+  unit        String   @default("pieza")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  // Precios
-  basePrice Decimal
-  unit      String  @default("unidad")
-
-  // Configuración
-  isActive Boolean @default(true)
-
-  // Auditoría
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relaciones
-  eventProducts EventProduct[]
-  quoteItems    QuoteItem[]
+  // Relations
+  tenant              Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId            String
+  supplierProducts    SupplierProduct[]
+  packageItems        PackageItem[]
+  packageTemplateItems PackageTemplateItem[]
 
   @@map("products")
+  @@index([tenantId])
 }
 
 model Service {
-  id          String  @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
   description String?
-  category    String?
+  price       Decimal  @db.Decimal(10, 2)
+  itemType    ItemType @default(VENTA)
+  unit        String   @default("servicio")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  // Precios
-  basePrice Decimal
-  unit      String  @default("hora")
-
-  // Configuración
-  isActive Boolean @default(true)
-
-  // Auditoría
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relaciones
-  eventServices EventService[]
-  quoteItems    QuoteItem[]
+  // Relations
+  tenant              Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId            String
+  supplierServices    SupplierService[]
+  packageItems        PackageItem[]
+  packageTemplateItems PackageTemplateItem[]
 
   @@map("services")
+  @@index([tenantId])
 }
 
-// =====================
-// COTIZACIONES
-// =====================
-
-model Quote {
-  id     String @id @default(cuid())
-  number String @unique // QUO-2024-001
-
-  // Estado y fechas
-  status     QuoteStatus @default(DRAFT)
-  validUntil DateTime
-
-  // Montos
-  subtotal Decimal @default(0)
-  tax      Decimal @default(0)
-  discount Decimal @default(0)
-  total    Decimal @default(0)
-
-  // Notas
-  notes String?
-  terms String?
-
-  // Relaciones principales
-  clientId String
-  client   Client @relation(fields: [clientId], references: [id])
-
-  eventId String?
-  event   Event?  @relation(fields: [eventId], references: [id])
-
-  // Auditoría
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  createdById String
-  createdBy   User     @relation("CreatedByUser", fields: [createdById], references: [id])
-
-  // Relaciones adicionales
-  items QuoteItem[]
-
-  @@map("quotes")
-}
-
-model QuoteItem {
-  id String @id @default(cuid())
-
-  // Información del item
+// ===============================
+// EVENTS & QUOTES
+// ===============================
+model MasterEvent {
+  id          String   @id @default(cuid())
   name        String
   description String?
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  status      String   @default("DRAFT") // DRAFT, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED
+  events      Event[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("master_events")
+  @@index([tenantId])
+  @@index([clientId])
+}
+
+model Event {
+  id             String      @id @default(cuid())
+  title          String
+  startDate      DateTime
+  endDate        DateTime
+  status         EventStatus @default(RESERVED)
+  notes          String?
+  isFullVenue    Boolean     @default(false) // True si reserva todo el local
+  colorCode      String?     // Color para el calendario
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  // Relations
+  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId      String
+  client        Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId      String
+  room          Room?           @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId        String?         // Para salas individuales
+  venue         Venue?          @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  venueId       String?         // Para locales completos
+  quote         Quote?
+  loyaltyPoints LoyaltyPoints[]
+  masterEvent   MasterEvent?    @relation(fields: [masterEventId], references: [id], onDelete: SetNull)
+  masterEventId String?
+
+  @@map("events")
+  @@index([tenantId])
+  @@index([clientId])
+  @@index([roomId])
+  @@index([venueId])
+  @@index([startDate])
+  @@index([isFullVenue])
+  @@index([masterEventId])
+}
+
+model Quote {
+  id            String      @id @default(cuid())
+  quoteNumber   String      @unique
+  status        QuoteStatus @default(DRAFT)
+  subtotal      Decimal     @db.Decimal(10, 2)
+  discount      Decimal     @default(0) @db.Decimal(10, 2)
+  total         Decimal     @db.Decimal(10, 2)
+  validUntil    DateTime
+  notes         String?
+  publicToken   String?     @unique // Para acceso sin login
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId      String
+  client        Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId      String
+  event         Event?          @relation(fields: [eventId], references: [id])
+  eventId       String?         @unique
+  packages      Package[]
+  clientCredits ClientCredits[]
+  comments      QuoteComment[]
+
+  @@map("quotes")
+  @@index([tenantId])
+  @@index([clientId])
+  @@index([status])
+}
+
+// Sistema de paquetes dinámicos
+model Package {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  subtotal      Decimal  @db.Decimal(10, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  tenant            Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId          String
+  quote             Quote            @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  quoteId           String
+  packageTemplate   PackageTemplate? @relation(fields: [packageTemplateId], references: [id])
+  packageTemplateId String?
+  packageItems      PackageItem[]
+
+  @@map("packages")
+  @@index([tenantId])
+  @@index([quoteId])
+}
+
+model PackageItem {
+  id          String  @id @default(cuid())
   quantity    Int
-  unitPrice   Decimal
-  total       Decimal
+  unitPrice   Decimal @db.Decimal(10, 2)
+  totalPrice  Decimal @db.Decimal(10, 2)
+  description String?
 
-  // Tipo de item
-  itemType ItemType
-
-  // Relaciones
-  quoteId String
-  quote   Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-
-  // Referencias opcionales a productos/servicios/venues
-  productId String?
+  // Relations
+  package   Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  packageId String
   product   Product? @relation(fields: [productId], references: [id])
-
-  serviceId String?
+  productId String?
   service   Service? @relation(fields: [serviceId], references: [id])
+  serviceId String?
 
-  venueId String?
-  venue   Venue?  @relation(fields: [venueId], references: [id])
-
-  // Auditoría
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("quote_items")
+  @@map("package_items")
+  @@index([packageId])
 }
 
-// =====================
-// RELACIONES EVENTO-PRODUCTO/SERVICIO
-// =====================
-
-model EventProduct {
-  id        String  @id @default(cuid())
-  quantity  Int
-  unitPrice Decimal
-
-  eventId String
-  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
-
-  createdAt DateTime @default(now())
-
-  @@unique([eventId, productId])
-  @@map("event_products")
+enum CommentType {
+  INTERNAL_MANAGER // Comentario interno del manager
+  CLIENT_FEEDBACK  // Comentario del cliente
+  SYSTEM_NOTE      // Nota del sistema
 }
 
-model EventService {
-  id        String  @id @default(cuid())
-  hours     Int
-  unitPrice Decimal
+model QuoteComment {
+  id        String      @id @default(cuid())
+  comment   String
+  type      CommentType @default(INTERNAL_MANAGER)
+  createdAt DateTime    @default(now())
 
-  eventId String
-  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  // Relations
+  quote   Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  quoteId String
+  user    User   @relation(fields: [userId], references: [id])
+  userId  String
 
-  serviceId String
-  service   Service @relation(fields: [serviceId], references: [id])
-
-  createdAt DateTime @default(now())
-
-  @@unique([eventId, serviceId])
-  @@map("event_services")
+  @@map("quote_comments")
+  @@index([quoteId])
 }
 
-// =====================
-// ENUMS
-// =====================
+// ===============================
+// QUOTE TEMPLATES (NUEVO)
+// ===============================
+model QuoteTemplate {
+  id              String   @id @default(cuid())
+  name            String
+  htmlContent     String   @db.Text // Contenido HTML del template
+  isDefault       Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-enum UserRole {
-  USER
-  MANAGER
-  ADMIN
-  SUPER_ADMIN
+  // Relations
+  tenant             Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId           String
+  businessIdentity   BusinessIdentity @relation(fields: [businessIdentityId], references: [id], onDelete: Cascade)
+  businessIdentityId String
+
+  @@map("quote_templates")
+  @@index([tenantId])
+  @@index([businessIdentityId])
+//    suppliers          SupplierProduct[]
 }
 
-enum ClientType {
-  INDIVIDUAL
-  CORPORATE
-  GOVERNMENT
-  NONPROFIT
-}
+// ===============================
+// VENUES & PRODUCTS MANAGEMENT
+// ===============================
 
-enum EventStatus {
-  QUOTED
-  RESERVED
-  CONFIRMED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-}
-
-enum QuoteStatus {
-  DRAFT
-  PENDING_APPROVAL
-  APPROVED
-  SENT_TO_CLIENT
-  ACCEPTED
-  REJECTED
-  EXPIRED
-}
-
-enum ItemType {
-  PRODUCT
-  SERVICE
+enum VenueType {
   VENUE
-  CUSTOM
+  ROOM
 }
 
-// =====================
-// SISTEMA DE IA Y EMBEDDINGS
-// =====================
-
-model ContentEmbedding {
-  id          String   @id @default(cuid())
-  contentType String   // 'event', 'client', 'quote', 'venue', 'product', 'service'
-  contentId   String   // ID del contenido referenciado
-  contentText String   // Texto completo para búsqueda
-  embedding   Unsupported("vector(1536)")? // Vector de embeddings OpenAI ada-002
-  metadata    Json?    // Metadata adicional como JSON
-  
-  // Auditoría
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("content_embeddings")
-  @@index([contentType])
-  @@index([contentId])
+enum ProductType {
+  PRODUCT   // Producto físico
+  SERVICE   // Servicio
+  PACKAGE   // Paquete de productos/servicios
 }
 
-model Conversation {
+
+
+
+
+// ===============================
+// CONFIGURATION & AUDIT
+// ===============================
+model Configuration {
   id        String   @id @default(cuid())
-  userId    String?  // Usuario asociado (opcional)
-  platform  String   // 'whatsapp', 'web', 'api'
-  sessionId String   @unique // ID de sesión única
-  
-  // Datos de WhatsApp
-  whatsappNumber String? // Número de WhatsApp del usuario
-  whatsappName   String? // Nombre del contacto en WhatsApp
-  
-  // Estado de la conversación
-  isActive  Boolean @default(true)
-  context   Json?   // Contexto de la conversación
-  
-  // Auditoría
+  key       String
+  value     String   @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  // Relaciones
-  messages  ConversationMessage[]
-  analytics ConversationAnalytics?
-  user      User?   @relation(fields: [userId], references: [id])
 
-  @@map("conversations")
-  @@index([platform])
-  @@index([whatsappNumber])
-  @@index([isActive])
+  // Relations
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId String
+
+  @@unique([tenantId, key])
+  @@map("configurations")
 }
 
-model ConversationMessage {
-  id             String   @id @default(cuid())
-  conversationId String
-  
-  // Contenido del mensaje
-  role           String   // 'user', 'assistant', 'system'
-  content        String   
-  messageType    String   @default("text") // 'text', 'image', 'document', 'audio'
-  
-  // Metadata del mensaje
-  tokens         Int?     // Tokens utilizados (para IA)
-  model          String?  // Modelo de IA utilizado
-  toolCalls      Json?    // Llamadas a herramientas realizadas
-  
-  // Datos específicos de WhatsApp
-  whatsappMessageId String? // ID del mensaje en WhatsApp
-  whatsappStatus    String? // Estado del mensaje ('sent', 'delivered', 'read')
-  
-  // Auditoría
-  createdAt      DateTime @default(now())
-  
-  // Relaciones
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String   // CREATE, UPDATE, DELETE
+  tableName  String
+  recordId   String
+  oldData    Json?    // Datos anteriores
+  newData    Json?    // Datos nuevos
+  createdAt  DateTime @default(now())
 
-  @@map("conversation_messages")
-  @@index([conversationId])
-  @@index([role])
-  @@index([createdAt])
+  // Relations
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId String
+  user     User   @relation(fields: [userId], references: [id])
+  userId   String
+
+  @@map("audit_logs")
+  @@index([tenantId])
+  @@index([tableName, recordId])
 }
 
-model AgentTool {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String
-  parameters  Json     // JSON Schema de los parámetros
-  isActive    Boolean  @default(true)
-  
-  // Configuración de la herramienta
-  handler     String   // Nombre del handler en el código
-  category    String   // Categoría de la herramienta
-  
-  // Métricas de uso
-  usageCount  Int      @default(0)
-  
-  // Auditoría
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+// ===============================
+// SUPPLIER (mínimo para referencias)
+// ===============================
+model Supplier {
+  id        String   @id @default(cuid())
+  name      String
+  type      SupplierType
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@map("agent_tools")
-  @@index([isActive])
-  @@index([category])
+  // Relaciones
+  products SupplierProduct[]
+  services SupplierService[]
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId String
+
+  @@map("suppliers")
 }
 
-model ConversationAnalytics {
-  id             String   @id @default(cuid())
-  conversationId String   @unique
-  
-  // Métricas de la conversación
-  messageCount      Int     @default(0)
-  userMessages      Int     @default(0)
-  assistantMessages Int     @default(0)
-  totalTokens       Int     @default(0)
-  
-  // Resultados de la conversación
-  wasHelpful        Boolean?
-  userSatisfaction  Int?    // Rating 1-5
-  resolvedQuery     Boolean @default(false)
-  escalatedToHuman  Boolean @default(false)
-  
-  // Categorización
-  intent            String? // Intención detectada
-  category          String? // Categoría de la consulta
-  
-  // Auditoría
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
-  // Relaciones
-  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+// Cambios de email (mínimo para referencias)
+model EmailChange {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  createdAt DateTime @default(now())
 
-  @@map("conversation_analytics")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("email_changes")
+  @@index([userId])
+  @@index([token])
 }

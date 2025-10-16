@@ -154,26 +154,27 @@ async function seedDemoData() {
       },
     });
 
-    const lanzamientoTech = await prisma.event.create({
-      data: {
-        title: 'Lanzamiento App TechCorp',
-        description: 'Lanzamiento de nueva aplicación móvil',
-        startDate: new Date('2024-09-15T19:00:00Z'),
-        endDate: new Date('2024-09-15T23:00:00Z'),
-        duration: 4,
-        guestCount: 80,
-        status: 'COMPLETED',
-        eventType: 'Corporativo',
-        clientId: robertoClient.id,
-        venueId: jardinTerraza.id,
-        createdById: roberto.id,
-      },
-    });
+      // Lanzamiento TechCorp event
+      await prisma.event.create({
+        data: {
+          title: 'Lanzamiento App TechCorp',
+          description: 'Lanzamiento de nueva aplicación móvil',
+          startDate: new Date('2024-09-15T19:00:00Z'),
+          endDate: new Date('2024-09-15T23:00:00Z'),
+          duration: 4,
+          guestCount: 80,
+          status: 'COMPLETED',
+          eventType: 'Corporativo',
+          clientId: robertoClient.id,
+          venueId: jardinTerraza.id,
+          createdById: roberto.id,
+        },
+      });
 
     // 5. Crear eventos futuros
     console.log('🔮 Creando eventos futuros...');
 
-    const bodaSanValentin = await prisma.event.create({
+    await prisma.event.create({
       data: {
         title: 'Boda Méndez-Torres',
         description: 'Boda temática San Valentín',
@@ -189,7 +190,7 @@ async function seedDemoData() {
       },
     });
 
-    const capacitacionAnual = await prisma.event.create({
+    await prisma.event.create({
       data: {
         title: 'Capacitación Anual 2025',
         description: 'Capacitación técnica anual para empleados',
@@ -233,6 +234,7 @@ async function seedDemoData() {
     // 7. Crear embeddings para búsqueda semántica
     console.log('🧠 Creando embeddings para IA...');
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const embeddingData = [
       {
         contentType: 'venue',

@@ -23,7 +23,7 @@ async function chatHandler(req: NextRequest) {
 
     // Usar sessionId como conversationId si no se proporciona conversationId
     let currentConversationId = conversationId || sessionId;
-    let conversationContext: any[] = [];
+    let conversationContext: Array<{ role: string; content: string }> = [];
 
     // Si no hay conversación, crear una nueva
     if (!currentConversationId) {

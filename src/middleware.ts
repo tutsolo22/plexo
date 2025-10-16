@@ -1,31 +1,61 @@
-import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { getToken } from 'next-auth/jwt'
 
-export default auth((req: any) => {
-  const { pathname } = req.nextUrl
-  const isLoggedIn = !!req.auth
+export async function middleware(request: NextRequest) {
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
+  const { pathname } = request.nextUrl
 
   // Rutas públicas que no requieren autenticación
-  const publicRoutes = [
-    '/',
-    '/auth/signin',
-    '/auth/signup',
+  const publicPaths = [
+    '/auth/login',
+    '/auth/register',
+    '/auth/resend-activation',
+    '/auth/activate',
     '/api/auth',
+    '/_next',
+    '/favicon.ico'
   ]
 
-  // Verificar si la ruta es pública
-  const isPublicRoute = publicRoutes.some(route => 
-    pathname.startsWith(route)
-  )
-
-  // Si no está loggeado y la ruta no es pública, redirigir al login
-  if (!isLoggedIn && !isPublicRoute) {
-    return NextResponse.redirect(new URL('/auth/signin', req.url))
+  // Si es una ruta pública, permitir acceso
+  if (publicPaths.some(path => pathname.startsWith(path))) {
+    return NextResponse.next()
   }
 
-  // Permitir el acceso
+  // Si no hay token (no autenticado), redirigir a login
+  if (!token) {
+    return NextResponse.redirect(new URL('/auth/login', request.url))
+  }
+
+  // Lógica de redirección basada en roles
+  const userRole = token.role as string
+
+  // Clientes externos solo pueden acceder al portal de cliente
+  if (userRole === 'CLIENT_EXTERNAL') {
+    if (!pathname.startsWith('/client-portal')) {
+      return NextResponse.redirect(new URL('/client-portal', request.url))
+    }
+    return NextResponse.next()
+  }
+
+  // Usuarios administrativos no pueden acceder al portal de cliente
+  if (pathname.startsWith('/client-portal')) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  // Mejora UX: SUPER_ADMIN que navega a /dashboard va directo a gestión de usuarios
+  if (pathname === '/dashboard' && userRole === 'SUPER_ADMIN') {
+    return NextResponse.redirect(new URL('/dashboard/users', request.url))
+  }
+
+  // Para otros roles, permitir acceso a dashboard y rutas administrativas
+  const adminRoles = ['SUPER_ADMIN', 'TENANT_ADMIN', 'MANAGER', 'USER']
+  if (!adminRoles.includes(userRole)) {
+    return NextResponse.redirect(new URL('/auth/login', request.url))
+  }
+
   return NextResponse.next()
-})
+}
 
 export const config = {
   matcher: [
@@ -35,7 +65,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - public (public files)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
   ],
 }
