@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole, ClientType, EventStatus, QuoteStatus, VenueType, ItemType } from '@prisma/client'
+import { PrismaClient, LegacyUserRole, ClientType, EventStatus, QuoteStatus, VenueType, ItemType } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -25,7 +25,7 @@ async function main() {
     create: {
       email: 'admin@gestioneventos.com',
       name: 'Administrador',
-      role: UserRole.SUPER_ADMIN,
+      role: LegacyUserRole.SUPER_ADMIN,
       tenantId: mainTenant.id,
     },
   })
@@ -39,7 +39,7 @@ async function main() {
     create: {
       email: 'manager@gestioneventos.com',
       name: 'Manager',
-      role: UserRole.MANAGER,
+      role: LegacyUserRole.MANAGER,
       tenantId: mainTenant.id,
     },
   })

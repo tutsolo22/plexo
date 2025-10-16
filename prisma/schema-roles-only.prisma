@@ -1,0 +1,109 @@
+// ===============================
+// ESQUEMA TEMPORAL SOLO PARA ROLES FLEXIBLES
+// ===============================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Nuevos enums para el sistema de roles flexibles
+enum RoleType {
+  SUPER_ADMIN      // Administrador del sistema completo
+  TENANT_ADMIN     // Administrador del tenant
+  MANAGER          // Manager con permisos de aprobación
+  USER             // Usuario básico del sistema
+  CLIENT_EXTERNAL  // Cliente externo con acceso limitado
+  SALES            // Ejecutivo de ventas
+  COORDINATOR      // Coordinador de eventos
+  FINANCE          // Personal de finanzas
+}
+
+enum PermissionAction {
+  CREATE    // Crear nuevos registros
+  READ      // Leer/ver registros
+  UPDATE    // Actualizar registros existentes
+  DELETE    // Eliminar registros
+  APPROVE   // Aprobar cotizaciones/eventos
+  MANAGE    // Gestionar configuraciones
+  EXPORT    // Exportar datos
+  IMPORT    // Importar datos
+}
+
+enum PermissionResource {
+  USER          // Usuarios del sistema
+  CLIENT        // Clientes
+  EVENT         // Eventos
+  QUOTE         // Cotizaciones
+  PRODUCT       // Productos
+  SERVICE       // Servicios
+  VENUE         // Venues/locales
+  PACKAGE       // Paquetes
+  REPORT        // Reportes
+  CONFIGURATION // Configuraciones del sistema
+  ROLE          // Gestión de roles (meta-permiso)
+}
+
+// Modelo principal de roles
+model Role {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  type        RoleType
+  description String?
+  isActive    Boolean    @default(true)
+  tenantId    String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  userRoles   UserRole[]
+  permissions Permission[]
+
+  @@index([type])
+  @@index([tenantId])
+  @@map("roles")
+}
+
+// Asignación de roles a usuarios (many-to-many)
+model UserRole {
+  id       String   @id @default(cuid())
+  userId   String
+  roleId   String
+  tenantId String?
+  assignedAt DateTime @default(now())
+  assignedBy String?
+  expiresAt  DateTime?
+  isActive   Boolean  @default(true)
+
+  // Relations
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId, tenantId])
+  @@index([userId])
+  @@index([roleId])
+  @@index([tenantId])
+  @@map("user_roles")
+}
+
+// Permisos específicos por rol
+model Permission {
+  id       String             @id @default(cuid())
+  roleId   String
+  action   PermissionAction
+  resource PermissionResource
+  conditions Json?            // Condiciones adicionales en formato JSON
+  createdAt DateTime          @default(now())
+
+  // Relations
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, action, resource])
+  @@index([roleId])
+  @@index([action])
+  @@index([resource])
+  @@map("permissions")
+}

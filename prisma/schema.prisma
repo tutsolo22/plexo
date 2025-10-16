@@ -14,7 +14,7 @@ datasource db {
 // ===============================
 // ENUMS DEL SISTEMA
 // ===============================
-enum UserRole {
+enum LegacyUserRole {
   SUPER_ADMIN     // Administrador del sistema completo
   TENANT_ADMIN    // Administrador del tenant
   MANAGER         // Manager con permisos de aprobación
@@ -26,6 +26,45 @@ enum ClientType {
   GENERAL      // Cliente público general
   COLABORADOR  // Cliente colaborador interno
   EXTERNO      // Cliente externo con conversión a créditos
+}
+
+// ===============================
+// ENUMS SISTEMA ROLES FLEXIBLES
+// ===============================
+enum RoleType {
+  SUPER_ADMIN    // Super administrador del sistema
+  TENANT_ADMIN   // Administrador del tenant
+  MANAGER        // Manager con permisos de aprobación
+  SALES          // Ejecutivo de ventas
+  COORDINATOR    // Coordinador de eventos
+  FINANCE        // Personal de finanzas
+  USER           // Usuario básico
+  CLIENT_EXTERNAL // Cliente externo con acceso limitado
+}
+
+enum PermissionAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  APPROVE
+  REJECT
+  EXPORT
+  IMPORT
+}
+
+enum PermissionResource {
+  EVENTS
+  CLIENTS
+  QUOTES
+  USERS
+  ROLES
+  REPORTS
+  VENUES
+  PRODUCTS
+  SERVICES
+  PACKAGES
+  CONFIGURATIONS
 }
 
 enum EventStatus {
@@ -142,7 +181,7 @@ model User {
   password       String?
   mustChangePassword Boolean @default(false)
   name           String?
-  role           UserRole  @default(USER)
+  role           LegacyUserRole  @default(USER) // TEMPORAL: Mantenido para compatibilidad durante migración
   isActive       Boolean   @default(true)
   emailVerified  DateTime?
   image          String?
@@ -160,6 +199,10 @@ model User {
   clientCredits ClientCredits[]
   quoteComments QuoteComment[]  // Comentarios en cotizaciones del usuario
   emailChanges  EmailChange[]
+  
+  // Flexible Role System Relations
+  userRoles     UserRole[]      // Roles asignados al usuario
+  assignedRoles UserRole[]      @relation("AssignedRoles") // Roles que este usuario ha asignado
 
   @@map("users")
 }
@@ -184,6 +227,68 @@ model Account {
 
   @@unique([provider, providerAccountId])
   @@map("accounts")
+}
+
+// Flexible Role System Models
+model Role {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  type        RoleType
+  description String?
+  isActive    Boolean    @default(true)
+  tenantId    String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  tenant      Tenant?     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userRoles   UserRole[]
+  permissions Permission[]
+
+  @@index([type])
+  @@index([tenantId])
+  @@map("roles")
+}
+
+model UserRole {
+  id       String   @id @default(cuid())
+  userId   String
+  roleId   String
+  tenantId String?
+  assignedAt DateTime @default(now())
+  assignedBy String?
+  expiresAt  DateTime?
+  isActive   Boolean  @default(true)
+
+  // Relations
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  tenant     Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignedByUser User? @relation("AssignedRoles", fields: [assignedBy], references: [id])
+
+  @@unique([userId, roleId, tenantId])
+  @@index([userId])
+  @@index([roleId])
+  @@index([tenantId])
+  @@map("user_roles")
+}
+
+model Permission {
+  id       String             @id @default(cuid())
+  roleId   String
+  action   PermissionAction
+  resource PermissionResource
+  conditions Json?            // Condiciones adicionales en formato JSON
+  createdAt DateTime          @default(now())
+
+  // Relations
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, action, resource])
+  @@index([roleId])
+  @@index([action])
+  @@index([resource])
+  @@map("permissions")
 }
 
 model Tenant {
@@ -212,6 +317,10 @@ model Tenant {
   packageTemplates   PackageTemplate[]
   venues             Venue[]
   masterEvents       MasterEvent[]
+  
+  // Flexible Role System Relations
+  roles              Role[]             // Roles específicos del tenant
+  userRoles          UserRole[]         // Asignaciones de roles del tenant
 
   @@map("tenants")
 }
