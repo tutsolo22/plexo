@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import { prisma } from '@/lib/prisma';
 import { vectorSearchService } from './vector-search';
-import { SYSTEM_PROMPTS, RESPONSE_TEMPLATES, formatEventResult, formatClientResult, formatVenueResult, formatQuoteResult } from './prompt-templates';
+import { SYSTEM_PROMPTS, RESPONSE_TEMPLATES } from './prompt-templates';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,

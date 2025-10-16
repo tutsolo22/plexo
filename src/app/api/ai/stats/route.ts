@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { conversationMemoryService } from '@/lib/ai/conversation-memory';
 import { prisma } from '@/lib/prisma';
 import { withAuth } from '@/lib/api/middleware/auth';
