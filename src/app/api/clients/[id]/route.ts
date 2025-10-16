@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { UserRole } from '@prisma/client'
+import { $Enums } from '@prisma/client'
 
 // Schema de validación para actualizar cliente
 const updateClientSchema = z.object({
@@ -22,7 +22,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
@@ -33,8 +33,9 @@ export async function GET(
     }
 
     // CLIENT_EXTERNAL solo puede ver sus propios datos
-    if (session.user.role === UserRole.CLIENT_EXTERNAL) {
-      where.userId = session.user.id
+    const userRoleType = session.user.role.roleId as $Enums.RoleType
+    if (userRoleType === $Enums.RoleType.CLIENT_EXTERNAL) {
+      where["userId"] = session.user.id
     }
 
     const client = await prisma.client.findFirst({
@@ -110,13 +111,17 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     // Solo ciertos roles pueden actualizar clientes
-    if (![UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.MANAGER, UserRole.USER].includes(session.user.role)) {
+    const userRoleType = session.user.role.roleId as $Enums.RoleType
+    if (userRoleType !== $Enums.RoleType.SUPER_ADMIN && 
+        userRoleType !== $Enums.RoleType.TENANT_ADMIN && 
+        userRoleType !== $Enums.RoleType.MANAGER && 
+        userRoleType !== $Enums.RoleType.USER) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
 
@@ -156,9 +161,19 @@ export async function PUT(
       }
     }
 
+    const updateData = {
+      ...(validatedData.name !== undefined && { name: validatedData.name }),
+      ...(validatedData.email !== undefined && { email: validatedData.email }),
+      ...(validatedData.phone !== undefined && { phone: validatedData.phone }),
+      ...(validatedData.address !== undefined && { address: validatedData.address }),
+      ...(validatedData.notes !== undefined && { notes: validatedData.notes }),
+      ...(validatedData.type !== undefined && { type: validatedData.type }),
+      ...(validatedData.isActive !== undefined && { isActive: validatedData.isActive }),
+    }
+
     const updatedClient = await prisma.client.update({
       where: { id: params.id },
-      data: validatedData,
+      data: updateData,
       include: {
         priceList: true,
         user: {
@@ -195,13 +210,15 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden eliminar
-    if (![UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN].includes(session.user.role)) {
+    const userRoleType = session.user.role.roleId as $Enums.RoleType
+    if (userRoleType !== $Enums.RoleType.SUPER_ADMIN && 
+        userRoleType !== $Enums.RoleType.TENANT_ADMIN) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
 
