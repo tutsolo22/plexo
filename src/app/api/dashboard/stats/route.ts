@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { getDashboardStats } from '@/hooks/use-dashboard-stats';
+import { getDashboardStats } from '@/lib/dashboard-stats';
 
 /**
  * API Route para obtener estadísticas del dashboard

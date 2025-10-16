@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
-import { getDashboardStats } from "@/hooks/use-dashboard-stats"
+import { getDashboardStats } from "@/lib/dashboard-stats"
 import { StatsGrid } from "@/components/dashboard/stats-grid"
 import { RecentActivity } from "@/components/dashboard/recent-activity"
 

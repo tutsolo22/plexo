@@ -1,8 +1,23 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Client } from '@prisma/client';
-import type { ClientFilters } from '@/lib/validations/schemas';
+'use client';
 
-type PartialClientFilters = Partial<ClientFilters>;
+import { useState, useEffect, useCallback } from 'react';
+
+export interface Client {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  company?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClientFilters {
+  search?: string;
+  company?: string;
+  status?: string;
+}
 
 export interface UseClientsResult {
   clients: Client[];
@@ -20,20 +35,20 @@ export interface UseClientsResult {
  * Hook personalizado para gestión de clientes
  * Implementa patrón DRY con CRUD completo
  */
-export function useClients(filters: PartialClientFilters = {}): UseClientsResult {
+export function useClients(filters: Partial<ClientFilters> = {}): UseClientsResult {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(0);
-  const [currentPage, setCurrentPage] = useState(filters.page || 1);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const buildUrl = (customFilters: PartialClientFilters = {}) => {
+  const buildUrl = (customFilters: Partial<ClientFilters> = {}) => {
     const params = new URLSearchParams();
     const mergedFilters = { ...filters, ...customFilters };
 
     Object.entries(mergedFilters).forEach(([key, value]) => {
-      if (value !== undefined && value !== '') {
-        params.append(key, value.toString());
+      if (value !== undefined && value !== '' && value !== null) {
+        params.append(key, String(value));
       }
     });
 
@@ -41,7 +56,7 @@ export function useClients(filters: PartialClientFilters = {}): UseClientsResult
   };
 
   const fetchClients = useCallback(
-    async (customFilters: PartialClientFilters = {}) => {
+    async (customFilters: Partial<ClientFilters> = {}) => {
       try {
         setLoading(true);
         setError(null);

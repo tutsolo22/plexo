@@ -1,6 +1,6 @@
+'use client';
+
 import { useEffect, useState } from 'react'
-import { prisma } from '@/lib/prisma'
-import { Decimal } from '@prisma/client/runtime/library'
 
 export interface DashboardStats {
   totalClients: number
@@ -10,14 +10,14 @@ export interface DashboardStats {
   recentEvents: Array<{
     id: string
     title: string
-    startDate: Date
+    startDate: string
     client: { name: string }
     venue: { name: string } | null
   }>
   recentQuotes: Array<{
     id: string
     number: string
-    total: Decimal
+    total: number
     client: { name: string }
     status: string
   }>
@@ -71,46 +71,3 @@ export function useDashboardStats(): DashboardStatsLoading {
   }
 }
 
-/**
- * Función server-side para obtener estadísticas
- * Reutilizable en páginas y API routes
- */
-export async function getDashboardStats(): Promise<DashboardStats> {
-  const [
-    totalClients,
-    totalEvents,
-    totalQuotes,
-    totalVenues,
-    recentEvents,
-    recentQuotes
-  ] = await Promise.all([
-    prisma.client.count(),
-    prisma.event.count(),
-    prisma.quote.count(),
-    prisma.venue.count(),
-    prisma.event.findMany({
-      take: 5,
-      orderBy: { createdAt: 'desc' },
-      include: { 
-        client: { select: { name: true } }, 
-        venue: { select: { name: true } } 
-      }
-    }),
-    prisma.quote.findMany({
-      take: 5,
-      orderBy: { createdAt: 'desc' },
-      include: { 
-        client: { select: { name: true } } 
-      }
-    })
-  ])
-
-  return {
-    totalClients,
-    totalEvents,
-    totalQuotes,
-    totalVenues,
-    recentEvents,
-    recentQuotes
-  }
-}
