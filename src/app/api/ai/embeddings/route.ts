@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
-import { crmEmbeddingService } from '@/lib/ai/crm-embeddings'
-import { $Enums } from '@prisma/client'
-import { z } from 'zod'
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { crmEmbeddingService } from '@/lib/ai/crm-embeddings';
+import { $Enums } from '@prisma/client';
+import { z } from 'zod';
 
 // Schema de validación para búsqueda vectorial
 const searchEmbeddingsSchema = z.object({
@@ -11,29 +12,33 @@ const searchEmbeddingsSchema = z.object({
   limit: z.number().min(1).max(50).default(10),
   threshold: z.number().min(0).max(1).default(0.7),
   businessIdentityId: z.string().optional(),
-  includeEntity: z.boolean().default(false)
-})
+  includeEntity: z.boolean().default(false),
+});
 
 // POST /api/ai/embeddings/search - Búsqueda semántica
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
+    const session = await auth();
     if (!session?.user) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const body = await request.json()
-    const validatedData = searchEmbeddingsSchema.parse(body)
+    const body = await request.json();
+    const validatedData = searchEmbeddingsSchema.parse(body);
 
     // Realizar búsqueda vectorial
-    const results = await crmEmbeddingService.searchSimilar(validatedData.query, {
-      type: validatedData.type,
+    const searchOptions = {
       limit: validatedData.limit,
       threshold: validatedData.threshold,
       tenantId: session.user.tenantId,
-      businessIdentityId: validatedData.businessIdentityId,
-      includeEntity: validatedData.includeEntity
-    })
+      includeEntity: validatedData.includeEntity,
+      ...(validatedData.type && { type: validatedData.type }),
+      ...(validatedData.businessIdentityId && {
+        businessIdentityId: validatedData.businessIdentityId,
+      }),
+    };
+
+    const results = await crmEmbeddingService.searchSimilar(validatedData.query, searchOptions);
 
     return NextResponse.json({
       success: true,
@@ -44,75 +49,78 @@ export async function POST(request: NextRequest) {
         metadata: {
           threshold: validatedData.threshold,
           type: validatedData.type,
-          tenantId: session.user.tenantId
-        }
-      }
-    })
-
+          tenantId: session.user.tenantId,
+        },
+      },
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { success: false, error: 'Datos inválidos', details: error.errors },
         { status: 400 }
-      )
+      );
     }
 
-    console.error('Error en búsqueda de embeddings:', error)
+    console.error('Error en búsqueda de embeddings:', error);
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },
       { status: 500 }
-    )
+    );
   }
 }
 
 // PUT /api/ai/embeddings - Re-indexar entidades específicas
 export async function PUT(request: NextRequest) {
   try {
-    const session = await auth()
+    const session = await auth();
     if (!session?.user) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden re-indexar
-    if (![$Enums.LegacyUserRole.SUPER_ADMIN, $Enums.LegacyUserRole.TENANT_ADMIN].includes(session.user.role)) {
-      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+    const userRoleType = session.user.role.roleId as $Enums.RoleType;
+    if (
+      userRoleType !== $Enums.RoleType.SUPER_ADMIN &&
+      userRoleType !== $Enums.RoleType.TENANT_ADMIN
+    ) {
+      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
 
-    const body = await request.json()
-    const { entityType, entityId, reindexAll } = body
+    const body = await request.json();
+    const { entityType, entityId, reindexAll } = body;
 
     if (reindexAll) {
       // Re-indexar todo el tenant
-      await crmEmbeddingService.reindexTenant(session.user.tenantId)
-      
+      await crmEmbeddingService.reindexTenant(session.user.tenantId);
+
       return NextResponse.json({
         success: true,
         message: 'Re-indexación completa iniciada',
         data: {
           tenantId: session.user.tenantId,
-          timestamp: new Date().toISOString()
-        }
-      })
+          timestamp: new Date().toISOString(),
+        },
+      });
     } else if (entityType && entityId) {
       // Re-indexar entidad específica
       switch (entityType.toLowerCase()) {
         case 'event':
-          await crmEmbeddingService.indexEvent(entityId, session.user.tenantId)
-          break
+          await crmEmbeddingService.indexEvent(entityId, session.user.tenantId);
+          break;
         case 'client':
-          await crmEmbeddingService.indexClient(entityId, session.user.tenantId)
-          break
+          await crmEmbeddingService.indexClient(entityId, session.user.tenantId);
+          break;
         case 'quote':
-          await crmEmbeddingService.indexQuote(entityId, session.user.tenantId)
-          break
+          await crmEmbeddingService.indexQuote(entityId, session.user.tenantId);
+          break;
         case 'product':
-          await crmEmbeddingService.indexProduct(entityId, session.user.tenantId)
-          break
+          await crmEmbeddingService.indexProduct(entityId, session.user.tenantId);
+          break;
         default:
           return NextResponse.json(
             { success: false, error: 'Tipo de entidad no soportado' },
             { status: 400 }
-          )
+          );
       }
 
       return NextResponse.json({
@@ -121,49 +129,53 @@ export async function PUT(request: NextRequest) {
         data: {
           entityType,
           entityId,
-          tenantId: session.user.tenantId
-        }
-      })
+          tenantId: session.user.tenantId,
+        },
+      });
     } else {
       return NextResponse.json(
         { success: false, error: 'Se requiere reindexAll o entityType + entityId' },
         { status: 400 }
-      )
+      );
     }
-
   } catch (error) {
-    console.error('Error en re-indexación:', error)
+    console.error('Error en re-indexación:', error);
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },
       { status: 500 }
-    )
+    );
   }
 }
 
 // GET /api/ai/embeddings/stats - Estadísticas de embeddings
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await auth()
+    const session = await auth();
     if (!session?.user) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
     // Solo roles administrativos pueden ver estadísticas
-    if (![$Enums.LegacyUserRole.SUPER_ADMIN, $Enums.LegacyUserRole.TENANT_ADMIN, $Enums.LegacyUserRole.MANAGER].includes(session.user.role)) {
-      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+    const userRoleType = session.user.role.roleId as $Enums.RoleType;
+    if (
+      userRoleType !== $Enums.RoleType.SUPER_ADMIN &&
+      userRoleType !== $Enums.RoleType.TENANT_ADMIN &&
+      userRoleType !== $Enums.RoleType.MANAGER
+    ) {
+      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
 
-    const { searchParams } = new URL(request.url)
-    const businessIdentityId = searchParams.get('businessIdentityId')
+    const { searchParams } = new URL(request.url);
+    const businessIdentityId = searchParams.get('businessIdentityId');
 
     // Construir query para estadísticas
-    const whereClause = [`tenant_id = '${session.user.tenantId}'`]
-    
+    const whereClause = [`tenant_id = '${session.user.tenantId}'`];
+
     if (businessIdentityId) {
-      whereClause.push(`metadata->>'businessIdentity' = '${businessIdentityId}'`)
+      whereClause.push(`metadata->>'businessIdentity' = '${businessIdentityId}'`);
     }
 
-    const whereCondition = whereClause.join(' AND ')
+    const whereCondition = whereClause.join(' AND ');
 
     // Obtener estadísticas de embeddings por tipo
     const statsQuery = `
@@ -177,41 +189,48 @@ export async function DELETE(request: NextRequest) {
       WHERE ${whereCondition}
       GROUP BY entity_type
       ORDER BY total DESC
-    `
+    `;
 
-    const stats = await (prisma as any).$queryRawUnsafe(statsQuery)
+    const stats = (await prisma.$queryRawUnsafe(statsQuery)) as Array<{
+      entity_type: string;
+      total: number;
+      avg_dimensions: number;
+      oldest_update: string;
+      newest_update: string;
+    }>;
 
     // Obtener total general
     const totalQuery = `
       SELECT COUNT(*) as total_embeddings
       FROM ai_embeddings 
       WHERE ${whereCondition}
-    `
+    `;
 
-    const [totalResult] = await (prisma as any).$queryRawUnsafe(totalQuery)
+    const [totalResult] = (await prisma.$queryRawUnsafe(totalQuery)) as Array<{
+      total_embeddings: number;
+    }>;
 
     return NextResponse.json({
       success: true,
       data: {
-        totalEmbeddings: parseInt(totalResult.total_embeddings),
-        byType: stats.map((stat: any) => ({
+        totalEmbeddings: parseInt(totalResult.total_embeddings.toString()),
+        byType: stats.map(stat => ({
           entityType: stat.entity_type,
-          total: parseInt(stat.total),
+          total: parseInt(stat.total.toString()),
           avgDimensions: Math.round(stat.avg_dimensions),
           oldestUpdate: stat.oldest_update,
-          newestUpdate: stat.newest_update
+          newestUpdate: stat.newest_update,
         })),
         tenantId: session.user.tenantId,
         businessIdentityId,
-        generatedAt: new Date().toISOString()
-      }
-    })
-
+        generatedAt: new Date().toISOString(),
+      },
+    });
   } catch (error) {
-    console.error('Error obteniendo estadísticas de embeddings:', error)
+    console.error('Error obteniendo estadísticas de embeddings:', error);
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },
       { status: 500 }
-    )
+    );
   }
 }
