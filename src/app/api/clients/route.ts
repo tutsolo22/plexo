@@ -18,7 +18,7 @@ const createClientSchema = z.object({
 // GET /api/clients - Listar clientes
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      where.OR = [
+      where["OR"] = [
         { name: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
         { phone: { contains: search, mode: 'insensitive' } }
@@ -45,12 +45,13 @@ export async function GET(request: NextRequest) {
     }
 
     if (type) {
-      where.type = type
+      where["type"] = type
     }
 
     // Solo CLIENT_EXTERNAL puede ver sus propios datos
-    if (session.user.role === UserRole.CLIENT_EXTERNAL) {
-      where.userId = session.user.id
+    const userRoleType = session.user.role.roleId as $Enums.RoleType
+    if (userRoleType === $Enums.RoleType.CLIENT_EXTERNAL) {
+      where["userId"] = session.user.id
     }
 
     const [clients, total] = await Promise.all([
@@ -98,13 +99,17 @@ export async function GET(request: NextRequest) {
 // POST /api/clients - Crear cliente
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     // Solo ciertos roles pueden crear clientes
-    if (![UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.MANAGER, UserRole.USER].includes(session.user.role)) {
+    const userRoleType = session.user.role.roleId as $Enums.RoleType
+    if (userRoleType !== $Enums.RoleType.SUPER_ADMIN && 
+        userRoleType !== $Enums.RoleType.TENANT_ADMIN && 
+        userRoleType !== $Enums.RoleType.MANAGER && 
+        userRoleType !== $Enums.RoleType.USER) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
 
@@ -134,20 +139,26 @@ export async function POST(request: NextRequest) {
       const defaultPriceList = await prisma.priceList.findFirst({
         where: {
           tenantId: session.user.tenantId,
-          isActive: true,
-          type: 'GENERAL'
+          isActive: true
         }
       })
       priceListId = defaultPriceList?.id
     }
 
+    const createData = {
+      tenantId: session.user.tenantId,
+      userId: session.user.id,
+      name: validatedData.name,
+      type: validatedData.type,
+      email: validatedData.email ?? null,
+      phone: validatedData.phone ?? null,
+      address: validatedData.address ?? null,
+      notes: validatedData.notes ?? null,
+      priceListId: priceListId ?? null
+    }
+
     const client = await prisma.client.create({
-      data: {
-        ...validatedData,
-        tenantId: session.user.tenantId,
-        userId: session.user.id,
-        priceListId
-      },
+      data: createData,
       include: {
         priceList: true,
         user: {

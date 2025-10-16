@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { UserRole, EventStatus } from '@prisma/client'
+import { $Enums } from '@prisma/client'
 
 // Schema de validación para crear evento
 const createEventSchema = z.object({
