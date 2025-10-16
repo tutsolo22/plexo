@@ -2,12 +2,14 @@
 // Basado en la experiencia de CRM Casona María
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
 }
 
 // =====================
@@ -34,6 +36,9 @@ model User {
   createdClients Client[] @relation("CreatedByUser")
   createdEvents  Event[]  @relation("CreatedByUser")
   createdQuotes  Quote[]  @relation("CreatedByUser")
+  
+  // Relaciones de IA
+  conversations  Conversation[]
 
   @@map("users")
 }
@@ -382,4 +387,137 @@ enum ItemType {
   SERVICE
   VENUE
   CUSTOM
+}
+
+// =====================
+// SISTEMA DE IA Y EMBEDDINGS
+// =====================
+
+model ContentEmbedding {
+  id          String   @id @default(cuid())
+  contentType String   // 'event', 'client', 'quote', 'venue', 'product', 'service'
+  contentId   String   // ID del contenido referenciado
+  contentText String   // Texto completo para búsqueda
+  embedding   Unsupported("vector(1536)")? // Vector de embeddings OpenAI ada-002
+  metadata    Json?    // Metadata adicional como JSON
+  
+  // Auditoría
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("content_embeddings")
+  @@index([contentType])
+  @@index([contentId])
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  userId    String?  // Usuario asociado (opcional)
+  platform  String   // 'whatsapp', 'web', 'api'
+  sessionId String   @unique // ID de sesión única
+  
+  // Datos de WhatsApp
+  whatsappNumber String? // Número de WhatsApp del usuario
+  whatsappName   String? // Nombre del contacto en WhatsApp
+  
+  // Estado de la conversación
+  isActive  Boolean @default(true)
+  context   Json?   // Contexto de la conversación
+  
+  // Auditoría
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relaciones
+  messages  ConversationMessage[]
+  analytics ConversationAnalytics?
+  user      User?   @relation(fields: [userId], references: [id])
+
+  @@map("conversations")
+  @@index([platform])
+  @@index([whatsappNumber])
+  @@index([isActive])
+}
+
+model ConversationMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  
+  // Contenido del mensaje
+  role           String   // 'user', 'assistant', 'system'
+  content        String   
+  messageType    String   @default("text") // 'text', 'image', 'document', 'audio'
+  
+  // Metadata del mensaje
+  tokens         Int?     // Tokens utilizados (para IA)
+  model          String?  // Modelo de IA utilizado
+  toolCalls      Json?    // Llamadas a herramientas realizadas
+  
+  // Datos específicos de WhatsApp
+  whatsappMessageId String? // ID del mensaje en WhatsApp
+  whatsappStatus    String? // Estado del mensaje ('sent', 'delivered', 'read')
+  
+  // Auditoría
+  createdAt      DateTime @default(now())
+  
+  // Relaciones
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@map("conversation_messages")
+  @@index([conversationId])
+  @@index([role])
+  @@index([createdAt])
+}
+
+model AgentTool {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String
+  parameters  Json     // JSON Schema de los parámetros
+  isActive    Boolean  @default(true)
+  
+  // Configuración de la herramienta
+  handler     String   // Nombre del handler en el código
+  category    String   // Categoría de la herramienta
+  
+  // Métricas de uso
+  usageCount  Int      @default(0)
+  
+  // Auditoría
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("agent_tools")
+  @@index([isActive])
+  @@index([category])
+}
+
+model ConversationAnalytics {
+  id             String   @id @default(cuid())
+  conversationId String   @unique
+  
+  // Métricas de la conversación
+  messageCount      Int     @default(0)
+  userMessages      Int     @default(0)
+  assistantMessages Int     @default(0)
+  totalTokens       Int     @default(0)
+  
+  // Resultados de la conversación
+  wasHelpful        Boolean?
+  userSatisfaction  Int?    // Rating 1-5
+  resolvedQuery     Boolean @default(false)
+  escalatedToHuman  Boolean @default(false)
+  
+  // Categorización
+  intent            String? // Intención detectada
+  category          String? // Categoría de la consulta
+  
+  // Auditoría
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relaciones
+  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@map("conversation_analytics")
 }
