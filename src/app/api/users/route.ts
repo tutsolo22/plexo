@@ -15,14 +15,14 @@ const createUserSchema = z.object({
   isActive: z.boolean().default(true)
 })
 
-const updateUserSchema = z.object({
-  name: z.string().min(1, 'El nombre es requerido').optional(),
-  email: z.string().email('Email inválido').optional(),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres').optional(),
-  role: z.enum(['SUPER_ADMIN', 'TENANT_ADMIN', 'MANAGER', 'USER', 'CLIENT_EXTERNAL']).optional(),
-  phone: z.string().optional(),
-  isActive: z.boolean().optional()
-})
+// const updateUserSchema = z.object({
+//   name: z.string().min(1, 'El nombre es requerido').optional(),
+//   email: z.string().email('Email inválido').optional(),
+//   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres').optional(),
+//   role: z.enum(['SUPER_ADMIN', 'TENANT_ADMIN', 'MANAGER', 'USER', 'CLIENT_EXTERNAL']).optional(),
+//   phone: z.string().optional(),
+//   isActive: z.boolean().optional()
+// }) // Para uso futuro
 
 // GET /api/users - Listar usuarios
 export async function GET(request: NextRequest) {
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
 
     // Construir filtros
-    const where: any = {}
+    const where: Record<string, unknown> = {}
 
     // SUPER_ADMIN ve todos los usuarios, otros solo los de su tenant
     if (session.user.role !== UserRole.SUPER_ADMIN) {

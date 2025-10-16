@@ -11,6 +11,9 @@ datasource db {
 // ===============================
 // ENUMS DEL SISTEMA
 // ===============================
+// ===============================
+// ENUMS DEL SISTEMA
+// ===============================
 enum UserRole {
   SUPER_ADMIN     // Administrador del sistema completo
   TENANT_ADMIN    // Administrador del tenant
@@ -151,15 +154,17 @@ model User {
   // Relations
   tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   tenantId      String
-    accounts      Account[]
-    auditLogs     AuditLog[]
-    client        Client?         // Relación con cliente si es externo
-    clientCredits ClientCredits[]
-    quoteComments QuoteComment[]  // Comentarios en cotizaciones del usuario
-    emailChanges  EmailChange[]
+  accounts      Account[]
+  auditLogs     AuditLog[]
+  client        Client?         // Relación con cliente si es externo
+  clientCredits ClientCredits[]
+  quoteComments QuoteComment[]  // Comentarios en cotizaciones del usuario
+  emailChanges  EmailChange[]
 
   @@map("users")
 }
+
+
 
 model Account {
   id                String  @id @default(cuid())
@@ -418,22 +423,22 @@ model BotMessage {
   createdAt DateTime @default(now())
 }
 
-/// Almacenamiento de embeddings en PostgreSQL usando la extensión pgvector
-model AIEmbedding {
-  id        String   @id @default(cuid())
-  tenantId  String
-  sessionId String?
-  messageId String?
-  content   String
-  // Tipo nativo vector (pgvector). Prisma lo maneja como Unsupported("vector").
-  embedding Unsupported("vector")
-  dim       Int
-  createdAt DateTime @default(now())
+// /// Almacenamiento de embeddings en PostgreSQL usando la extensión pgvector
+// model AIEmbedding {
+//   id        String   @id @default(cuid())
+//   tenantId  String
+//   sessionId String?
+//   messageId String?
+//   content   String
+//   // Tipo nativo vector (pgvector). Prisma lo maneja como Unsupported("vector").
+//   embedding Unsupported("vector")
+//   dim       Int
+//   createdAt DateTime @default(now())
 
-  @@index([tenantId])
-  @@index([sessionId])
-  @@index([messageId])
-}
+//   @@index([tenantId])
+//   @@index([sessionId])
+//   @@index([messageId])
+// }
 
 model SupplierProduct {
   id           String   @id @default(cuid())

@@ -1,9 +1,12 @@
 import { NextRequest } from 'next/server';
-import { eventAgentService } from '@/lib/ai/agent';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { crmAgentService } from '@/lib/ai/crm-agent-v2';
 import { conversationMemoryService } from '@/lib/ai/conversation-memory';
 import { withValidation } from '@/lib/api/middleware/validation';
 import { withErrorHandling } from '@/lib/api/middleware/error-handling';
 import { ApiResponses } from '@/lib/api/responses';
+import { UserRole } from '@prisma/client';
 import { z } from 'zod';
 
 // Schema de validación para el chat
@@ -18,30 +21,44 @@ const chatRequestSchema = z.object({
 
 async function chatHandler(req: NextRequest) {
   try {
+    // Verificar autenticación de sesión
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return ApiResponses.unauthorized('Acceso no autorizado');
+    }
+
     const body = await req.json();
     const { message, conversationId, sessionId, userId, platform, userPhone } = chatRequestSchema.parse(body);
 
     // Usar sessionId como conversationId si no se proporciona conversationId
     let currentConversationId = conversationId || sessionId;
-    let conversationContext: Array<{ role: string; content: string }> = [];
+    let conversationContext: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [];
 
     // Si no hay conversación, crear una nueva
     if (!currentConversationId) {
       currentConversationId = await conversationMemoryService.createConversation({
-        userId,
+        userId: session.user.id,
         platform,
-        userPhone,
+        userPhone: userPhone || '',
         metadata: {
           startedAt: new Date().toISOString(),
           userAgent: req.headers.get('user-agent'),
+          tenantId: session.user.tenantId,
+          userRole: session.user.role,
         }
       });
     } else {
       // Obtener contexto de conversación existente
-      conversationContext = await conversationMemoryService.getConversationContext(
+      const context = await conversationMemoryService.getConversationContext(
         currentConversationId,
         10 // Últimos 10 mensajes para contexto
       );
+      
+      // Convertir al formato esperado por Gemini
+      conversationContext = context.map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.content }]
+      }));
     }
 
     // Guardar mensaje del usuario
@@ -52,32 +69,42 @@ async function chatHandler(req: NextRequest) {
       metadata: {
         platform,
         timestamp: new Date().toISOString(),
+        tenantId: session.user.tenantId,
       }
     });
 
-    // Procesar mensaje con el agente AI
-    const agentResponse = await eventAgentService.processMessage(
-      message,
-      currentConversationId,
-      conversationContext
-    );
+    // Procesar mensaje con el agente CRM v2 especializado
+    const agentResponse = await crmAgentService.processQuery(message, {
+      tenantId: session.user.tenantId,
+      businessIdentityId: session.user.businessIdentityId,
+      userRole: session.user.role
+    });
 
     // Guardar respuesta del agente
     await conversationMemoryService.addMessage({
       conversationId: currentConversationId,
       role: 'assistant',
-      content: agentResponse.message,
+      content: agentResponse.response,
       metadata: {
-        functionCalls: agentResponse.functionCalls,
-        timestamp: new Date().toISOString(),
+        intent: agentResponse.intent,
+        results: agentResponse.results,
+        timestamp: agentResponse.timestamp.toISOString(),
       }
     });
 
     return ApiResponses.success({
-      message: agentResponse.message,
+      message: agentResponse.response,
       conversationId: currentConversationId,
-      functionCalls: agentResponse.functionCalls,
+      intent: agentResponse.intent,
+      results: agentResponse.results,
+      searchType: agentResponse.results?.searchType,
       platform,
+      metadata: {
+        userRole: session.user.role,
+        tenantId: session.user.tenantId,
+        tenantName: session.user.tenantName,
+        timestamp: new Date().toISOString()
+      }
     });
 
   } catch (error) {

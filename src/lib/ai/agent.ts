@@ -238,6 +238,87 @@ export class EventAgentService {
             eventName: { type: 'string', description: 'Nombre del evento' }
           }
         }
+      },
+      {
+        name: 'searchQuotes',
+        description: 'Busca cotizaciones en el CRM con filtros avanzados',
+        parameters: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: 'Texto libre para búsqueda semántica' },
+            status: { 
+              type: 'string', 
+              description: 'Estado de la cotización',
+              enum: ['DRAFT', 'PENDING_MANAGER', 'APPROVED', 'SENT_TO_CLIENT', 'ACCEPTED', 'REJECTED', 'EXPIRED']
+            },
+            clientName: { type: 'string', description: 'Nombre del cliente' },
+            dateFrom: { type: 'string', description: 'Fecha desde (YYYY-MM-DD)' },
+            dateTo: { type: 'string', description: 'Fecha hasta (YYYY-MM-DD)' },
+            businessIdentityId: { type: 'string', description: 'ID de identidad de negocio' },
+            limit: { type: 'number', description: 'Número máximo de resultados', default: 10 }
+          }
+        }
+      },
+      {
+        name: 'searchProducts',
+        description: 'Busca productos y servicios en el catálogo CRM',
+        parameters: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: 'Texto libre para búsqueda' },
+            category: { type: 'string', description: 'Categoría del producto/servicio' },
+            type: { 
+              type: 'string', 
+              description: 'Tipo de item',
+              enum: ['PRODUCT', 'SERVICE', 'PACKAGE']
+            },
+            isActive: { type: 'boolean', description: 'Solo items activos', default: true },
+            limit: { type: 'number', description: 'Número máximo de resultados', default: 20 }
+          }
+        }
+      },
+      {
+        name: 'searchRooms',
+        description: 'Busca salas y espacios en el CRM por ubicación e identidad',
+        parameters: {
+          type: 'object',
+          properties: {
+            query: { type: 'string', description: 'Texto libre para búsqueda' },
+            businessIdentityId: { type: 'string', description: 'ID de identidad de negocio' },
+            locationId: { type: 'string', description: 'ID de ubicación' },
+            capacity: { type: 'number', description: 'Capacidad mínima requerida' },
+            isActive: { type: 'boolean', description: 'Solo salas activas', default: true },
+            limit: { type: 'number', description: 'Número máximo de resultados', default: 10 }
+          }
+        }
+      },
+      {
+        name: 'getDashboardStats',
+        description: 'Obtiene estadísticas del dashboard CRM para análisis de negocio',
+        parameters: {
+          type: 'object',
+          properties: {
+            period: { type: 'number', description: 'Período en días para estadísticas', default: 30 },
+            businessIdentityId: { type: 'string', description: 'ID de identidad de negocio específica' }
+          }
+        }
+      },
+      {
+        name: 'analyzeBusinessData',  
+        description: 'Analiza datos del negocio para obtener insights y tendencias',
+        parameters: {
+          type: 'object',
+          properties: {
+            analysisType: {
+              type: 'string',
+              description: 'Tipo de análisis a realizar',
+              enum: ['revenue_trends', 'client_analysis', 'event_patterns', 'quote_conversion', 'room_utilization']
+            },
+            period: { type: 'number', description: 'Período en días', default: 90 },
+            businessIdentityId: { type: 'string', description: 'ID de identidad de negocio' }
+          },
+          required: ['analysisType']
+        }
       }
     ];
   }

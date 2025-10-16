@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     const businessIdentityId = searchParams.get('businessIdentityId')
     const isActive = searchParams.get('isActive')
 
-    const where: any = {
+    const where: Record<string, unknown> = {
       location: {
         businessIdentity: {
           tenantId: session.user.tenantId

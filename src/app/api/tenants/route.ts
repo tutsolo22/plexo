@@ -12,7 +12,7 @@ const createTenantSchema = z.object({
   isActive: z.boolean().default(true)
 })
 
-const updateTenantSchema = createTenantSchema.partial()
+// const updateTenantSchema = createTenantSchema.partial() // Para uso futuro
 
 // GET /api/tenants - Listar tenants (Solo SUPER_ADMIN)
 export async function GET(request: NextRequest) {
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
 
     // Construir filtros
-    const where: any = {}
+    const where: Record<string, unknown> = {}
 
     if (search) {
       where.OR = [

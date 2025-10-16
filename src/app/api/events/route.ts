@@ -16,17 +16,17 @@ const createEventSchema = z.object({
   status: z.enum(['RESERVED', 'QUOTED', 'CONFIRMED', 'CANCELLED']).default('RESERVED')
 })
 
-// Schema para búsqueda de eventos
-const searchEventsSchema = z.object({
-  page: z.number().default(1),
-  limit: z.number().default(10),
-  search: z.string().optional(),
-  status: z.enum(['RESERVED', 'QUOTED', 'CONFIRMED', 'CANCELLED']).optional(),
-  roomId: z.string().optional(),
-  clientId: z.string().optional(),
-  startDate: z.string().optional(),
-  endDate: z.string().optional()
-})
+// Schema para búsqueda de eventos (para uso futuro)
+// const searchEventsSchema = z.object({
+//   page: z.number().default(1),
+//   limit: z.number().default(10),
+//   search: z.string().optional(),
+//   status: z.enum(['RESERVED', 'QUOTED', 'CONFIRMED', 'CANCELLED']).optional(),
+//   roomId: z.string().optional(),
+//   clientId: z.string().optional(),
+//   startDate: z.string().optional(),
+//   endDate: z.string().optional()
+// })
 
 // GET /api/events - Listar eventos
 export async function GET(request: NextRequest) {
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
 
     // Construir filtros
-    const where: any = {
+    const where: Record<string, unknown> = {
       tenantId: session.user.tenantId
     }
 

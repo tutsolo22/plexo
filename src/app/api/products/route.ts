@@ -16,7 +16,7 @@ const createProductSchema = z.object({
   type: z.enum(['PRODUCT', 'SERVICE', 'PACKAGE']).default('PRODUCT')
 })
 
-const updateProductSchema = createProductSchema.partial()
+// const updateProductSchema = createProductSchema.partial() // Para uso futuro
 
 // GET /api/products - Listar productos
 export async function GET(request: NextRequest) {
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
 
     // Construir filtros
-    const where: any = {
+    const where: Record<string, unknown> = {
       tenantId: session.user.tenantId
     }
 

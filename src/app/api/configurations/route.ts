@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const key = searchParams.get('key')
 
-    const where: any = {
+    const where: Record<string, unknown> = {
       tenantId: session.user.tenantId
     }
 

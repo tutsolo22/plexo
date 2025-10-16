@@ -14,7 +14,7 @@ const createServiceSchema = z.object({
   isActive: z.boolean().default(true)
 })
 
-const updateServiceSchema = createServiceSchema.partial()
+// const updateServiceSchema = createServiceSchema.partial() // Para uso futuro
 
 // GET /api/services - Listar servicios
 export async function GET(request: NextRequest) {
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
 
     // Construir filtros
-    const where: any = {
+    const where: Record<string, unknown> = {
       tenantId: session.user.tenantId
     }
 

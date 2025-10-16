@@ -28,7 +28,7 @@ export async function GET(
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const where: any = {
+    const where: Record<string, unknown> = {
       id: params.id,
       tenantId: session.user.tenantId
     }
