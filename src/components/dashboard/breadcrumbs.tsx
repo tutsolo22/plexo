@@ -15,6 +15,7 @@ const pathNameMap: Record<string, string> = {
   clients: 'Clientes',
   events: 'Eventos',
   quotes: 'Cotizaciones',
+  templates: 'Plantillas',
   payments: 'Pagos',
   reports: 'Reportes',
   settings: 'Configuración',

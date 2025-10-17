@@ -1,250 +1,313 @@
+/**
+ * API para Gestión de Eventos - Fase 2C
+ * CRUD completo para el sistema de eventos y calendario
+ */
+
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { $Enums } from '@prisma/client'
+import { EventStatus } from '@prisma/client'
 
-// Schema de validación para crear evento
-const createEventSchema = z.object({
+// Esquemas de validación
+const CreateEventSchema = z.object({
   title: z.string().min(1, 'El título es requerido'),
-  startDate: z.string().transform((str) => new Date(str)),
-  endDate: z.string().transform((str) => new Date(str)),
-  roomId: z.string().min(1, 'La sala es requerida'),
-  clientId: z.string().min(1, 'El cliente es requerido'),
+  startDate: z.string().datetime('Fecha de inicio inválida'),
+  endDate: z.string().datetime('Fecha de fin inválida'),
+  clientId: z.string().cuid('ID de cliente inválido'),
+  roomId: z.string().cuid().optional(),
+  venueId: z.string().cuid().optional(),
+  status: z.nativeEnum(EventStatus).optional().default(EventStatus.RESERVED),
   notes: z.string().optional(),
-  status: z.enum(['RESERVED', 'QUOTED', 'CONFIRMED', 'CANCELLED']).default('RESERVED')
+  isFullVenue: z.boolean().optional().default(false),
+  colorCode: z.string().optional()
 })
 
-// Schema para búsqueda de eventos (para uso futuro)
-// const searchEventsSchema = z.object({
-//   page: z.number().default(1),
-//   limit: z.number().default(10),
-//   search: z.string().optional(),
-//   status: z.enum(['RESERVED', 'QUOTED', 'CONFIRMED', 'CANCELLED']).optional(),
-//   roomId: z.string().optional(),
-//   clientId: z.string().optional(),
-//   startDate: z.string().optional(),
-//   endDate: z.string().optional()
-// })
+const UpdateEventSchema = CreateEventSchema.partial()
 
-// GET /api/events - Listar eventos
+const QuerySchema = z.object({
+  page: z.string().optional().default('1'),
+  limit: z.string().optional().default('10'),
+  status: z.nativeEnum(EventStatus).optional(),
+  clientId: z.string().cuid().optional(),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+  search: z.string().optional(),
+  calendar: z.string().optional() // Para vista de calendario
+})
+
+/**
+ * GET /api/events - Obtener lista de eventos con filtros avanzados
+ */
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
-
     const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
-    const search = searchParams.get('search') || ''
-    const status = searchParams.get('status')
-    const roomId = searchParams.get('roomId')
-    const clientId = searchParams.get('clientId')
-    const startDate = searchParams.get('startDate')
-    const endDate = searchParams.get('endDate')
+    const query = QuerySchema.parse({
+      page: searchParams.get('page') || '1',
+      limit: searchParams.get('limit') || '10',
+      status: searchParams.get('status') || undefined,
+      clientId: searchParams.get('clientId') || undefined,
+      startDate: searchParams.get('startDate') || undefined,
+      endDate: searchParams.get('endDate') || undefined,
+      search: searchParams.get('search') || undefined,
+      calendar: searchParams.get('calendar') || undefined
+    })
 
+    const page = parseInt(query.page)
+    const limit = parseInt(query.limit)
     const skip = (page - 1) * limit
 
     // Construir filtros
-    const where: Record<string, unknown> = {
-      tenantId: session.user.tenantId
+    const where: any = {}
+
+    if (query.status) {
+      where.status = query.status
     }
 
-    if (search) {
-      where["OR"] = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { notes: { contains: search, mode: 'insensitive' } },
-        { client: { name: { contains: search, mode: 'insensitive' } } }
+    if (query.clientId) {
+      where.clientId = query.clientId
+    }
+
+    // Manejo de fechas
+    if (query.startDate && query.endDate) {
+      where.AND = [
+        { startDate: { gte: new Date(query.startDate) } },
+        { endDate: { lte: new Date(query.endDate) } }
+      ]
+    } else if (query.startDate) {
+      where.startDate = { gte: new Date(query.startDate) }
+    } else if (query.endDate) {
+      where.endDate = { lte: new Date(query.endDate) }
+    }
+
+    if (query.search) {
+      where.OR = [
+        { title: { contains: query.search, mode: 'insensitive' } },
+        { notes: { contains: query.search, mode: 'insensitive' } }
       ]
     }
 
-    if (status) where["status"] = status as $Enums.EventStatus
-    if (roomId) where["roomId"] = roomId
-    if (clientId) where["clientId"] = clientId
-
-    if (startDate && endDate) {
-      where["startDate"] = {
-        gte: new Date(startDate),
-        lte: new Date(endDate)
+    // Si es vista de calendario, obtener todos los eventos sin paginación
+    const isCalendarView = query.calendar === 'true'
+    
+    const queryOptions: any = {
+      where,
+      include: {
+        client: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true
+          }
+        },
+        room: {
+          select: {
+            id: true,
+            name: true,
+            capacity: true
+          }
+        },
+        venue: {
+          select: {
+            id: true,
+            name: true,
+            address: true
+          }
+        },
+        quote: {
+          select: {
+            id: true,
+            quoteNumber: true,
+            status: true,
+            total: true
+          }
+        }
+      },
+      orderBy: {
+        startDate: 'asc'
       }
     }
 
-    // CLIENT_EXTERNAL solo puede ver sus propios eventos
-    if (session.user.role?.roleId === $Enums.RoleType.CLIENT_EXTERNAL) {
-      where["client"] = { userId: session.user.id }
+    if (!isCalendarView) {
+      queryOptions.skip = skip
+      queryOptions.take = limit
     }
 
     const [events, total] = await Promise.all([
-      prisma.event.findMany({
-        where,
-        skip,
-        take: limit,
-        include: {
-          client: {
-            select: { id: true, name: true, email: true, phone: true }
-          },
-          room: {
-            include: {
-              location: {
-                include: {
-                  businessIdentity: {
-                    select: { id: true, name: true }
-                  }
-                }
-              }
-            }
-          },
-          quote: {
-            select: { id: true, quoteNumber: true, status: true, total: true }
-          }
-        },
-        orderBy: { startDate: 'desc' }
-      }),
+      prisma.event.findMany(queryOptions),
       prisma.event.count({ where })
     ])
 
-    return NextResponse.json({
+    const response: any = {
       success: true,
-      data: events,
-      pagination: {
+      data: {
+        events
+      }
+    }
+
+    if (!isCalendarView) {
+      response.data.pagination = {
         page,
         limit,
         total,
-        pages: Math.ceil(total / limit)
+        totalPages: Math.ceil(total / limit),
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1
       }
-    })
+    }
+
+    return NextResponse.json(response)
 
   } catch (error) {
-    console.error('Error al obtener eventos:', error)
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Parámetros de consulta inválidos',
+          details: error.errors
+        },
+        { status: 400 }
+      )
+    }
+
     return NextResponse.json(
-      { success: false, error: 'Error interno del servidor' },
+      { 
+        success: false, 
+        error: 'Error interno del servidor',
+        details: error instanceof Error ? error.message : 'Error desconocido'
+      },
       { status: 500 }
     )
   }
 }
 
-// POST /api/events - Crear evento
+/**
+ * POST /api/events - Crear nuevo evento
+ */
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
-
-    // Solo ciertos roles pueden crear eventos
-    const allowedRoles: $Enums.RoleType[] = [$Enums.RoleType.SUPER_ADMIN, $Enums.RoleType.TENANT_ADMIN, $Enums.RoleType.MANAGER, $Enums.RoleType.USER]
-    if (!session.user.role?.roleId || !allowedRoles.includes(session.user.role.roleId as $Enums.RoleType)) {
-      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
-    }
-
     const body = await request.json()
-    const validatedData = createEventSchema.parse(body)
+    const validatedData = CreateEventSchema.parse(body)
 
-    // Validar fechas
-    if (validatedData.endDate <= validatedData.startDate) {
+    // Validaciones de negocio
+    const startDate = new Date(validatedData.startDate)
+    const endDate = new Date(validatedData.endDate)
+
+    if (startDate >= endDate) {
       return NextResponse.json(
-        { success: false, error: 'La fecha de fin debe ser posterior a la fecha de inicio' },
+        { 
+          success: false, 
+          error: 'La fecha de inicio debe ser anterior a la fecha de fin' 
+        },
         { status: 400 }
       )
     }
 
-    // Verificar que la sala existe y pertenece al tenant
-    const room = await prisma.room.findFirst({
-      where: {
-        id: validatedData.roomId,
-        location: {
-          businessIdentity: {
-            tenantId: session.user.tenantId
-          }
-        }
-      }
+    // Verificar que el cliente existe
+    const client = await prisma.client.findUnique({
+      where: { id: validatedData.clientId }
     })
 
-    if (!room) {
+    if (!client) {
       return NextResponse.json(
-        { success: false, error: 'Sala no encontrada' },
+        { 
+          success: false, 
+          error: 'Cliente no encontrado' 
+        },
         { status: 404 }
       )
     }
 
-    // Verificar conflictos de horario
-    const conflictingEvent = await prisma.event.findFirst({
-      where: {
-        roomId: validatedData.roomId,
-        status: { in: [$Enums.EventStatus.RESERVED, $Enums.EventStatus.QUOTED, $Enums.EventStatus.CONFIRMED] },
-        OR: [
+    // Verificar disponibilidad de room/venue si se especifica
+    if (validatedData.roomId || validatedData.venueId) {
+      const conflictWhere: any = {
+        AND: [
           {
-            AND: [
-              { startDate: { lte: validatedData.startDate } },
-              { endDate: { gt: validatedData.startDate } }
+            OR: [
+              {
+                startDate: { lte: endDate },
+                endDate: { gte: startDate }
+              }
             ]
           },
           {
-            AND: [
-              { startDate: { lt: validatedData.endDate } },
-              { endDate: { gte: validatedData.endDate } }
-            ]
-          },
-          {
-            AND: [
-              { startDate: { gte: validatedData.startDate } },
-              { endDate: { lte: validatedData.endDate } }
-            ]
+            status: {
+              not: EventStatus.CANCELLED
+            }
           }
         ]
       }
-    })
 
-    if (conflictingEvent) {
-      return NextResponse.json(
-        { success: false, error: 'Ya existe un evento confirmado en ese horario' },
-        { status: 400 }
-      )
-    }
+      if (validatedData.roomId) {
+        conflictWhere.roomId = validatedData.roomId
+      }
 
-    // Verificar cliente si se proporciona
-    if (validatedData.clientId) {
-      const client = await prisma.client.findFirst({
-        where: {
-          id: validatedData.clientId,
-          tenantId: session.user.tenantId
-        }
+      if (validatedData.venueId) {
+        conflictWhere.venueId = validatedData.venueId
+      }
+
+      const conflictingEvent = await prisma.event.findFirst({
+        where: conflictWhere
       })
 
-      if (!client) {
+      if (conflictingEvent) {
         return NextResponse.json(
-          { success: false, error: 'Cliente no encontrado' },
-          { status: 404 }
+          { 
+            success: false, 
+            error: 'Ya existe un evento en esa fecha y ubicación' 
+          },
+          { status: 409 }
         )
       }
     }
 
+    // Generar color por defecto según estado
+    const statusColors = {
+      [EventStatus.RESERVED]: '#f59e0b',
+      [EventStatus.QUOTED]: '#3b82f6',
+      [EventStatus.CONFIRMED]: '#10b981',
+      [EventStatus.CANCELLED]: '#ef4444'
+    }
+
+    const eventData = {
+      title: validatedData.title,
+      startDate,
+      endDate,
+      clientId: validatedData.clientId,
+      roomId: validatedData.roomId || null,
+      venueId: validatedData.venueId || null,
+      status: validatedData.status || EventStatus.RESERVED,
+      notes: validatedData.notes || null,
+      isFullVenue: validatedData.isFullVenue || false,
+      colorCode: validatedData.colorCode || statusColors[validatedData.status || EventStatus.RESERVED],
+      tenantId: 'default' // TODO: Obtener del contexto de autenticación
+    }
+
     const event = await prisma.event.create({
-      data: {
-        title: validatedData.title,
-        notes: validatedData.notes ?? null,
-        startDate: validatedData.startDate,
-        endDate: validatedData.endDate,
-        roomId: validatedData.roomId,
-        clientId: validatedData.clientId,
-        status: validatedData.status as $Enums.EventStatus,
-        tenantId: session.user.tenantId
-      },
+      data: eventData,
       include: {
         client: {
-          select: { id: true, name: true, email: true, phone: true }
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true
+          }
         },
         room: {
-          include: {
-            location: {
-              include: {
-                businessIdentity: {
-                  select: { id: true, name: true }
-                }
-              }
-            }
+          select: {
+            id: true,
+            name: true,
+            capacity: true
+          }
+        },
+        venue: {
+          select: {
+            id: true,
+            name: true,
+            address: true
           }
         }
       }
@@ -259,14 +322,21 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: 'Datos inválidos', details: error.errors },
+        { 
+          success: false, 
+          error: 'Datos de entrada inválidos',
+          details: error.errors
+        },
         { status: 400 }
       )
     }
 
-    console.error('Error al crear evento:', error)
     return NextResponse.json(
-      { success: false, error: 'Error interno del servidor' },
+      { 
+        success: false, 
+        error: 'Error interno del servidor',
+        details: error instanceof Error ? error.message : 'Error desconocido'
+      },
       { status: 500 }
     )
   }

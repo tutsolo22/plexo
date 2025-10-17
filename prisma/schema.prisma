@@ -803,6 +803,20 @@ model Quote {
   validUntil    DateTime
   notes         String?
   publicToken   String?     @unique // Para acceso sin login
+  
+  // NUEVO: Template y generación (Fase 2D)
+  templateId    String?     // NUEVO: Template usado para generar
+  template      QuoteTemplate? @relation(fields: [templateId], references: [id])
+  generatedContent Json?    // NUEVO: Contenido HTML final generado
+  pdfUrl        String?     // NUEVO: URL del PDF almacenado
+  version       Int         @default(1) // NUEVO: Control de versiones
+  previousVersionId String? // NUEVO: Referencia a versión anterior
+  
+  // NUEVO: Envío y seguimiento
+  sentAt        DateTime?   // NUEVO: Cuándo se envió
+  viewedAt      DateTime?   // NUEVO: Primera vez vista por cliente
+  respondedAt   DateTime?   // NUEVO: Cuándo respondió el cliente
+  
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
@@ -817,11 +831,13 @@ model Quote {
   clientCredits ClientCredits[]
   comments      QuoteComment[]
   payments      Payment[]
+  emailLogs     EmailLog[]      // NUEVO: Logs de emails enviados
 
   @@map("quotes")
   @@index([tenantId])
   @@index([clientId])
   @@index([status])
+  @@index([templateId]) // NUEVO: Índice para templates
 }
 
 // Sistema de paquetes dinámicos
@@ -889,27 +905,52 @@ model QuoteComment {
 }
 
 // ===============================
-// QUOTE TEMPLATES (NUEVO)
+// QUOTE TEMPLATES EXTENDIDO (FASE 2D)
 // ===============================
-model QuoteTemplate {
-  id              String   @id @default(cuid())
-  name            String
-  htmlContent     String   @db.Text // Contenido HTML del template
-  isDefault       Boolean  @default(false)
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
 
-  // Relations
+enum TemplateType {
+  QUOTE       // Cotizaciones (por defecto)
+  CONTRACT    // Contratos
+  INVOICE     // Facturas  
+  EMAIL       // Templates de email
+  PROPOSAL    // Propuestas comerciales
+}
+
+model QuoteTemplate {
+  id              String       @id @default(cuid())
+  name            String
+  description     String?      // Descripción del template
+  type            TemplateType @default(QUOTE) // NUEVO: Tipo de template
+  category        String?      // NUEVO: "eventos", "bodas", "corporativo"
+  
+  // Contenido del template
+  htmlContent     String       @db.Text // Contenido HTML existente
+  variables       Json?        // NUEVO: Variables disponibles ["clientName", "total"]
+  styles          Json?        // NUEVO: Estilos CSS para PDF
+  metadata        Json?        // NUEVO: Configuraciones adicionales
+  
+  // Estados y versioning
+  isDefault       Boolean      @default(false)
+  isActive        Boolean      @default(true)
+  version         Int          @default(1) // NUEVO: Control de versiones
+  
+  // Timestamps
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relations (mantener compatibilidad)
   tenant             Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   tenantId           String
   businessIdentity   BusinessIdentity @relation(fields: [businessIdentityId], references: [id], onDelete: Cascade)
   businessIdentityId String
+  
+  // NUEVO: Relaciones con cotizaciones
+  quotes             Quote[]          // Cotizaciones que usan este template
 
   @@map("quote_templates")
   @@index([tenantId])
   @@index([businessIdentityId])
-//    suppliers          SupplierProduct[]
+  @@index([type, category]) // NUEVO: Índice para filtros
 }
 
 // ===============================
@@ -1001,6 +1042,35 @@ model EmailChange {
   @@map("email_changes")
   @@index([userId])
   @@index([token])
+}
+
+// ===============================
+// EMAIL SYSTEM (NUEVO)
+// ===============================
+model EmailLog {
+  id              String   @id @default(cuid())
+  quoteId         String
+  recipientEmail  String
+  subject         String
+  template        String   // basic, professional, custom
+  status          String   // sent, failed, delivered, opened, clicked
+  messageId       String?  // ID del mensaje enviado
+  trackingToken   String?  @unique // Token para seguimiento de apertura
+  sentAt          DateTime
+  openedAt        DateTime? // Cuando el cliente abrió el email
+  clickedAt       DateTime? // Cuando el cliente hizo click en el email
+  failureReason   String?  // Razón del fallo si status es failed
+  metadata        Json?    // Información adicional
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@map("email_logs")
+  @@index([quoteId])
+  @@index([trackingToken])
+  @@index([status])
 }
 
 // ===============================

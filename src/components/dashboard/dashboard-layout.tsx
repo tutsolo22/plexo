@@ -15,14 +15,16 @@ import {
   X,
   LogOut,
   User,
+  Layout,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Breadcrumbs } from './breadcrumbs';
+import { LucideIcon } from 'lucide-react';
 
 interface NavigationItem {
   name: string;
   href: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
   current?: boolean;
 }
 
@@ -31,6 +33,8 @@ const navigation: NavigationItem[] = [
   { name: 'Clientes', href: '/dashboard/clients', icon: Users },
   { name: 'Eventos', href: '/dashboard/events', icon: Calendar },
   { name: 'Cotizaciones', href: '/dashboard/quotes', icon: FileText },
+  { name: 'Plantillas', href: '/dashboard/templates', icon: Layout },
+  { name: 'PDF Test', href: '/dashboard/pdf-test', icon: FileText },
   { name: 'Pagos', href: '/dashboard/payments', icon: DollarSign },
   { name: 'Reportes', href: '/dashboard/reports', icon: BarChart3 },
   { name: 'Configuración', href: '/dashboard/settings', icon: Settings },
