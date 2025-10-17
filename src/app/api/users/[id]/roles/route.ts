@@ -15,10 +15,11 @@ const AssignRoleSchema = z.object({
   expiresAt: z.string().datetime().optional()
 });
 
-const UpdateUserRoleSchema = z.object({
+// Esquema temporal - será usado en futura implementación
+/* const UpdateUserRoleSchema = z.object({
   isPrimary: z.boolean().optional(),
   expiresAt: z.string().datetime().optional().nullable()
-});
+}); */
 
 /**
  * GET /api/users/[id]/roles - Obtener roles de usuario específico
@@ -175,8 +176,8 @@ export async function POST(
  * Nota: Funcionalidad pendiente de implementación en el servicio
  */
 export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params: _params }: { params: { id: string } }
 ) {
   return NextResponse.json(
     { error: 'Funcionalidad de actualización de roles pendiente de implementación' },

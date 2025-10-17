@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
         })
       } catch (error) {
         // La tabla Payment puede no existir aún
-        console.log('Tabla Payment no disponible, saltando pagos en actividad reciente')
+        // Tabla Payment no disponible, saltando pagos en actividad reciente
       }
     }
 

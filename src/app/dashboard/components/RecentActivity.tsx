@@ -15,7 +15,7 @@ import {
   ExternalLink,
   RefreshCw
 } from 'lucide-react'
-import { formatCurrency } from '@/lib/chart-utils'
+// import { formatCurrency } from '@/lib/chart-utils' // Temporarily disabled
 
 interface ActivityItem {
   id: string
@@ -83,7 +83,7 @@ export function RecentActivity({
     }
   }
 
-  const getActivityIcon = (type: string, action: string) => {
+  const getActivityIcon = (type: string, _action: string) => {
     switch (type) {
       case 'event':
         return Calendar

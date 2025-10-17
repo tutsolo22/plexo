@@ -44,32 +44,31 @@ export function StatsCards({ period = 30, className = '' }: StatsCardsProps) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const response = await fetch(`/api/dashboard/stats?period=${period}`)
+        if (!response.ok) {
+          throw new Error('Error al obtener estadísticas')
+        }
+        
+        const data = await response.json()
+        if (data.success) {
+          setStats(data.data)
+        } else {
+          throw new Error(data.message || 'Error al obtener estadísticas')
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error desconocido')
+      } finally {
+        setLoading(false)
+      }
+    }
+
     fetchStats()
   }, [period])
-
-  const fetchStats = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      
-      const response = await fetch(`/api/dashboard/stats?period=${period}`)
-      if (!response.ok) {
-        throw new Error('Error al obtener estadísticas')
-      }
-      
-      const data = await response.json()
-      if (data.success) {
-        setStats(data.data)
-      } else {
-        throw new Error(data.message || 'Error al obtener estadísticas')
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido')
-      console.error('Error fetching stats:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   if (loading) {
     return (
@@ -99,7 +98,7 @@ export function StatsCards({ period = 30, className = '' }: StatsCardsProps) {
               <p className="font-medium">Error al cargar estadísticas</p>
               <p className="text-sm text-red-500 mt-1">{error}</p>
               <button 
-                onClick={fetchStats}
+                onClick={() => window.location.reload()}
                 className="mt-3 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
               >
                 Reintentar

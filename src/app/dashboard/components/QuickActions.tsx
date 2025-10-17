@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { 
-  Plus, 
   Users, 
   Calendar, 
   FileText, 
@@ -14,14 +13,15 @@ import {
   Clock,
   Search,
   Zap,
-  ArrowRight
+  ArrowRight,
+  LucideIcon
 } from 'lucide-react'
 
 interface QuickAction {
   id: string
   title: string
   description: string
-  icon: React.ComponentType<{ className?: string }>
+  icon: LucideIcon
   href: string
   color: string
   bgColor: string

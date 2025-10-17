@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+// import { auth } from '@/lib/auth'; // Temporarily disabled
 import { roleManagementService } from '@/lib/role-management';
 import { $Enums } from '@prisma/client';
 import { z } from 'zod';
