@@ -44,6 +44,12 @@ Sistema profesional de gestión de eventos empresariales desarrollado con tecnol
 - **NextAuth.js v5** - Autenticación y autorización
 - **bcryptjs** - Encriptación de contraseñas
 
+### **Pagos & Facturación**
+- **MercadoPago SDK** - Procesamiento de pagos LATAM
+- **Webhooks** - Notificaciones de estado de pago
+- **Estado de Pagos** - Seguimiento en tiempo real
+- **PDFs de Facturación** - Generación automática
+
 ### **DevOps & Calidad**
 - **Docker** - Containerización
 - **ESLint + Prettier** - Linting y formateo
@@ -77,6 +83,14 @@ cp .env.example .env.local
 # Editar .env.local con tus configuraciones
 ```
 
+**Variables Críticas para MercadoPago:**
+
+```env
+# Obtén tu token desde: https://www.mercadopago.com.ar/developers/panel/credentials
+MERCADOPAGO_ACCESS_TOKEN="TEST-YOUR_ACCESS_TOKEN_HERE"
+# Para producción: APP_USR-YOUR_APP_USER_TOKEN_HERE
+```
+
 ### **4. Configurar Base de Datos**
 ```bash
 # Iniciar servicios con Docker
@@ -98,7 +112,63 @@ npm run dev
 # Aplicación disponible en http://localhost:3200
 ```
 
-## 🗂️ Estructura del Proyecto
+## � Configuración de MercadoPago
+
+### **Requisitos Previos**
+1. Cuenta de MercadoPago activa
+2. Aplicación creada en el [Panel de Desarrolladores](https://www.mercadopago.com.ar/developers/panel)
+3. Credenciales de Testing y Producción
+
+### **Configuración de Credenciales**
+
+1. **Accede al Panel de Desarrolladores**: https://www.mercadopago.com.ar/developers/panel
+2. **Crear/Seleccionar Aplicación**: Crea una nueva aplicación o selecciona una existente
+3. **Obtener Credenciales**: 
+   - Para Testing: `TEST-XXXXXXXXX-XXXXXX-XXXXXXX`
+   - Para Producción: `APP_USR-XXXXXXXXX-XXXXXX-XXXXXXX`
+
+### **Variables de Entorno**
+
+```env
+# Testing (Sandbox)
+MERCADOPAGO_ACCESS_TOKEN="TEST-1234567890-032912-abcdef1234567890abcdef1234567890-123456789"
+
+# Producción
+MERCADOPAGO_ACCESS_TOKEN="APP_USR-1234567890-032912-abcdef1234567890abcdef1234567890-123456789"
+```
+
+### **URLs de Webhook**
+
+El sistema maneja automáticamente los webhooks de MercadoPago:
+
+```
+Webhook URL: https://tu-dominio.com/api/payments/webhook
+Eventos: payment, merchant_order
+```
+
+### **Flujo de Pagos**
+
+1. **Crear Pago**: Cliente hace clic en "Pagar con MercadoPago"
+2. **Redirección**: Se redirige a MercadoPago para completar el pago
+3. **Webhook**: MercadoPago notifica el estado del pago
+4. **Actualización**: Sistema actualiza automáticamente cotizaciones y eventos
+5. **Notificación**: Cliente recibe confirmación del estado
+
+### **Estados de Pago**
+
+| Estado | Descripción |
+|--------|-------------|
+| `pending` | Pago pendiente de procesamiento |
+| `approved` | Pago aprobado exitosamente |
+| `authorized` | Pago autorizado (pendiente de captura) |
+| `in_process` | Pago en proceso de verificación |
+| `in_mediation` | Pago en mediación |
+| `rejected` | Pago rechazado |
+| `cancelled` | Pago cancelado |
+| `refunded` | Pago reembolsado |
+| `charged_back` | Pago contracargado |
+
+## �🗂️ Estructura del Proyecto
 
 ```
 gestion-de-eventos/
@@ -169,10 +239,13 @@ Este es un proyecto propietario. Para contribuir:
 ## 📋 Roadmap
 
 ### **v0.1.0 - Fundamentos** ✅
+
 - [x] Setup inicial del proyecto
 - [x] Configuración base de datos
 - [x] Sistema de autenticación
 - [x] APIs core del sistema
+- [x] Integración con MercadoPago
+- [x] Sistema de pagos y webhooks
 
 ### **v0.2.0 - Gestión de Espacios** 🚧
 - [ ] Gestión de identidades comerciales

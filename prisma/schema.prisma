@@ -111,6 +111,18 @@ enum ItemType {
   VENTA      // Para venta al cliente
 }
 
+enum PaymentStatus {
+  PENDING       // Pago pendiente
+  APPROVED      // Pago aprobado
+  AUTHORIZED    // Pago autorizado
+  IN_PROCESS    // Pago en proceso
+  IN_MEDIATION  // Pago en mediación
+  REJECTED      // Pago rechazado
+  CANCELLED     // Pago cancelado
+  REFUNDED      // Pago reembolsado
+  CHARGED_BACK  // Pago contracargado
+}
+
 // ===============================
 // TENANT SYSTEM
 // ===============================
@@ -317,6 +329,7 @@ model Tenant {
   packageTemplates   PackageTemplate[]
   venues             Venue[]
   masterEvents       MasterEvent[]
+  payments           Payment[]
   
   // Flexible Role System Relations
   roles              Role[]             // Roles específicos del tenant
@@ -803,6 +816,7 @@ model Quote {
   packages      Package[]
   clientCredits ClientCredits[]
   comments      QuoteComment[]
+  payments      Payment[]
 
   @@map("quotes")
   @@index([tenantId])
@@ -987,4 +1001,38 @@ model EmailChange {
   @@map("email_changes")
   @@index([userId])
   @@index([token])
+}
+
+// ===============================
+// PAYMENTS SYSTEM
+// ===============================
+model Payment {
+  id                        String        @id @default(cuid())
+  quoteId                   String        // Cotización asociada
+  amount                    Decimal       @db.Decimal(10, 2) // Monto del pago
+  currency                  String        @default("GTQ") // Moneda
+  status                    PaymentStatus @default(PENDING) // Estado del pago
+  paymentMethod             String        // MERCADOPAGO, STRIPE, etc.
+  mercadoPagoPreferenceId   String?       // ID de preferencia MP
+  mercadoPagoPaymentId      String?       // ID de pago MP
+  externalReference         String        @unique // Referencia externa
+  transactionId             String?       // ID de transacción
+  authorizationCode         String?       // Código de autorización
+  installments              Int?          // Número de cuotas
+  metadata                  Json?         // Datos adicionales
+  paidAt                    DateTime?     // Fecha de pago
+  createdAt                 DateTime      @default(now())
+  updatedAt                 DateTime      @updatedAt
+
+  // Relations
+  quote    Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId String
+
+  @@map("payments")
+  @@index([tenantId])
+  @@index([quoteId])
+  @@index([externalReference])
+  @@index([mercadoPagoPaymentId])
+  @@index([status])
 }
