@@ -1,8 +1,10 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-import { getToken } from 'next-auth/jwt'
+import { NextResponse, type NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
+export async function middleware(_request: NextRequest) {
+  // TEMPORALMENTE DESHABILITADO PARA PRUEBAS
+  return NextResponse.next();
+
+  /*
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
   const { pathname } = request.nextUrl
 
@@ -26,7 +28,9 @@ export async function middleware(request: NextRequest) {
   if (!token) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }
+  */
 
+  /*
   // Lógica de redirección basada en roles
   const userRole = token.role as string
 
@@ -55,6 +59,7 @@ export async function middleware(request: NextRequest) {
   }
 
   return NextResponse.next()
+  */
 }
 
 export const config = {
@@ -69,4 +74,4 @@ export const config = {
      */
     '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
   ],
-}
+};
