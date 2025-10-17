@@ -16,10 +16,11 @@ import {
   LogOut,
   User,
   Layout,
+  LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Breadcrumbs } from './breadcrumbs';
-import { LucideIcon } from 'lucide-react';
+import NotificationSystem from '@/components/notifications/NotificationSystem';
 
 interface NavigationItem {
   name: string;
@@ -34,6 +35,7 @@ const navigation: NavigationItem[] = [
   { name: 'Eventos', href: '/dashboard/events', icon: Calendar },
   { name: 'Cotizaciones', href: '/dashboard/quotes', icon: FileText },
   { name: 'Plantillas', href: '/dashboard/templates', icon: Layout },
+  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
   { name: 'PDF Test', href: '/dashboard/pdf-test', icon: FileText },
   { name: 'Pagos', href: '/dashboard/payments', icon: DollarSign },
   { name: 'Reportes', href: '/dashboard/reports', icon: BarChart3 },
@@ -190,8 +192,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <Breadcrumbs />
             </div>
 
-            <div className='ml-4 flex items-center md:ml-6'>
-              {/* User menu could go here */}
+            <div className='ml-4 flex items-center gap-2 md:ml-6'>
+              {/* Sistema de notificaciones */}
+              <NotificationSystem />
+              
+              {/* User menu */}
               <Button variant='ghost' size='sm'>
                 <User className='h-5 w-5' />
               </Button>
