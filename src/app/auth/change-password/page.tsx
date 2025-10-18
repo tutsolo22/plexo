@@ -18,11 +18,11 @@ export default function ChangePasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 8) {
-      toast({ title: 'Error', description: 'La contraseña debe tener al menos 8 caracteres', variant: 'destructive' });
+      toast({ title: 'Error', description: 'La contraseña debe tener al menos 8 caracteres', type: 'error' });
       return;
     }
     if (password !== confirm) {
-      toast({ title: 'Error', description: 'Las contraseñas no coinciden', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Las contraseñas no coinciden', type: 'error' });
       return;
     }
 
@@ -39,10 +39,10 @@ export default function ChangePasswordPage() {
         router.push('/auth/login');
       } else {
         const error = await res.text();
-        toast({ title: 'Error', description: error || 'No se pudo actualizar la contraseña', variant: 'destructive' });
+        toast({ title: 'Error', description: error || 'No se pudo actualizar la contraseña', type: 'error' });
       }
     } catch (err) {
-      toast({ title: 'Error', description: 'Error de red', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Error de red', type: 'error' });
     } finally {
       setLoading(false);
     }

@@ -17,6 +17,40 @@ const nextConfig = {
         ...config.resolve.fallback,
         fs: false,
       };
+      
+      // Configurar chunks para mejor splitting
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          chunks: 'all',
+          cacheGroups: {
+            // Vendors pesados en chunks separados
+            recharts: {
+              name: 'recharts',
+              test: /[\\/]node_modules[\\/](recharts|d3-.*)[\\/]/,
+              priority: 20,
+              chunks: 'all'
+            },
+            dateLibs: {
+              name: 'date-libs',
+              test: /[\\/]node_modules[\\/](date-fns|moment)[\\/]/,
+              priority: 20,
+              chunks: 'all'
+            },
+            ui: {
+              name: 'ui-components',
+              test: /[\\/]node_modules[\\/](@radix-ui|lucide-react)[\\/]/,
+              priority: 20,
+              chunks: 'all'
+            },
+            default: {
+              minChunks: 2,
+              priority: 10,
+              reuseExistingChunk: true
+            }
+          }
+        }
+      };
     }
     return config;
   },

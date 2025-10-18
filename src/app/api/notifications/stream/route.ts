@@ -1,9 +1,10 @@
-// Sistema de notificaciones en tiempo real usando Server-Sent Events
+// Sistema de notificaciones en tiempo real usando Server-Sent Events con Redis Cache
 // /api/notifications/stream/route.ts
 
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { redisCache, CacheKeys, NOTIFICATIONS_TTL } from '@/lib/redis';
 
 export async function GET(request: NextRequest) {
   const session = await auth();
@@ -34,6 +35,20 @@ export async function GET(request: NextRequest) {
       // Configurar interval para verificar nuevas notificaciones
       const interval = setInterval(async () => {
         try {
+          // Cache key para notificaciones de usuario
+          const notifCacheKey = CacheKeys.USER_NOTIFICATIONS(session.user.id);
+          const cachedNotifications = await redisCache.get(notifCacheKey);
+
+          if (cachedNotifications) {
+            // Enviar notificaciones desde cache
+            sendData({
+              type: 'cached_notifications',
+              data: cachedNotifications,
+              timestamp: new Date().toISOString()
+            });
+            return;
+          }
+
           // Verificar nuevas cotizaciones (últimos 5 minutos)
           const recentQuotes = await prisma.quote.findMany({
             where: {
@@ -61,7 +76,7 @@ export async function GET(request: NextRequest) {
                 quoteNumber: quote.quoteNumber,
                 clientName: quote.client?.name,
                 eventTitle: quote.event?.title,
-                amount: quote.totalAmount
+                amount: quote.total
               },
               timestamp: quote.createdAt,
               priority: 'normal'
@@ -106,21 +121,13 @@ export async function GET(request: NextRequest) {
             }
           });
 
-          // Verificar emails abiertos recientemente (si EmailLog existe)
+          // Verificar emails abiertos recientemente (simplificado)
           try {
             const recentEmailOpens = await prisma.emailLog.findMany({
               where: {
-                tenantId: session.user.tenantId,
                 status: 'OPENED',
                 updatedAt: {
                   gte: new Date(Date.now() - 5 * 60 * 1000) // Últimos 5 minutos
-                }
-              },
-              include: {
-                quote: {
-                  include: {
-                    client: { select: { name: true } }
-                  }
                 }
               },
               orderBy: { updatedAt: 'desc' },
@@ -132,12 +139,10 @@ export async function GET(request: NextRequest) {
               sendData({
                 type: 'email_opened',
                 title: 'Email Abierto',
-                message: `${emailLog.quote?.client?.name} abrió la cotización ${emailLog.quote?.quoteNumber}`,
+                message: `Se abrió un email de cotización`,
                 data: {
                   emailId: emailLog.id,
                   quoteId: emailLog.quoteId,
-                  quoteNumber: emailLog.quote?.quoteNumber,
-                  clientName: emailLog.quote?.client?.name,
                   openedAt: emailLog.updatedAt
                 },
                 timestamp: emailLog.updatedAt,
@@ -146,7 +151,21 @@ export async function GET(request: NextRequest) {
             });
           } catch (error) {
             // EmailLog tabla puede no existir aún
+            console.error('EmailLog error:', error);
           }
+
+          // Cache las notificaciones generadas por 1 minuto
+          const notificationData = {
+            quotes: recentQuotes.length,
+            events: upcomingEvents.length,
+            lastCheck: new Date().toISOString()
+          };
+          
+          await redisCache.set(
+            CacheKeys.USER_NOTIFICATIONS(session.user.id), 
+            notificationData, 
+            NOTIFICATIONS_TTL
+          );
 
           // Enviar heartbeat cada minuto
           sendData({

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-// import { auth } from '@/lib/auth' // Temporarily disabled
+import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { UserRole } from '@prisma/client'
@@ -17,7 +17,7 @@ const createRoomSchema = z.object({
 // GET /api/rooms - Listar salas
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
@@ -35,9 +35,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    if (locationId) where.locationId = locationId
-    if (businessIdentityId) where.location.businessIdentityId = businessIdentityId
-    if (isActive !== null) where.isActive = isActive === 'true'
+    if (locationId) where["locationId"] = locationId
+    if (businessIdentityId) (where["location"] as any).businessIdentityId = businessIdentityId
+    if (isActive !== null) where["isActive"] = isActive === 'true'
 
     const rooms = await prisma.room.findMany({
       where,
@@ -85,13 +85,14 @@ export async function GET(request: NextRequest) {
 // POST /api/rooms - Crear sala
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     if (!session?.user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     // Solo ciertos roles pueden crear salas
-    if (![UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.MANAGER].includes(session.user.role)) {
+    const userRole = (session.user as any).role
+    if (!['SUPER_ADMIN', 'TENANT_ADMIN', 'MANAGER'].includes(userRole)) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
 
@@ -131,7 +132,16 @@ export async function POST(request: NextRequest) {
     }
 
     const room = await prisma.room.create({
-      data: validatedData,
+      data: {
+        name: validatedData.name,
+        isActive: validatedData.isActive,
+        color: validatedData.color,
+        locationId: validatedData.locationId,
+        minCapacity: 1,
+        maxCapacity: validatedData.capacity || 50,
+        venueId: location.id,
+        description: validatedData.description || null
+      },
       include: {
         location: {
           include: {

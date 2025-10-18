@@ -42,7 +42,7 @@ async function generateQuoteNumber(): Promise<string> {
 
   let nextNumber = 1;
   if (lastQuote) {
-    const lastNumber = parseInt(lastQuote.quoteNumber.split('-')[2]) || 0;
+    const lastNumber = parseInt(lastQuote.quoteNumber.split('-')[2] || '0') || 0;
     nextNumber = lastNumber + 1;
   }
 
@@ -55,6 +55,13 @@ export async function POST(
 ) {
   try {
     const { id } = params;
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'ID de cotización requerido' },
+        { status: 400 }
+      );
+    }
+    
     const body = await request.json();
     const validatedData = DuplicateQuoteSchema.parse(body);
 
@@ -146,15 +153,15 @@ export async function POST(
           tenantId: originalQuote.tenantId,
           status: 'DRAFT', // Siempre empezar como borrador
           
-          // No copiar estos campos específicos
-          generatedContent: null,
-          pdfUrl: null,
+          // No copiar estos campos específicos - los omitimos en lugar de null
+          // generatedContent: null,
+          // pdfUrl: null,
           version: 1,
-          previousVersionId: null,
-          sentAt: null,
-          viewedAt: null,
-          respondedAt: null,
-          publicToken: null, // Se generará uno nuevo si es necesario
+          // previousVersionId: null,
+          // sentAt: null,
+          // viewedAt: null,
+          // respondedAt: null,
+          // publicToken: null, // Se generará uno nuevo si es necesario
         },
       });
 
@@ -197,8 +204,7 @@ export async function POST(
           quoteId: newQuote.id,
           userId: 'system', // En producción, usar el ID del usuario actual
           type: 'SYSTEM_NOTE',
-          content: `Cotización duplicada desde ${originalQuote.quoteNumber}${validatedData.clientId !== originalQuote.clientId ? ` para nuevo cliente` : ''}`,
-          isInternal: true,
+          comment: `Cotización duplicada desde ${originalQuote.quoteNumber}${validatedData.clientId !== originalQuote.clientId ? ` para nuevo cliente` : ''}`,
         },
       });
 
@@ -218,8 +224,7 @@ export async function POST(
             select: {
               id: true,
               title: true,
-              date: true,
-              startTime: true,
+              startDate: true,
             },
           },
           template: {
@@ -298,9 +303,15 @@ export async function GET(
 ) {
   try {
     const { id } = params;
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'ID de cotización requerido' },
+        { status: 400 }
+      );
+    }
 
     // Buscar cotizaciones relacionadas (duplicadas desde esta o que duplicaron esta)
-    const [originalQuote, duplicatedFrom, duplicatedTo] = await Promise.all([
+    const [originalQuote, duplicatedTo, duplicatedFrom] = await Promise.all([
       // Cotización original
       prisma.quote.findUnique({
         where: { id },
@@ -317,7 +328,7 @@ export async function GET(
         where: {
           comments: {
             some: {
-              content: {
+              comment: {
                 contains: id,
               },
               type: 'SYSTEM_NOTE',
@@ -345,12 +356,12 @@ export async function GET(
         where: {
           quoteId: id,
           type: 'SYSTEM_NOTE',
-          content: {
+          comment: {
             contains: 'Cotización duplicada desde',
           },
         },
         select: {
-          content: true,
+          comment: true,
         },
       }),
     ]);
@@ -364,8 +375,8 @@ export async function GET(
 
     // Extraer ID de cotización original si fue duplicada
     let originalQuoteId = null;
-    if (duplicatedFrom) {
-      const match = duplicatedFrom.content.match(/Q-\d{6}-\d{4}/);
+    if (duplicatedFrom && duplicatedFrom.comment) {
+      const match = duplicatedFrom.comment.match(/Q-\d{6}-\d{4}/);
       if (match) {
         const originalQuoteNumber = match[0];
         const original = await prisma.quote.findUnique({
@@ -394,8 +405,8 @@ export async function GET(
         canDuplicate: originalQuote.status !== 'CANCELLED',
         wasDuplicated: !!duplicatedFrom,
         originalQuote: originalQuoteId,
-        duplicatedQuotes: duplicatedTo,
-        duplicatedCount: duplicatedTo.length,
+        duplicatedQuotes: duplicatedTo || [],
+        duplicatedCount: duplicatedTo?.length || 0,
       },
     });
 

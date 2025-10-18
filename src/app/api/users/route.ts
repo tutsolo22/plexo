@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Solo ciertos roles pueden listar usuarios
-    if (![UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN, UserRole.MANAGER].includes(session.user.role)) {
+    if (!['SUPER_ADMIN', 'TENANT_ADMIN', 'MANAGER'].includes(session.user.role)) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
 
@@ -49,19 +49,20 @@ export async function GET(request: NextRequest) {
     const where: Record<string, unknown> = {}
 
     // SUPER_ADMIN ve todos los usuarios, otros solo los de su tenant
-    if (session.user.role !== UserRole.SUPER_ADMIN) {
-      where.tenantId = session.user.tenantId
+    const userRole = (session.user as any).role
+    if (userRole !== 'SUPER_ADMIN') {
+      where["tenantId"] = (session.user as any).tenantId
     }
 
     if (search) {
-      where.OR = [
+      where["OR"] = [
         { name: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } }
       ]
     }
 
-    if (role) where.role = role
-    if (isActive !== null) where.isActive = isActive === 'true'
+    if (role) where["role"] = role
+    if (isActive !== null) where["isActive"] = isActive === 'true'
 
     const [users, total] = await Promise.all([
       prisma.user.findMany({
@@ -72,7 +73,6 @@ export async function GET(request: NextRequest) {
           id: true,
           name: true,
           email: true,
-          phone: true,
           role: true,
           isActive: true,
           emailVerified: true,
@@ -84,13 +84,7 @@ export async function GET(request: NextRequest) {
               domain: true
             }
           },
-          _count: {
-            select: {
-              createdClients: true,
-              createdEvents: true,
-              createdQuotes: true
-            }
-          }
+          _count: true
         },
         orderBy: { createdAt: 'desc' }
       }),
@@ -126,7 +120,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Solo ciertos roles pueden crear usuarios
-    if (![UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN].includes(session.user.role)) {
+    const userRole = (session.user as any).role
+    if (!['SUPER_ADMIN', 'TENANT_ADMIN'].includes(userRole)) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
 
@@ -146,9 +141,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validar permisos de rol
-    if (session.user.role === UserRole.TENANT_ADMIN) {
+    if (userRole === 'TENANT_ADMIN') {
       // TENANT_ADMIN no puede crear SUPER_ADMIN
-      if (validatedData.role === UserRole.SUPER_ADMIN) {
+      if (validatedData.role === 'SUPER_ADMIN') {
         return NextResponse.json(
           { success: false, error: 'No puedes crear usuarios SUPER_ADMIN' },
           { status: 403 }
@@ -161,8 +156,8 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await hashPassword(validatedData.password)
 
     // Determinar tenant
-    let tenantId = session.user.tenantId
-    if (session.user.role === UserRole.SUPER_ADMIN && validatedData.role === UserRole.SUPER_ADMIN) {
+    let tenantId = (session.user as any).tenantId || null
+    if (userRole === 'SUPER_ADMIN' && validatedData.role === 'SUPER_ADMIN') {
       tenantId = null // SUPER_ADMIN puede no pertenecer a un tenant específico
     }
 
@@ -172,7 +167,6 @@ export async function POST(request: NextRequest) {
         email: validatedData.email,
         password: hashedPassword,
         role: validatedData.role,
-        phone: validatedData.phone,
         isActive: validatedData.isActive,
         tenantId,
         emailVerified: new Date() // Auto-verificar en creación administrativa
@@ -181,7 +175,6 @@ export async function POST(request: NextRequest) {
         id: true,
         name: true,
         email: true,
-        phone: true,
         role: true,
         isActive: true,
         emailVerified: true,

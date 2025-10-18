@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env['OPENAI_API_KEY'],
 });
 
 // Datos de ejemplo que ya tienes en la base de datos
@@ -182,7 +182,7 @@ CONSULTA DEL USUARIO: ${message}`;
       max_tokens: 1500,
     });
 
-    const aiResponse = response.choices[0].message.content;
+    const aiResponse = response.choices[0]?.message?.content;
 
     return NextResponse.json({
       success: true,

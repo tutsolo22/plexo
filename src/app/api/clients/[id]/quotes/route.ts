@@ -26,7 +26,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     // Verificar permisos según rol
-    const userRoleType = session.user.role.roleId as $Enums.RoleType;
+    const userRoleType = session.user.role as $Enums.RoleType;
     if (userRoleType === $Enums.RoleType.CLIENT_EXTERNAL) {
       if (client.userId !== session.user.id) {
         return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
@@ -37,15 +37,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       where: {
         clientId: clientId,
       },
-      select: {
-        id: true,
-        quoteNumber: true,
-        status: true,
-        subtotal: true,
-        totalAmount: true,
-        validUntil: true,
-        createdAt: true,
-        updatedAt: true,
+      include: {
         event: {
           select: {
             id: true,
@@ -57,7 +49,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         },
         _count: {
           select: {
-            quoteItems: true,
+            packages: true,
           },
         },
       },
@@ -71,7 +63,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       quoteNumber: quote.quoteNumber,
       status: quote.status,
       subtotal: Number(quote.subtotal),
-      totalAmount: Number(quote.totalAmount),
+      totalAmount: Number(quote.total),
       validUntil: quote.validUntil?.toISOString() || null,
       event: quote.event
         ? {
@@ -82,7 +74,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
             status: quote.event.status,
           }
         : null,
-      itemsCount: quote._count.quoteItems,
+      itemsCount: quote._count.packages,
       createdAt: quote.createdAt.toISOString(),
       updatedAt: quote.updatedAt.toISOString(),
     }));

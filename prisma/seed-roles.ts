@@ -98,7 +98,7 @@ async function seedDefaultRoles() {
         name: roleData.name,
         type: roleData.type,
         description: roleData.description,
-        tenantId: roleData.tenantId,
+        ...(roleData.tenantId ? { tenantId: roleData.tenantId } : {}),
         permissions: defaultPermissions,
       })
 
@@ -230,7 +230,7 @@ async function assignDefaultRolesToExistingUsers() {
         userId: user.id,
         roleId: targetRole.id,
         tenantId: user.tenantId,
-        assignedBy: null, // Asignación automática del sistema
+        // assignedBy: null, // Asignación automática del sistema
       })
 
       console.log(`  ✅ Rol asignado: ${targetRole.name} -> ${user.email}`)

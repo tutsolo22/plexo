@@ -33,7 +33,7 @@ export async function GET(
     }
 
     // CLIENT_EXTERNAL solo puede ver sus propios datos
-    const userRoleType = session.user.role.roleId as $Enums.RoleType
+    const userRoleType = session.user.role as $Enums.RoleType
     if (userRoleType === $Enums.RoleType.CLIENT_EXTERNAL) {
       where["userId"] = session.user.id
     }
@@ -117,7 +117,7 @@ export async function PUT(
     }
 
     // Solo ciertos roles pueden actualizar clientes
-    const userRoleType = session.user.role.roleId as $Enums.RoleType
+    const userRoleType = session.user.role as $Enums.RoleType
     if (userRoleType !== $Enums.RoleType.SUPER_ADMIN && 
         userRoleType !== $Enums.RoleType.TENANT_ADMIN && 
         userRoleType !== $Enums.RoleType.MANAGER && 
@@ -216,7 +216,7 @@ export async function DELETE(
     }
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden eliminar
-    const userRoleType = session.user.role.roleId as $Enums.RoleType
+    const userRoleType = session.user.role as $Enums.RoleType
     if (userRoleType !== $Enums.RoleType.SUPER_ADMIN && 
         userRoleType !== $Enums.RoleType.TENANT_ADMIN) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })

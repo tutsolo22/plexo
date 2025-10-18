@@ -90,8 +90,7 @@ export async function POST(request: NextRequest) {
         client: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true
+            name: true
           }
         },
         room: {
@@ -123,7 +122,8 @@ export async function POST(request: NextRequest) {
         select: {
           id: true,
           name: true,
-          capacity: true
+          minCapacity: true,
+          maxCapacity: true
         }
       })
     } else if (validatedData.venueId) {
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
         select: {
           id: true,
           name: true,
-          address: true
+          description: true
         }
       })
     }

@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { EventStatus } from '@prisma/client'
@@ -45,8 +46,7 @@ export async function GET(
         client: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
+            name: true,
             email: true,
             phone: true
           }
@@ -55,14 +55,15 @@ export async function GET(
           select: {
             id: true,
             name: true,
-            capacity: true
+            minCapacity: true,
+            maxCapacity: true
           }
         },
         venue: {
           select: {
             id: true,
             name: true,
-            address: true
+            capacity: true
           }
         },
         quote: {
@@ -249,8 +250,7 @@ export async function PUT(
         client: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
+            name: true,
             email: true,
             phone: true
           }
@@ -259,14 +259,15 @@ export async function PUT(
           select: {
             id: true,
             name: true,
-            capacity: true
+            minCapacity: true,
+            maxCapacity: true
           }
         },
         venue: {
           select: {
             id: true,
             name: true,
-            address: true
+            capacity: true
           }
         },
         quote: {

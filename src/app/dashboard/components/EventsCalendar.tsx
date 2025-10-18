@@ -325,7 +325,7 @@ export function EventsCalendar({
                     {eventInfo.event.title}
                   </div>
                   <div className="text-xs opacity-75 truncate">
-                    {eventInfo.event.extendedProps.clientName || 'Sin cliente'}
+                    {eventInfo.event.extendedProps['clientName'] || 'Sin cliente'}
                   </div>
                 </div>
               )}

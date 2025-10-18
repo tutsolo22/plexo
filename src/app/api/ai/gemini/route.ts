@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || '');
+const genAI = new GoogleGenerativeAI(process.env['GOOGLE_AI_API_KEY'] || '');
 
 // Datos de ejemplo que ya tienes en la base de datos
 const SAMPLE_DATA = {
@@ -168,7 +168,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verificar API key
-    if (!process.env.GOOGLE_AI_API_KEY) {
+    if (!process.env['GOOGLE_AI_API_KEY']) {
       return NextResponse.json(
         { 
           success: false, 

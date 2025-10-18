@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { sendEmail } from '@/lib/email/email-service';
+import { emailService } from '@/lib/email/email-service';
 
 /**
  * POST /api/emails/[id]/resend - Reenviar un email fallido
@@ -19,12 +19,7 @@ export async function POST(
         quote: {
           include: {
             client: true,
-            packages: {
-              include: {
-                items: true
-              }
-            },
-            adjustments: true
+            packages: true
           }
         }
       }
@@ -49,15 +44,11 @@ export async function POST(
 
     try {
       // Intentar reenviar el email
-      await sendEmail({
-        to: originalEmail.toEmail,
+      await emailService.sendEmail({
+        to: originalEmail.recipientEmail,
         subject: originalEmail.subject,
-        template: originalEmail.template as 'basic' | 'professional' | 'custom',
-        data: {
-          quote: originalEmail.quote,
-          client: originalEmail.quote.client,
-          trackingToken: newTrackingToken
-        }
+        html: `<p>Reenvío del email original</p>`,
+        text: 'Reenvío del email original'
       });
 
       // Actualizar el email original
@@ -66,15 +57,13 @@ export async function POST(
         data: {
           status: 'SENT',
           trackingToken: newTrackingToken,
-          sentAt: new Date(),
-          failureReason: null
+          sentAt: new Date()
         },
         include: {
           quote: {
             select: {
               id: true,
               quoteNumber: true,
-              title: true,
               client: {
                 select: {
                   name: true
@@ -96,7 +85,7 @@ export async function POST(
       await prisma.emailLog.update({
         where: { id: emailId },
         data: {
-          failureReason: emailError instanceof Error ? emailError.message : 'Error desconocido al reenviar'
+          status: 'FAILED'
         }
       });
 

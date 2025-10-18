@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth.config';
+import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import Handlebars from 'handlebars';
@@ -16,7 +15,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.tenantId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
@@ -46,26 +45,26 @@ export async function POST(
     // Datos por defecto para vista previa
     const defaultData = {
       // Variables del cliente
-      clientName: previewData?.clientName || 'Juan Pérez',
-      clientEmail: previewData?.clientEmail || 'juan.perez@email.com',
-      clientPhone: previewData?.clientPhone || '+502 1234-5678',
-      clientAddress: previewData?.clientAddress || 'Ciudad de Guatemala, Guatemala',
+      clientName: previewData?.['clientName'] || 'Juan Pérez',
+      clientEmail: previewData?.['clientEmail'] || 'juan.perez@email.com',
+      clientPhone: previewData?.['clientPhone'] || '+502 1234-5678',
+      clientAddress: previewData?.['clientAddress'] || 'Ciudad de Guatemala, Guatemala',
       
       // Variables del evento
-      eventTitle: previewData?.eventTitle || 'Celebración de Aniversario',
-      eventDate: previewData?.eventDate || new Date().toLocaleDateString('es-ES'),
-      eventTime: previewData?.eventTime || '18:00',
-      eventDuration: previewData?.eventDuration || '4 horas',
-      roomName: previewData?.roomName || 'Salón Principal',
-      locationName: previewData?.locationName || template.businessIdentity.name,
+      eventTitle: previewData?.['eventTitle'] || 'Celebración de Aniversario',
+      eventDate: previewData?.['eventDate'] || new Date().toLocaleDateString('es-ES'),
+      eventTime: previewData?.['eventTime'] || '18:00',
+      eventDuration: previewData?.['eventDuration'] || '4 horas',
+      roomName: previewData?.['roomName'] || 'Salón Principal',
+      locationName: previewData?.['locationName'] || template.businessIdentity.name,
       
       // Variables de la cotización
-      quoteNumber: previewData?.quoteNumber || 'COT-2024-001',
+      quoteNumber: previewData?.['quoteNumber'] || 'COT-2024-001',
       quoteDate: new Date().toLocaleDateString('es-ES'),
-      subtotal: previewData?.subtotal || 'Q 2,500.00',
-      discount: previewData?.discount || 'Q 250.00',
-      total: previewData?.total || 'Q 2,250.00',
-      validUntil: previewData?.validUntil || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('es-ES'),
+      subtotal: previewData?.['subtotal'] || 'Q 2,500.00',
+      discount: previewData?.['discount'] || 'Q 250.00',
+      total: previewData?.['total'] || 'Q 2,250.00',
+      validUntil: previewData?.['validUntil'] || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('es-ES'),
       
       // Variables de la identidad de negocio
       businessName: template.businessIdentity.name,
@@ -81,7 +80,7 @@ export async function POST(
       currentUser: session.user.name || 'Usuario',
       
       // Paquetes de ejemplo
-      packages: previewData?.packages || [
+      packages: previewData?.['packages'] || [
         {
           name: 'Paquete Básico',
           description: 'Incluye servicios esenciales',

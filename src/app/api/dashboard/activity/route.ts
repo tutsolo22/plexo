@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
           type: 'event',
           action: 'created',
           title: 'Nuevo evento creado',
-          description: `Se creó el evento "${event.name}" para ${event.client.name}`,
+          description: `Se creó el evento "${event.title}" para ${event.client.name}`,
           timestamp: event.createdAt,
           relatedEntity: {
             id: event.client.id,
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
           type: 'quote',
           action: getQuoteAction(quote.status),
           title: getQuoteTitle(quote.status),
-          description: `Cotización ${quote.number} para ${quote.client.name} - ${formatCurrency(Number(quote.total))}`,
+          description: `Cotización ${quote.quoteNumber} para ${quote.client.name} - ${formatCurrency(Number(quote.total))}`,
           timestamp: quote.updatedAt,
           relatedEntity: {
             id: quote.client.id,
@@ -109,28 +109,36 @@ export async function GET(request: NextRequest) {
           take: Math.ceil(limit / (type === 'all' ? 4 : 1)),
           orderBy: { createdAt: 'desc' },
           include: {
-            event: {
+            quote: {
               include: {
-                client: { select: { id: true, name: true } }
+                event: {
+                  include: {
+                    client: { select: { id: true, name: true } }
+                  }
+                }
               }
             }
           }
         })
 
         recentPayments.forEach(payment => {
-          activities.push({
-            id: payment.id,
-            type: 'payment',
-            action: payment.status.toLowerCase(),
-            title: getPaymentTitle(payment.status),
-            description: `Pago de ${formatCurrency(Number(payment.amount))} para "${payment.event.name}"`,
-            timestamp: payment.createdAt,
-            relatedEntity: payment.event.client ? {
-              id: payment.event.client.id,
-              name: payment.event.client.name,
-              type: 'client'
-            } : undefined
-          })
+          const relatedEntity = payment.quote.event?.client ? {
+            id: payment.quote.event.client.id,
+            name: payment.quote.event.client.name,
+            type: 'client'
+          } : undefined;
+
+          if (relatedEntity) {
+            activities.push({
+              id: payment.id,
+              type: 'payment',
+              action: payment.status.toLowerCase(),
+              title: getPaymentTitle(payment.status),
+              description: `Pago de ${formatCurrency(Number(payment.amount))} para "${payment.quote.event?.title || 'Evento sin título'}"`,
+              timestamp: payment.createdAt,
+              relatedEntity
+            });
+          }
         })
       } catch (error) {
         // La tabla Payment puede no existir aún

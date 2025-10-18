@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       where: {
         OR: [
           { mercadoPagoPaymentId: paymentId.toString() },
-          { externalReference: mpPayment.external_reference || undefined },
+          ...(mpPayment.external_reference ? [{ externalReference: mpPayment.external_reference }] : []),
         ],
       },
       include: {
@@ -79,17 +79,17 @@ export async function POST(request: NextRequest) {
       data: {
         status: newStatus,
         mercadoPagoPaymentId: paymentId.toString(),
-        transactionId: mpPayment.transaction_amount?.toString(),
-        authorizationCode: mpPayment.authorization_code || null,
-        installments: mpPayment.installments || null,
-        paidAt: mpPayment.status === 'approved' ? new Date() : null,
+        ...(mpPayment.transaction_amount ? { transactionId: mpPayment.transaction_amount.toString() } : {}),
+        ...(mpPayment.authorization_code ? { authorizationCode: mpPayment.authorization_code } : {}),
+        ...(mpPayment.installments ? { installments: mpPayment.installments } : {}),
+        ...(mpPayment.status === 'approved' ? { paidAt: new Date() } : {}),
         metadata: {
           ...((payment.metadata as object) || {}),
           mercadoPagoData: {
             status: mpPayment.status,
             statusDetail: mpPayment.status_detail,
             paymentMethodId: mpPayment.payment_method?.id,
-            paymentTypeId: mpPayment.payment_type?.id,
+            paymentTypeId: mpPayment.payment_type_id,
             currencyId: mpPayment.currency_id,
             transactionAmount: mpPayment.transaction_amount,
             collectorId: mpPayment.collector_id,
@@ -134,17 +134,23 @@ export async function POST(request: NextRequest) {
       await prisma.auditLog.create({
         data: {
           action: 'PAYMENT_APPROVED',
-          entityType: 'Payment',
-          entityId: payment.id,
-          details: `Pago aprobado por MercadoPago. Monto: ${mpPayment.transaction_amount} ${mpPayment.currency_id}`,
-          tenantId: payment.tenantId,
-          metadata: {
-            mercadoPagoPaymentId: paymentId,
-            quoteId: payment.quoteId,
-            eventId: payment.quote.event?.id || null,
-            clientId: payment.quote.client.id,
+          tableName: 'Payment',
+          recordId: payment.id,
+          newData: {
+            paymentApproved: true,
+            amount: mpPayment.transaction_amount,
+            currency: mpPayment.currency_id
           },
-        },
+          tenantId: payment.tenantId,
+          userId: payment.quote.client.userId || payment.tenantId // Use client's userId or fallback to tenantId
+          // metadata field doesn't exist in AuditLog schema
+          // metadata: {
+          //   mercadoPagoPaymentId: paymentId,
+          //   quoteId: payment.quoteId,
+          //   eventId: payment.quote.event?.id || null,
+          //   clientId: payment.quote.client.id,
+          // }
+        }
       });
     }
 
@@ -164,17 +170,21 @@ export async function POST(request: NextRequest) {
       await prisma.auditLog.create({
         data: {
           action: 'WEBHOOK_ERROR',
-          entityType: 'Payment',
-          entityId: 'unknown',
-          details: `Error procesando webhook: ${error instanceof Error ? error.message : 'Error desconocido'}`,
-          tenantId: 'system',
-          metadata: {
-            error: error instanceof Error ? error.stack : String(error),
-            webhook_body: await request
-              .clone()
-              .json()
-              .catch(() => 'Could not parse body'),
+          tableName: 'Payment',
+          recordId: 'unknown',
+          newData: {
+            error: error instanceof Error ? error.message : 'Error desconocido'
           },
+          tenantId: 'system',
+          userId: 'system' // Use system user for error logs
+          // metadata field doesn't exist in AuditLog schema
+          // metadata: {
+          //   error: error instanceof Error ? error.stack : String(error),
+          //   webhook_body: await request
+          //     .clone()
+          //     .json()
+          //     .catch(() => 'Could not parse body'),
+          // },
         },
       });
     } catch (auditError) {

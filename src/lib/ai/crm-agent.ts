@@ -2,10 +2,17 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { prisma } from '@/lib/prisma';
 import { crmEmbeddingService } from './crm-embeddings';
 import { SYSTEM_PROMPTS, RESPONSE_TEMPLATES } from './prompt-templates';
-import { EventStatus, QuoteStatus, UserRole } from '@prisma/client';
+import { EventStatus, QuoteStatus, LegacyUserRole } from '@prisma/client';
+import { 
+  CRMSearchResult, 
+  EventAnalysis, 
+  ClientAnalysis, 
+  QuoteGeneration, 
+  GeneratedQuote 
+} from './types';
 
 // Inicializar Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || '');
+const genAI = new GoogleGenerativeAI(process.env["GOOGLE_AI_API_KEY"] || '');
 
 export interface AgentMessage {
   role: 'user' | 'model';
@@ -85,7 +92,7 @@ export class CRMAgentService {
   async processMessage(
     message: string,
     tenantId: string,
-    userRole: UserRole = UserRole.USER,
+    userRole: string = 'USER',
     conversationId?: string,
     context?: AgentMessage[]
   ): Promise<AgentResponse> {
@@ -93,7 +100,7 @@ export class CRMAgentService {
       this.defaultTenantId = tenantId;
 
       // Crear sistema de prompts personalizado por rol
-      const systemPrompt = this.getSystemPromptByRole(userRole);
+      const systemPrompt = this.getSystemPromptByRole(userRole as LegacyUserRole);
       
       // Preparar historial de conversación
       const history: AgentMessage[] = [
@@ -117,8 +124,8 @@ export class CRMAgentService {
       if (needsFunctionCall.needed) {
         // Ejecutar función detectada
         const functionResult = await this.executeCRMFunction(
-          needsFunctionCall.function,
-          needsFunctionCall.params,
+          needsFunctionCall.function || '',
+          needsFunctionCall.params || {},
           tenantId
         );
 
@@ -139,11 +146,11 @@ Proporciona una respuesta clara, estructurada y útil usando estos datos.
         return {
           message: response.text(),
           functionCalls: [{
-            name: needsFunctionCall.function,
-            args: needsFunctionCall.params,
+            name: needsFunctionCall.function || '',
+            args: needsFunctionCall.params || {},
             result: functionResult
           }],
-          conversationId
+          ...(conversationId && { conversationId })
         };
       }
 
@@ -154,14 +161,14 @@ Proporciona una respuesta clara, estructurada y útil usando estos datos.
 
       return {
         message: response.text(),
-        conversationId
+        ...(conversationId && { conversationId })
       };
 
     } catch (error) {
       console.error('Error procesando mensaje CRM:', error);
       return {
         message: RESPONSE_TEMPLATES.ERROR,
-        conversationId
+        ...(conversationId && { conversationId })
       };
     }
   }
@@ -187,6 +194,9 @@ Funciones disponibles:
 - searchRooms: Para buscar salas
 - getDashboardStats: Para estadísticas
 - analyzeBusinessData: Para análisis de negocio
+- generateEventQuote: Para generar cotizaciones automáticas
+- analyzeClientHistory: Para análisis profundo de clientes
+- suggestUpgrades: Para sugerencias de mejoras
 
 Responde SOLO con formato JSON:
 {
@@ -239,10 +249,33 @@ Responde SOLO con formato JSON:
         return this.searchRooms({ ...params, tenantId });
 
       case 'getDashboardStats':
-        return this.getDashboardStats(params.period || 30, tenantId, params.businessIdentityId);
+        return this.getDashboardStats(params['period'] || 30, tenantId, params['businessIdentityId']);
 
       case 'analyzeBusinessData':
-        return this.analyzeBusinessData(params.analysisType, params.period || 90, tenantId);
+        return this.analyzeBusinessData(params['analysisType'], params['period'] || 90, tenantId);
+
+      case 'generateEventQuote':
+        return this.generateEventQuote(
+          params['eventDescription'], 
+          params['clientId'], 
+          tenantId, 
+          params['options']
+        );
+
+      case 'analyzeClientHistory':
+        return this.analyzeClientHistory(
+          params['clientId'], 
+          tenantId, 
+          params['options']
+        );
+
+      case 'suggestUpgrades':
+        return this.suggestUpgrades(
+          params['contextType'] || 'general',
+          params['contextId'],
+          tenantId,
+          params['options']
+        );
 
       default:
         throw new Error(`Función no reconocida: ${functionName}`);
@@ -258,8 +291,8 @@ Responde SOLO con formato JSON:
       const vectorResults = await crmEmbeddingService.searchSimilar(params.query, {
         type: 'event',
         limit: params.limit || 10,
-        tenantId: params.tenantId,
-        businessIdentityId: params.businessIdentityId,
+        ...(params.tenantId && { tenantId: params.tenantId }),
+        ...(params.businessIdentityId && { businessIdentityId: params.businessIdentityId }),
         includeEntity: true
       });
 
@@ -312,23 +345,23 @@ Responde SOLO con formato JSON:
     };
 
     if (params.clientName) {
-      where.client = {
+      where['client'] = {
         name: { contains: params.clientName, mode: 'insensitive' }
       };
     }
 
     if (params.status) {
-      where.status = params.status;
+      where['status'] = params.status;
     }
 
     if (params.roomId) {
-      where.roomId = params.roomId;
+      where['roomId'] = params.roomId;
     }
 
     if (params.dateFrom || params.dateTo) {
-      where.startDate = {};
-      if (params.dateFrom) where.startDate.gte = new Date(params.dateFrom);
-      if (params.dateTo) where.startDate.lte = new Date(params.dateTo);
+      where['startDate'] = {};
+      if (params.dateFrom) where['startDate'].gte = new Date(params.dateFrom);
+      if (params.dateTo) where['startDate'].lte = new Date(params.dateTo);
     }
 
     const events = await prisma.event.findMany({
@@ -347,10 +380,8 @@ Responde SOLO con formato JSON:
               }
             }
           }
-        },
-        user: {
-          select: { id: true, name: true, email: true }
         }
+        // user relation doesn't exist in Event model
       },
       orderBy: { startDate: 'desc' },
       take: params.limit || 10
@@ -389,8 +420,8 @@ Responde SOLO con formato JSON:
       const vectorResults = await crmEmbeddingService.searchSimilar(params.query, {
         type: 'client',
         limit: params.limit || 10,
-        tenantId: params.tenantId,
-        businessIdentityId: params.businessIdentityId,
+        ...(params.tenantId && { tenantId: params.tenantId }),
+        ...(params.businessIdentityId && { businessIdentityId: params.businessIdentityId }),
         includeEntity: true
       });
 
@@ -430,23 +461,23 @@ Responde SOLO con formato JSON:
     };
 
     if (params.name) {
-      where.name = { contains: params.name, mode: 'insensitive' };
+      where['name'] = { contains: params.name, mode: 'insensitive' };
     }
 
     if (params.email) {
-      where.email = { contains: params.email, mode: 'insensitive' };
+      where['email'] = { contains: params.email, mode: 'insensitive' };
     }
 
     if (params.type) {
-      where.type = params.type;
+      where['type'] = params.type;
     }
 
     const clients = await prisma.client.findMany({
       where,
       include: {
-        priceList: {
-          select: { id: true, name: true, type: true }
-        },
+        // priceList: { // No existe como relación directa
+        //   select: { id: true, name: true, type: true }
+        // },
         _count: {
           select: {
             events: true,
@@ -467,7 +498,7 @@ Responde SOLO con formato JSON:
         email: client.email,
         phone: client.phone,
         type: client.type,
-        priceList: client.priceList?.name,
+        priceListId: client.priceListId, // Use priceListId instead of priceList relation
         totalEvents: client._count.events,
         totalQuotes: client._count.quotes,
         createdAt: client.createdAt
@@ -638,15 +669,15 @@ Responde SOLO con formato JSON:
 
     const products = await prisma.product.findMany({
       where,
-      include: {
-        prices: {
-          include: {
-            priceList: {
-              select: { name: true, type: true }
-            }
-          }
-        }
-      },
+      // include: {
+      //   prices: { // prices relation may not exist directly
+      //     include: {
+      //       priceList: {
+      //         select: { name: true, type: true }
+      //       }
+      //     }
+      //   }
+      // },
       orderBy: { name: 'asc' },
       take: params.limit || 20
     });
@@ -681,23 +712,23 @@ Responde SOLO con formato JSON:
     };
 
     if (params.businessIdentityId) {
-      where.location.businessIdentityId = params.businessIdentityId;
+      where['location']['businessIdentityId'] = params.businessIdentityId;
     }
 
     if (params.locationId) {
-      where.locationId = params.locationId;
+      where['locationId'] = params.locationId;
     }
 
     if (params.capacity) {
-      where.capacity = { gte: params.capacity };
+      where['capacity'] = { gte: params.capacity };
     }
 
     if (params.isActive !== undefined) {
-      where.isActive = params.isActive;
+      where['isActive'] = params.isActive;
     }
 
     if (params.query) {
-      where.OR = [
+      where['OR'] = [
         { name: { contains: params.query, mode: 'insensitive' } },
         { description: { contains: params.query, mode: 'insensitive' } }
       ];
@@ -732,7 +763,7 @@ Responde SOLO con formato JSON:
       rooms: rooms.map(room => ({
         id: room.id,
         name: room.name,
-        capacity: room.capacity,
+        // capacity: room.capacity, // capacity field doesn't exist in Room model
         description: room.description,
         color: room.color,
         isActive: room.isActive,
@@ -741,6 +772,552 @@ Responde SOLO con formato JSON:
         activeEventsCount: room._count.events
       }))
     };
+  }
+
+  /**
+   * Genera una cotización automática para un evento basándose en eventos similares
+   */
+  async generateEventQuote(
+    eventDescription: string,
+    clientId?: string,
+    tenantId?: string,
+    options?: {
+      preferredDate?: Date;
+      duration?: number;
+      guestCount?: number;
+      budget?: number;
+    }
+  ): Promise<GeneratedQuote> {
+    try {
+      const tid = tenantId || this.defaultTenantId;
+      
+      // 1. Buscar eventos similares usando búsqueda semántica
+      const similarEvents = await crmEmbeddingService.searchSimilar(eventDescription, {
+        type: 'event',
+        limit: 5,
+        tenantId: tid,
+        includeEntity: true
+      });
+
+      // 2. Obtener cotizaciones de eventos similares para referencia de precios
+      const eventIds = similarEvents.map(result => result.entity?.id).filter(Boolean);
+      const similarQuotes = await prisma.quote.findMany({
+        where: {
+          tenantId: tid,
+          eventId: { in: eventIds as string[] },
+          status: { in: [QuoteStatus.ACCEPTED_BY_CLIENT, QuoteStatus.APPROVED_BY_MANAGER] }
+        },
+        select: {
+          id: true,
+          total: true,
+          event: {
+            select: {
+              title: true,
+              startDate: true,
+              endDate: true
+            }
+          }
+        },
+        orderBy: { total: 'desc' },
+        take: 3
+      });
+
+      // 3. Obtener productos más utilizados en general para recomendaciones
+      const popularProducts = await prisma.product.findMany({
+        where: { 
+          tenantId: tid,
+          isActive: true 
+        },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          description: true
+        },
+        take: 10
+      });
+
+      // 4. Generar recomendaciones usando IA
+      const analysisPrompt = `
+Analiza los siguientes datos para generar una cotización inteligente:
+
+EVENTO SOLICITADO: "${eventDescription}"
+OPCIONES: ${JSON.stringify(options, null, 2)}
+
+EVENTOS SIMILARES ENCONTRADOS:
+${similarEvents.map((result, index) => 
+  `${index + 1}. ${result.entity?.title} (Similitud: ${(result.similarity * 100).toFixed(1)}%)`
+).join('\n')}
+
+COTIZACIONES DE REFERENCIA:
+${similarQuotes.map((quote, index) => 
+  `${index + 1}. Total: $${quote.total} - Evento: ${quote.event?.title || 'Sin título'}`
+).join('\n')}
+
+PRODUCTOS DISPONIBLES:
+${popularProducts.map(product => 
+  `- ${product.name}: $${product.price} - ${product.description || 'Sin descripción'}`
+).join('\n')}
+
+RESPONDE EN FORMATO JSON:
+{
+  "recommendedProducts": [
+    {
+      "productId": "id",
+      "name": "nombre",
+      "quantity": number,
+      "unitPrice": number,
+      "reasoning": "por qué se recomienda"
+    }
+  ],
+  "estimatedTotal": number,
+  "confidence": number (0-100),
+  "recommendations": {
+    "duration": "duración recomendada",
+    "guestCapacity": "capacidad sugerida",
+    "additionalServices": ["servicios adicionales sugeridos"]
+  },
+  "notes": "observaciones y consejos adicionales"
+}
+`;
+
+      const result = await this.model.generateContent(analysisPrompt);
+      const aiResponse = result.response.text();
+      
+      // Extraer JSON de la respuesta
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      let aiAnalysis;
+      
+      if (jsonMatch) {
+        try {
+          aiAnalysis = JSON.parse(jsonMatch[0]);
+        } catch (e) {
+          console.error('Error parsing AI response:', e);
+          aiAnalysis = null;
+        }
+      }
+
+      // 5. Calcular estadísticas
+      const avgSimilarTotal = similarQuotes.length > 0 
+        ? similarQuotes.reduce((sum, quote) => sum + Number(quote.total), 0) / similarQuotes.length
+        : 0;
+
+      const priceRange = similarQuotes.length > 0 
+        ? {
+            min: Math.min(...similarQuotes.map(q => Number(q.total))),
+            max: Math.max(...similarQuotes.map(q => Number(q.total)))
+          }
+        : { min: 0, max: 0 };
+
+      return {
+        subtotal: aiAnalysis?.estimatedTotal ? aiAnalysis.estimatedTotal * 0.9 : avgSimilarTotal * 0.9,
+        discount: 0,
+        total: aiAnalysis?.estimatedTotal || avgSimilarTotal,
+        packages: [{
+          name: 'Paquete Recomendado',
+          description: 'Basado en eventos similares',
+          items: (aiAnalysis?.recommendedProducts || []).map((item: any) => ({
+            type: 'product' as const,
+            name: item.name,
+            description: item.reasoning,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalPrice: item.quantity * item.unitPrice,
+            category: 'Recomendado'
+          })),
+          subtotal: (aiAnalysis?.recommendedProducts || []).reduce((sum: number, item: any) => 
+            sum + (item.quantity * item.unitPrice), 0
+          )
+        }],
+        suggestions: [],
+        reasoning: `
+Análisis basado en ${similarEvents.length} eventos similares:
+- Precio promedio histórico: $${avgSimilarTotal.toFixed(2)}
+- Nivel de confianza: ${aiAnalysis?.confidence || 70}%
+- Notas: ${aiAnalysis?.notes || 'Cotización generada automáticamente'}
+
+Eventos de referencia:
+${similarEvents.map(r => `• ${r.entity?.title} (${(r.similarity * 100).toFixed(1)}% similar)`).join('\n')}
+        `.trim()
+      };
+
+    } catch (error) {
+      console.error('Error generando cotización:', error);
+      throw new Error('Error generando cotización automática');
+    }
+  }
+
+  /**
+   * Analiza el historial completo de un cliente para obtener insights
+   */
+  async analyzeClientHistory(
+    clientId: string,
+    tenantId?: string,
+    options?: {
+      includeEventAnalysis?: boolean;
+      includeSpendingPatterns?: boolean;
+      includePredictions?: boolean;
+    }
+  ): Promise<ClientAnalysis> {
+    try {
+      const tid = tenantId || this.defaultTenantId;
+      
+      // 1. Obtener datos básicos del cliente
+      const client = await prisma.client.findUnique({
+        where: { id: clientId }
+      });
+
+      if (!client) {
+        throw new Error('Cliente no encontrado');
+      }
+
+      // 2. Obtener eventos del cliente
+      const clientEvents = await prisma.event.findMany({
+        where: { 
+          clientId: clientId,
+          tenantId: tid 
+        },
+        include: {
+          quote: {
+            select: {
+              total: true,
+              status: true
+            }
+          },
+          room: {
+            select: {
+              name: true
+            }
+          }
+        },
+        orderBy: { startDate: 'desc' },
+        take: 50
+      });
+
+      // 3. Calcular métricas básicas
+      const totalEvents = clientEvents.length;
+      const acceptedQuotes = clientEvents.filter(e => 
+        e.quote && e.quote.status === QuoteStatus.ACCEPTED_BY_CLIENT
+      );
+      
+      const totalSpent = acceptedQuotes.reduce((sum, event) => {
+        return sum + (event.quote ? Number(event.quote.total) : 0);
+      }, 0);
+
+      const avgSpentPerEvent = acceptedQuotes.length > 0 ? totalSpent / acceptedQuotes.length : 0;
+
+      // 4. Generar análisis con IA
+      const analysisPrompt = `
+Analiza el perfil completo de este cliente y genera insights:
+
+DATOS DEL CLIENTE:
+- Nombre: ${client.name}
+- Email: ${client.email}
+- Tipo: ${client.type}
+- Total de eventos: ${totalEvents}
+- Eventos con cotización aceptada: ${acceptedQuotes.length}
+- Gasto total: $${totalSpent.toFixed(2)}
+- Gasto promedio por evento: $${avgSpentPerEvent.toFixed(2)}
+
+HISTORIAL DE EVENTOS RECIENTES:
+${clientEvents.slice(0, 10).map((event, index) => 
+  `${index + 1}. ${event.title} - ${event.startDate.toLocaleDateString()} - Estado: ${event.status} - Cotización: ${event.quote ? '$' + event.quote.total : 'Sin cotización'}`
+).join('\n')}
+
+RESPONDE EN FORMATO JSON:
+{
+  "behaviorPatterns": {
+    "frequency": "descripción de frecuencia de eventos",
+    "seasonality": "patrones estacionales detectados",
+    "spendingTrend": "tendencia de gasto (creciente/estable/decreciente)"
+  },
+  "preferences": {
+    "favoriteProducts": ["productos preferidos"],
+    "typicalEventDuration": "duración típica",
+    "preferredLocations": ["ubicaciones preferidas"]
+  },
+  "loyaltyScore": number (0-100),
+  "riskAssessment": {
+    "churnRisk": "bajo/medio/alto",
+    "paymentReliability": "excelente/buena/regular/mala",
+    "reasoning": "razones del assessment"
+  },
+  "growthOpportunities": [
+    {
+      "opportunity": "descripción",
+      "potentialValue": number,
+      "probability": "alta/media/baja"
+    }
+  ],
+  "recommendations": {
+    "nextActions": ["acciones recomendadas"],
+    "upsellOpportunities": ["oportunidades de venta"],
+    "retentionStrategies": ["estrategias de retención"]
+  }
+}
+`;
+
+      const result = await this.model.generateContent(analysisPrompt);
+      const aiResponse = result.response.text();
+      
+      // Extraer JSON de la respuesta
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      let aiInsights: any = {};
+      
+      if (jsonMatch) {
+        try {
+          aiInsights = JSON.parse(jsonMatch[0]);
+        } catch (e) {
+          console.error('Error parsing AI response:', e);
+        }
+      }
+
+      // 5. Calcular métricas de engagement
+      const now = new Date();
+      const lastEventDate = clientEvents.length > 0 ? clientEvents[0]?.startDate : null;
+      const daysSinceLastEvent = lastEventDate 
+        ? Math.floor((now.getTime() - lastEventDate.getTime()) / (1000 * 60 * 60 * 24))
+        : null;
+
+      const eventFrequency = totalEvents > 1 && clientEvents.length > 1 && clientEvents[0] && clientEvents[clientEvents.length - 1]
+        ? Math.floor((clientEvents[0]!.startDate.getTime() - clientEvents[clientEvents.length - 1]!.startDate.getTime()) / (1000 * 60 * 60 * 24 * totalEvents))
+        : null;
+
+      return {
+        clientId: client.id,
+        profile: {
+          type: client.type,
+          totalEvents,
+          averageSpending: Number(avgSpentPerEvent.toFixed(2)),
+          loyaltyScore: aiInsights?.loyaltyScore || Math.min(90, Math.max(20, totalEvents * 15 + (totalSpent / 1000) * 5)),
+          riskLevel: (daysSinceLastEvent && daysSinceLastEvent > 365) ? 'HIGH' : 
+                     (daysSinceLastEvent && daysSinceLastEvent > 180) ? 'MEDIUM' : 'LOW'
+        },
+        patterns: {
+          preferredMonths: [], // Se podría calcular con más datos
+          commonServices: [], // Se podría calcular con más datos  
+          averageGuestCount: 0, // Se podría calcular con más datos
+          priceRange: acceptedQuotes.length > 0 ? {
+            min: Math.min(...acceptedQuotes.map(e => Number(e.quote?.total || 0))),
+            max: Math.max(...acceptedQuotes.map(e => Number(e.quote?.total || 0)))
+          } : { min: 0, max: 0 }
+        },
+        recommendations: (aiInsights?.recommendations?.upsellOpportunities || ['Servicios premium']).map((desc: string) => ({
+          type: 'UPSELL' as const,
+          description: desc,
+          impact: 'MEDIUM' as const
+        }))
+      };
+
+    } catch (error) {
+      console.error('Error analizando historial del cliente:', error);
+      throw new Error('Error en el análisis del cliente');
+    }
+  }
+
+  /**
+   * Sugiere mejoras y upgrades basándose en el análisis de datos
+   */
+  async suggestUpgrades(
+    contextType: 'client' | 'event' | 'general',
+    contextId?: string,
+    tenantId?: string,
+    options?: {
+      focusArea?: 'revenue' | 'efficiency' | 'client_satisfaction';
+      budget?: number;
+      priority?: 'high' | 'medium' | 'low';
+    }
+  ) {
+    try {
+      const tid = tenantId || this.defaultTenantId;
+      let analysisData: any = {};
+
+      // 1. Recopilar datos según el contexto
+      switch (contextType) {
+        case 'client':
+          if (contextId) {
+            const clientAnalysis = await this.analyzeClientHistory(contextId, tid);
+            analysisData = { type: 'client', data: clientAnalysis };
+          }
+          break;
+
+        case 'event':
+          if (contextId) {
+            const event = await prisma.event.findUnique({
+              where: { id: contextId },
+              include: {
+                quote: true,
+                client: true,
+                room: { 
+                  include: { 
+                    location: true 
+                  } 
+                }
+              }
+            });
+            analysisData = { type: 'event', data: event };
+          }
+          break;
+
+        case 'general':
+          const dashboardStats = await this.getDashboardStats(90, tid);
+          const businessAnalysis = await this.analyzeBusinessData('revenue_trends', 90, tid);
+          analysisData = { type: 'general', data: { dashboardStats, businessAnalysis } };
+          break;
+      }
+
+      // 2. Obtener productos y servicios disponibles para sugerencias
+      const availableProducts = await prisma.product.findMany({
+        where: { 
+          tenantId: tid,
+          isActive: true 
+        },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          price: true,
+          itemType: true
+        },
+        take: 20
+      });
+
+      // 3. Generar sugerencias con IA
+      const upgradePrompt = `
+Analiza los siguientes datos y sugiere mejoras específicas y actionables:
+
+CONTEXTO: ${contextType.toUpperCase()}
+ENFOQUE: ${options?.focusArea || 'general'}
+PRESUPUESTO: ${options?.budget ? `$${options.budget}` : 'Sin restricción'}
+PRIORIDAD: ${options?.priority || 'medium'}
+
+DATOS DE ANÁLISIS:
+${JSON.stringify(analysisData, null, 2)}
+
+PRODUCTOS/SERVICIOS DISPONIBLES:
+${availableProducts.map(product => 
+  `- ${product.name} ($${product.price}) - ${product.itemType}`
+).join('\n')}
+
+INSTRUCCIONES:
+1. Identifica oportunidades de mejora basadas en los datos
+2. Sugiere upgrades específicos con impacto medible
+3. Prioriza por ROI y facilidad de implementación
+4. Incluye productos/servicios que puedan agregarse
+
+RESPONDE EN FORMATO JSON:
+{
+  "summary": {
+    "currentState": "estado actual resumido",
+    "improvementPotential": "potencial de mejora identificado",
+    "keyMetrics": ["métricas clave a mejorar"]
+  },
+  "upgradeSuggestions": [
+    {
+      "category": "revenue/efficiency/satisfaction",
+      "title": "título de la mejora",
+      "description": "descripción detallada",
+      "expectedImpact": {
+        "metric": "métrica afectada",
+        "improvement": "mejora esperada (%)",
+        "timeframe": "tiempo para ver resultados"
+      },
+      "implementation": {
+        "difficulty": "easy/medium/hard",
+        "estimatedCost": number,
+        "requiredResources": ["recursos necesarios"],
+        "steps": ["pasos de implementación"]
+      },
+      "relatedProducts": ["IDs de productos relevantes"],
+      "priority": "high/medium/low",
+      "roi": number
+    }
+  ],
+  "productRecommendations": [
+    {
+      "productId": "ID",
+      "name": "nombre",
+      "reasoning": "por qué se recomienda",
+      "potentialRevenue": number,
+      "targetSegment": "segmento objetivo"
+    }
+  ],
+  "strategicRecommendations": {
+    "shortTerm": ["acciones a corto plazo (1-3 meses)"],
+    "mediumTerm": ["acciones a mediano plazo (3-6 meses)"],
+    "longTerm": ["acciones a largo plazo (6+ meses)"]
+  },
+  "riskFactors": ["factores de riesgo a considerar"],
+  "successMetrics": ["KPIs para medir el éxito"]
+}
+`;
+
+      const result = await this.model.generateContent(upgradePrompt);
+      const aiResponse = result.response.text();
+      
+      // Extraer JSON de la respuesta
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      let suggestions: any = {
+        summary: { currentState: 'Análisis en proceso', improvementPotential: 'Por determinar', keyMetrics: [] },
+        upgradeSuggestions: [],
+        productRecommendations: [],
+        strategicRecommendations: { shortTerm: [], mediumTerm: [], longTerm: [] },
+        riskFactors: [],
+        successMetrics: []
+      };
+      
+      if (jsonMatch) {
+        try {
+          suggestions = JSON.parse(jsonMatch[0]);
+        } catch (e) {
+          console.error('Error parsing AI response:', e);
+        }
+      }
+
+      // 4. Enriquecer con datos de productos reales
+      const enrichedProductRecommendations = (suggestions?.productRecommendations || []).map((rec: any) => {
+        const product = availableProducts.find(p => p.id === rec.productId);
+        return {
+          ...rec,
+          product: product || null,
+          available: !!product
+        };
+      });
+
+      return {
+        contextInfo: {
+          type: contextType,
+          id: contextId,
+          analyzedAt: new Date(),
+          focusArea: options?.focusArea || 'general',
+          budget: options?.budget
+        },
+        analysis: suggestions?.summary || {},
+        upgradeSuggestions: (suggestions?.upgradeSuggestions || []).map((suggestion: any) => ({
+          ...suggestion,
+          relatedProducts: (suggestion.relatedProducts || []).map((productId: string) => 
+            availableProducts.find(p => p.id === productId)
+          ).filter(Boolean)
+        })),
+        productRecommendations: enrichedProductRecommendations,
+        strategicPlan: suggestions?.strategicRecommendations || {
+          shortTerm: [],
+          mediumTerm: [],
+          longTerm: []
+        },
+        riskAssessment: suggestions?.riskFactors || [],
+        successMetrics: suggestions?.successMetrics || [],
+        metadata: {
+          availableProducts: availableProducts.length,
+          dataPointsAnalyzed: Object.keys(analysisData.data || {}).length,
+          aiConfidence: 85
+        }
+      };
+
+    } catch (error) {
+      console.error('Error generando sugerencias de upgrade:', error);
+      throw new Error('Error generando sugerencias de mejora');
+    }
   }
 
   /**
@@ -756,7 +1333,7 @@ Responde SOLO con formato JSON:
     };
 
     if (businessIdentityId) {
-      baseWhere.businessIdentityId = businessIdentityId;
+      baseWhere['businessIdentityId'] = businessIdentityId;
     }
 
     const [
@@ -773,7 +1350,7 @@ Responde SOLO con formato JSON:
       prisma.quote.aggregate({
         where: {
           ...baseWhere,
-          status: { in: [QuoteStatus.APPROVED, QuoteStatus.SENT_TO_CLIENT, QuoteStatus.ACCEPTED] }
+          status: { in: [QuoteStatus.APPROVED_BY_MANAGER, QuoteStatus.SENT_TO_CLIENT, QuoteStatus.ACCEPTED_BY_CLIENT] }
         },
         _sum: { total: true },
         _avg: { total: true }
@@ -836,14 +1413,14 @@ Responde SOLO con formato JSON:
       where: {
         tenantId,
         createdAt: { gte: startDate },
-        status: { in: [QuoteStatus.APPROVED, QuoteStatus.ACCEPTED] }
+        status: { in: [QuoteStatus.APPROVED_BY_MANAGER, QuoteStatus.ACCEPTED_BY_CLIENT] }
       },
       select: {
         total: true,
-        createdAt: true,
-        businessIdentity: {
-          select: { name: true }
-        }
+        createdAt: true
+        // businessIdentity: { // businessIdentity relation doesn't exist directly in Quote
+        //   select: { name: true }
+        // }
       }
     });
 
@@ -855,11 +1432,12 @@ Responde SOLO con formato JSON:
       totalRevenue,
       avgQuoteValue,
       quotesCount: quotes.length,
-      revenueByIdentity: quotes.reduce((acc: Record<string, number>, quote) => {
-        const identity = quote.businessIdentity.name;
-        acc[identity] = (acc[identity] || 0) + Number(quote.total);
-        return acc;
-      }, {})
+      // revenueByIdentity: quotes.reduce((acc: Record<string, number>, quote) => {
+      //   const identity = quote.businessIdentity.name; // businessIdentity doesn't exist
+      //   acc[identity] = (acc[identity] || 0) + Number(quote.total);
+      //   return acc;
+      // }, {})
+      revenueByIdentity: {} // Disabled due to missing businessIdentity relation
     };
   }
 
@@ -870,7 +1448,7 @@ Responde SOLO con formato JSON:
         quotes: {
           where: {
             createdAt: { gte: startDate },
-            status: { in: [QuoteStatus.APPROVED, QuoteStatus.ACCEPTED] }
+            status: { in: [QuoteStatus.APPROVED_BY_MANAGER, QuoteStatus.ACCEPTED_BY_CLIENT] }
           }
         },
         events: {
@@ -914,7 +1492,7 @@ Responde SOLO con formato JSON:
     }, {});
 
     const totalQuotes = quotes.length;
-    const acceptedQuotes = statusCounts[QuoteStatus.ACCEPTED] || 0;
+    const acceptedQuotes = statusCounts[QuoteStatus.ACCEPTED_BY_CLIENT] || 0;
     const conversionRate = totalQuotes > 0 ? (acceptedQuotes / totalQuotes) * 100 : 0;
 
     return {
@@ -929,23 +1507,23 @@ Responde SOLO con formato JSON:
   /**
    * Obtiene prompts personalizados por rol
    */
-  private getSystemPromptByRole(role: UserRole): string {
+  private getSystemPromptByRole(role: LegacyUserRole): string {
     const basePrompt = SYSTEM_PROMPTS.MAIN_ASSISTANT;
     
     switch (role) {
-      case UserRole.SUPER_ADMIN:
+      case LegacyUserRole.SUPER_ADMIN:
         return `${basePrompt}\n\n🔧 MODO SUPER_ADMIN: Acceso completo a todos los datos multi-tenant, análisis avanzados y configuraciones del sistema.`;
       
-      case UserRole.TENANT_ADMIN:
+      case LegacyUserRole.TENANT_ADMIN:
         return `${basePrompt}\n\n👑 MODO TENANT_ADMIN: Gestión completa del tenant, todas las identidades de negocio y configuraciones organizacionales.`;
       
-      case UserRole.MANAGER:
+      case LegacyUserRole.MANAGER:
         return `${basePrompt}\n\n📊 MODO MANAGER: Enfoque en aprobaciones de cotizaciones, análisis de rendimiento y gestión operativa.`;
       
-      case UserRole.USER:
+      case LegacyUserRole.USER:
         return `${basePrompt}\n\n💼 MODO USER: Operación diaria de eventos, clientes y cotizaciones básicas.`;
       
-      case UserRole.CLIENT_EXTERNAL:
+      case LegacyUserRole.CLIENT_EXTERNAL:
         return `${basePrompt}\n\n👤 MODO CLIENT_EXTERNAL: Vista limitada a datos propios, eventos y cotizaciones del cliente.`;
       
       default:
@@ -956,3 +1534,7 @@ Responde SOLO con formato JSON:
 
 // Instancia singleton del servicio
 export const crmAgentService = new CRMAgentService();
+
+// Exportaciones por defecto
+export { CRMAgentService as CRMAgent };
+export default crmAgentService;

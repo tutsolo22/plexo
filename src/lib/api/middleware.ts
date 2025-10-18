@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { UserRole } from '@prisma/client'
+import { LegacyUserRole } from '@prisma/client'
 import { z } from 'zod'
+
+// Alias para compatibilidad
+type UserRole = LegacyUserRole;
+const UserRole = LegacyUserRole;
 
 // =====================
 // TIPOS Y INTERFACES
@@ -53,10 +57,11 @@ export function withAuth(handler: ApiHandler, requiredRole?: UserRole) {
       if (requiredRole && session.user.role !== requiredRole) {
         // Verificar jerarquía de roles
         const roleHierarchy = {
-          [UserRole.USER]: 0,
-          [UserRole.MANAGER]: 1,
-          [UserRole.ADMIN]: 2,
-          [UserRole.SUPER_ADMIN]: 3,
+          [UserRole.CLIENT_EXTERNAL]: 0,
+          [UserRole.USER]: 1,
+          [UserRole.MANAGER]: 2,
+          [UserRole.TENANT_ADMIN]: 3,
+          [UserRole.SUPER_ADMIN]: 4,
         }
 
         const userRoleLevel = roleHierarchy[session.user.role as UserRole]

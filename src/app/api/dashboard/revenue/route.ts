@@ -23,28 +23,32 @@ export async function GET(request: NextRequest) {
     // Obtener eventos con revenue en el período
     const events = await prisma.event.findMany({
       where: {
-        eventDate: {
+        startDate: {
           gte: startDate,
           lte: endDate
         },
         status: {
-          in: ['CONFIRMED', 'COMPLETED', 'IN_PROGRESS']
+          in: ['CONFIRMED', 'CANCELLED']
         }
       },
       select: {
         id: true,
-        name: true,
-        eventDate: true,
-        totalAmount: true,
+        title: true,
+        startDate: true,
         status: true,
         client: {
           select: {
             name: true
           }
+        },
+        quote: {
+          select: {
+            total: true
+          }
         }
       },
       orderBy: {
-        eventDate: 'asc'
+        startDate: 'asc'
       }
     })
 
@@ -52,7 +56,7 @@ export async function GET(request: NextRequest) {
     const revenueData = groupRevenueByPeriod(events, granularity, startDate, endDate)
 
     // Calcular métricas adicionales
-    const totalRevenue = events.reduce((sum, event) => sum + Number(event.totalAmount || 0), 0)
+    const totalRevenue = events.reduce((sum, event) => sum + Number(event.quote?.total || 0), 0)
     const averageEventValue = events.length > 0 ? totalRevenue / events.length : 0
 
     // Comparar con período anterior
@@ -61,20 +65,24 @@ export async function GET(request: NextRequest) {
     
     const previousEvents = await prisma.event.findMany({
       where: {
-        eventDate: {
+        startDate: {
           gte: previousStartDate,
           lt: startDate
         },
         status: {
-          in: ['CONFIRMED', 'COMPLETED', 'IN_PROGRESS']
+          in: ['CONFIRMED']
         }
       },
       select: {
-        totalAmount: true
+        quote: {
+          select: {
+            total: true
+          }
+        }
       }
     })
 
-    const previousRevenue = previousEvents.reduce((sum, event) => sum + Number(event.totalAmount || 0), 0)
+    const previousRevenue = previousEvents.reduce((sum, event) => sum + Number(event.quote?.total || 0), 0)
     const revenueGrowth = previousRevenue > 0 
       ? ((totalRevenue - previousRevenue) / previousRevenue) * 100 
       : 0
@@ -96,13 +104,13 @@ export async function GET(request: NextRequest) {
           }
         },
         topEvents: events
-          .sort((a, b) => Number(b.totalAmount || 0) - Number(a.totalAmount || 0))
+          .sort((a, b) => Number(b.quote?.total || 0) - Number(a.quote?.total || 0))
           .slice(0, 5)
           .map(event => ({
             id: event.id,
-            name: event.name,
-            date: event.eventDate,
-            revenue: Number(event.totalAmount || 0),
+            name: event.title,
+            date: event.startDate,
+            revenue: Number(event.quote?.total || 0),
             client: event.client.name,
             status: event.status
           }))
@@ -142,14 +150,14 @@ function groupRevenueByPeriod(
       dayEnd.setHours(23, 59, 59, 999)
 
       const dayEvents = events.filter(event => {
-        const eventDate = new Date(event.eventDate)
+        const eventDate = new Date(event.startDate)
         return eventDate >= dayStart && eventDate <= dayEnd
       })
 
-      const dayRevenue = dayEvents.reduce((sum, event) => sum + Number(event.totalAmount || 0), 0)
+      const dayRevenue = dayEvents.reduce((sum, event) => sum + Number(event.quote?.total || 0), 0)
 
       data.push({
-        date: current.toISOString().split('T')[0],
+        date: current.toISOString().split('T')[0]!,
         revenue: dayRevenue,
         events: dayEvents.length
       })
@@ -167,11 +175,11 @@ function groupRevenueByPeriod(
       weekEnd.setHours(23, 59, 59, 999)
 
       const weekEvents = events.filter(event => {
-        const eventDate = new Date(event.eventDate)
+        const eventDate = new Date(event.startDate)
         return eventDate >= current && eventDate <= weekEnd
       })
 
-      const weekRevenue = weekEvents.reduce((sum, event) => sum + Number(event.totalAmount || 0), 0)
+      const weekRevenue = weekEvents.reduce((sum, event) => sum + Number(event.quote?.total || 0), 0)
 
       data.push({
         date: `${current.toISOString().split('T')[0]} - ${weekEnd.toISOString().split('T')[0]}`,
@@ -190,11 +198,11 @@ function groupRevenueByPeriod(
       monthEnd.setHours(23, 59, 59, 999)
 
       const monthEvents = events.filter(event => {
-        const eventDate = new Date(event.eventDate)
+        const eventDate = new Date(event.startDate)
         return eventDate >= current && eventDate <= monthEnd
       })
 
-      const monthRevenue = monthEvents.reduce((sum, event) => sum + Number(event.totalAmount || 0), 0)
+      const monthRevenue = monthEvents.reduce((sum, event) => sum + Number(event.quote?.total || 0), 0)
 
       data.push({
         date: current.toLocaleDateString('es-ES', { year: 'numeric', month: 'long' }),

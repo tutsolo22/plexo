@@ -66,15 +66,12 @@ export class RoleManagementService {
             create: input.permissions.map(p => ({
               action: p.action,
               resource: p.resource,
-              conditions: p.conditions
+              ...(p.conditions && { conditions: p.conditions })
             }))
           }
         },
         include: {
-          permissions: true,
-          createdBy: {
-            select: { name: true, email: true }
-          }
+          permissions: true
         }
       });
 
@@ -122,30 +119,20 @@ export class RoleManagementService {
         };
       }
 
-      // Si se marca como primario, desmarcar otros roles primarios del usuario
-      if (input.isPrimary) {
-        await prisma.userRole.updateMany({
-          where: { userId: input.userId, isPrimary: true },
-          data: { isPrimary: false }
-        });
-      }
+      // Nota: isPrimary no existe en el modelo UserRole actual, se eliminó la lógica
 
       const userRole = await prisma.userRole.create({
         data: {
           userId: input.userId,
           roleId: input.roleId,
-          assignedById: input.assignedById,
-          isPrimary: input.isPrimary || false,
-          expiresAt: input.expiresAt
+          assignedBy: input.assignedById,
+          ...(input.expiresAt && { expiresAt: input.expiresAt })
         },
         include: {
           role: {
             select: { name: true, type: true }
           },
           user: {
-            select: { name: true, email: true }
-          },
-          assignedBy: {
             select: { name: true, email: true }
           }
         }
@@ -181,9 +168,11 @@ export class RoleManagementService {
    */
   async removeRole(userId: string, roleId: string, removedById: string) {
     try {
-      const userRole = await prisma.userRole.findUnique({
+      const userRole = await prisma.userRole.findFirst({
         where: {
-          userId_roleId: { userId, roleId }
+          userId,
+          roleId,
+          isActive: true
         },
         include: {
           role: { select: { name: true } },
@@ -199,8 +188,9 @@ export class RoleManagementService {
         };
       }
 
-      await prisma.userRole.delete({
-        where: { userId_roleId: { userId, roleId } }
+      await prisma.userRole.update({
+        where: { id: userRole.id },
+        data: { isActive: false }
       });
 
       return {
@@ -270,7 +260,6 @@ export class RoleManagementService {
           id: ur.role.id,
           name: ur.role.name,
           type: ur.role.type,
-          isPrimary: ur.isPrimary,
           assignedAt: ur.assignedAt,
           expiresAt: ur.expiresAt
         })),
@@ -320,9 +309,6 @@ export class RoleManagementService {
         },
         include: {
           permissions: true,
-          createdBy: {
-            select: { name: true, email: true }
-          },
           _count: {
             select: { userRoles: true }
           }

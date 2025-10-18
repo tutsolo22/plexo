@@ -26,7 +26,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     // Verificar permisos según rol
-    const userRoleType = session.user.role.roleId as $Enums.RoleType;
+    const userRoleType = session.user.role as $Enums.RoleType;
     const whereClause: any = {
       clientId: clientId,
     };
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           select: {
             id: true,
             subtotal: true,
-            totalAmount: true,
+            total: true,
             status: true,
           },
         },
@@ -86,14 +86,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       date: event.startDate.toISOString(),
       endDate: event.endDate.toISOString(),
       status: event.status,
-      totalAmount: event.quote?.totalAmount ? Number(event.quote.totalAmount) : null,
+      totalAmount: event.quote?.total ? Number(event.quote.total) : null,
       venue: event.venue || event.room?.venue || null,
       room: event.room,
       quote: event.quote
         ? {
             id: event.quote.id,
             subtotal: Number(event.quote.subtotal),
-            totalAmount: Number(event.quote.totalAmount),
+            totalAmount: Number(event.quote.total),
             status: event.quote.status,
           }
         : null,

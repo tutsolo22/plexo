@@ -62,7 +62,7 @@ export default function QuoteDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const quoteId = params.id as string;
+  const quoteId = params['id'] as string;
 
   useEffect(() => {
     fetchQuote();
@@ -193,7 +193,7 @@ export default function QuoteDetailPage() {
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <QuoteForm 
-            quote={quote}
+            quoteId={quote.id}
             onSuccess={() => {
               setIsEditing(false);
               fetchQuote();
@@ -230,7 +230,7 @@ export default function QuoteDetailPage() {
                 <h1 className="text-2xl font-bold text-gray-900">
                   Cotización {quote.number}
                 </h1>
-                <p className="text-gray-600">{quote.title}</p>
+                <p className="text-gray-600">{quote.event?.name || 'Sin evento asociado'}</p>
               </div>
               <Badge className={getStatusColor(quote.status)}>
                 {getStatusText(quote.status)}

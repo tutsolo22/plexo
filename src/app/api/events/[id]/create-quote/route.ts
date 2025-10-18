@@ -4,26 +4,13 @@ import { z } from 'zod';
 
 const CreateQuoteFromEventSchema = z.object({
   templateId: z.string().cuid().optional(),
-  title: z.string().min(1, 'El título de la cotización es requerido'),
   description: z.string().optional(),
   validUntil: z.string().datetime().optional(),
   packages: z.array(z.object({
     name: z.string().min(1),
     description: z.string().optional(),
     price: z.number().min(0),
-    quantity: z.number().int().min(1).default(1),
-    items: z.array(z.object({
-      name: z.string().min(1),
-      description: z.string().optional(),
-      quantity: z.number().int().min(1),
-      unitPrice: z.number().min(0)
-    })).optional().default([])
-  })).optional().default([]),
-  adjustments: z.array(z.object({
-    type: z.enum(['discount', 'surcharge']),
-    description: z.string().min(1),
-    amount: z.number().min(0),
-    percentage: z.number().min(0).max(100).optional()
+    quantity: z.number().int().min(1).default(1)
   })).optional().default([]),
   autoSend: z.boolean().optional().default(false),
   emailTemplate: z.enum(['basic', 'professional', 'custom']).optional().default('professional')
@@ -82,11 +69,7 @@ export async function POST(
       sum + (pkg.price * pkg.quantity), 0
     );
     
-    const adjustmentsTotal = validatedData.adjustments.reduce((sum, adj) => 
-      sum + (adj.type === 'discount' ? -adj.amount : adj.amount), 0
-    );
-    
-    const total = Math.max(0, packagesTotal + adjustmentsTotal);
+    const total = Math.max(0, packagesTotal);
 
     // Crear la cotización en una transacción
     const quote = await prisma.$transaction(async (tx) => {
@@ -94,64 +77,27 @@ export async function POST(
       const newQuote = await tx.quote.create({
         data: {
           quoteNumber,
-          title: validatedData.title,
-          description: validatedData.description,
           status: 'DRAFT',
+          subtotal: packagesTotal,
           total,
           validUntil: validatedData.validUntil ? 
             new Date(validatedData.validUntil) : defaultValidUntil,
           clientId: event.clientId,
           eventId: event.id,
-          templateId: validatedData.templateId,
-          metadata: {
-            generatedFromEvent: true,
-            eventDetails: {
-              title: event.title,
-              startDate: event.startDate,
-              endDate: event.endDate,
-              venue: event.venue?.name,
-              room: event.room?.name,
-              isFullVenue: event.isFullVenue
-            }
-          }
+          templateId: validatedData.templateId || null,
+          tenantId: event.tenantId
         }
       });
 
       // Crear los paquetes
       for (const packageData of validatedData.packages) {
-        const quotePackage = await tx.quotePackage.create({
+        await tx.package.create({
           data: {
             quoteId: newQuote.id,
+            tenantId: event.tenantId,
             name: packageData.name,
-            description: packageData.description,
-            price: packageData.price,
-            quantity: packageData.quantity
-          }
-        });
-
-        // Crear los items del paquete
-        for (const itemData of packageData.items) {
-          await tx.quotePackageItem.create({
-            data: {
-              packageId: quotePackage.id,
-              name: itemData.name,
-              description: itemData.description,
-              quantity: itemData.quantity,
-              unitPrice: itemData.unitPrice
-            }
-          });
-        }
-      }
-
-      // Crear los ajustes
-      for (const adjustmentData of validatedData.adjustments) {
-        await tx.quoteAdjustment.create({
-          data: {
-            quoteId: newQuote.id,
-            type: adjustmentData.type,
-            description: adjustmentData.description,
-            amount: adjustmentData.amount,
-            percentage: adjustmentData.percentage
+            description: packageData.description || null,
+            subtotal: packageData.price * packageData.quantity
           }
         });
       }
@@ -175,7 +121,7 @@ export async function POST(
         if (sendResponse.ok) {
           await prisma.quote.update({
             where: { id: quote.id },
-            data: { status: 'SENT' }
+            data: { status: 'SENT_TO_CLIENT' }
           });
         }
       } catch (error) {
@@ -191,8 +137,7 @@ export async function POST(
         client: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
+            name: true,
             email: true,
             phone: true
           }
@@ -207,12 +152,7 @@ export async function POST(
             room: { select: { name: true } }
           }
         },
-        packages: {
-          include: {
-            items: true
-          }
-        },
-        adjustments: true,
+        packages: true,
         template: {
           select: {
             id: true,

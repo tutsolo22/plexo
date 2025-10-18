@@ -93,11 +93,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Preparar información del negocio (esto debería venir de configuración)
-    const businessInfo = validatedData.data.business || {
-      name: 'Casona María',
-      phone: '+502 1234-5678',
-      email: 'info@casonamaria.com',
-      address: 'Ciudad de Guatemala, Guatemala',
+    const businessInfo = {
+      name: validatedData.data.business?.name || 'Casona María',
+      phone: validatedData.data.business?.phone || '+502 1234-5678',
+      email: validatedData.data.business?.email || 'info@casonamaria.com',
+      address: validatedData.data.business?.address || 'Ciudad de Guatemala, Guatemala',
+      ...(validatedData.data.business?.logo && { logo: validatedData.data.business.logo })
     };
 
     // Configurar opciones de generación
@@ -111,7 +112,6 @@ export async function POST(request: NextRequest) {
         createdAt: new Date(),
         updatedAt: new Date(),
         status: 'DRAFT' as any,
-        userId: 'system', // En producción, obtener del token
         templateId: validatedData.templateId,
         generatedContent: null,
         pdfUrl: null,
@@ -120,10 +120,10 @@ export async function POST(request: NextRequest) {
         sentAt: null,
         viewedAt: null,
         respondedAt: null,
-      },
+      } as any,
       metadata: {
         fileName: validatedData.options.fileName || `cotizacion-${Date.now()}.pdf`,
-        watermark: validatedData.options.watermark,
+        ...(validatedData.options.watermark && { watermark: validatedData.options.watermark }),
         showPageNumbers: validatedData.options.showPageNumbers,
         orientation: validatedData.options.orientation,
         format: validatedData.options.format,
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
         author: validatedData.options.metadata?.author || businessInfo.name,
         subject: validatedData.options.metadata?.subject || 'Cotización de servicios',
         keywords: validatedData.options.metadata?.keywords || ['cotización', 'servicios', 'eventos'],
-        creator: validatedData.options.metadata?.creator,
+        ...(validatedData.options.metadata?.creator && { creator: validatedData.options.metadata.creator }),
       },
     };
 

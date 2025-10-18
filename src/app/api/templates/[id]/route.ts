@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth.config';
+import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { TemplateType } from '@prisma/client';
@@ -21,10 +20,10 @@ const updateTemplateSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.tenantId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
@@ -101,17 +100,25 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.tenantId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
     // Verificar permisos (MANAGER+ puede editar templates)
     const allowedRoles = ['SUPER_ADMIN', 'TENANT_ADMIN', 'MANAGER'];
-    if (!allowedRoles.includes(session.user.role)) {
+    
+    // Como session.user.role es un objeto UserRole, necesitamos acceder a la información del rol
+    // Temporalmente usamos la verificación legacy hasta migrar completamente
+    const userRole = (session.user as any).role;
+    const hasRole = Array.isArray(userRole) 
+      ? userRole.some((r: any) => allowedRoles.includes(r.role?.type || r.type))
+      : allowedRoles.includes(userRole?.type || userRole);
+      
+    if (!hasRole) {
       return NextResponse.json({ error: 'Sin permisos suficientes' }, { status: 403 });
     }
 
@@ -212,17 +219,25 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.tenantId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
     // Verificar permisos (MANAGER+ puede eliminar templates)
     const allowedRoles = ['SUPER_ADMIN', 'TENANT_ADMIN', 'MANAGER'];
-    if (!allowedRoles.includes(session.user.role)) {
+    
+    // Como session.user.role es un objeto UserRole, necesitamos acceder a la información del rol
+    // Temporalmente usamos la verificación legacy hasta migrar completamente
+    const userRole = (session.user as any).role;
+    const hasRole = Array.isArray(userRole) 
+      ? userRole.some((r: any) => allowedRoles.includes(r.role?.type || r.type))
+      : allowedRoles.includes(userRole?.type || userRole);
+      
+    if (!hasRole) {
       return NextResponse.json({ error: 'Sin permisos suficientes' }, { status: 403 });
     }
 

@@ -46,13 +46,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Verificar permisos
-    const isClientExternal = session.user.role?.roleId === $Enums.RoleType.CLIENT_EXTERNAL
+    const isClientExternal = session.user.role === $Enums.RoleType.CLIENT_EXTERNAL
     const isStaff = [
       $Enums.RoleType.SUPER_ADMIN, 
       $Enums.RoleType.TENANT_ADMIN, 
       $Enums.RoleType.MANAGER, 
-      $Enums.RoleType.USER
-    ].includes(session.user.role?.roleId as $Enums.RoleType)
+      $Enums.RoleType.USER,
+      $Enums.RoleType.CLIENT_EXTERNAL,
+      $Enums.RoleType.SALES,
+      $Enums.RoleType.COORDINATOR,
+      $Enums.RoleType.FINANCE
+    ].includes(session.user.role as $Enums.RoleType)
 
     if (!isStaff && isClientExternal) {
       // Si es cliente externo, verificar que es su propio pago
@@ -89,7 +93,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             transactionAmount: mpPayment.transaction_amount,
             currencyId: mpPayment.currency_id,
             paymentMethod: mpPayment.payment_method?.id,
-            paymentType: mpPayment.payment_type?.id,
+            paymentType: mpPayment.payment_type_id,
             installments: mpPayment.installments,
             dateCreated: mpPayment.date_created,
             dateApproved: mpPayment.date_approved,

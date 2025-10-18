@@ -84,8 +84,8 @@ export class RoleManagementService {
           data: {
             name: input.name,
             type: input.type,
-            description: input.description,
-            tenantId: input.tenantId,
+            ...(input.description && { description: input.description }),
+            ...(input.tenantId && { tenantId: input.tenantId }),
           },
         })
 
@@ -97,7 +97,7 @@ export class RoleManagementService {
                 roleId: newRole.id,
                 action: permission.action,
                 resource: permission.resource,
-                conditions: permission.conditions || null,
+                ...(permission.conditions && { conditions: permission.conditions }),
               },
             })
           )
@@ -221,9 +221,9 @@ export class RoleManagementService {
         const updatedRole = await tx.role.update({
           where: { id: roleId },
           data: {
-            name: input.name,
-            description: input.description,
-            isActive: input.isActive,
+            ...(input.name && { name: input.name }),
+            ...(input.description !== undefined && { description: input.description }),
+            ...(input.isActive !== undefined && { isActive: input.isActive }),
             updatedAt: new Date(),
           },
         })
@@ -243,7 +243,7 @@ export class RoleManagementService {
                   roleId,
                   action: permission.action,
                   resource: permission.resource,
-                  conditions: permission.conditions || null,
+                  ...(permission.conditions && { conditions: permission.conditions }),
                 },
               })
             )
@@ -334,7 +334,7 @@ export class RoleManagementService {
         where: {
           userId: input.userId,
           roleId: input.roleId,
-          tenantId: input.tenantId,
+          ...(input.tenantId !== undefined && { tenantId: input.tenantId }),
           isActive: true,
         },
       })
@@ -348,9 +348,9 @@ export class RoleManagementService {
         data: {
           userId: input.userId,
           roleId: input.roleId,
-          tenantId: input.tenantId,
-          assignedBy: input.assignedBy,
-          expiresAt: input.expiresAt,
+          ...(input.tenantId !== undefined && { tenantId: input.tenantId }),
+          ...(input.assignedBy && { assignedBy: input.assignedBy }),
+          ...(input.expiresAt && { expiresAt: input.expiresAt }),
         },
         include: {
           role: true,
@@ -380,7 +380,7 @@ export class RoleManagementService {
         where: {
           userId,
           roleId,
-          tenantId,
+          ...(tenantId !== undefined && { tenantId }),
           isActive: true,
         },
       })

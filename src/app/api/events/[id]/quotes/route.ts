@@ -31,18 +31,12 @@ export async function GET(
         client: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
+            name: true,
             email: true,
             phone: true
           }
         },
-        packages: {
-          include: {
-            items: true
-          }
-        },
-        adjustments: true,
+        packages: true,
         template: {
           select: {
             id: true,
@@ -52,8 +46,7 @@ export async function GET(
         },
         _count: {
           select: {
-            packages: true,
-            adjustments: true
+            packages: true
           }
         }
       },
@@ -67,9 +60,9 @@ export async function GET(
         acc[quote.status] = (acc[quote.status] || 0) + 1;
         return acc;
       }, {} as Record<string, number>),
-      totalValue: quotes.reduce((sum, quote) => sum + quote.total, 0),
+      totalValue: quotes.reduce((sum, quote) => sum + Number(quote.total), 0),
       averageValue: quotes.length > 0 ? 
-        quotes.reduce((sum, quote) => sum + quote.total, 0) / quotes.length : 0
+        quotes.reduce((sum, quote) => sum + Number(quote.total), 0) / quotes.length : 0
     };
 
     return NextResponse.json({

@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth.config';
+import { auth } from '@/lib/auth';
+
+// Tipo para una variable de template
+type TemplateVariable = {
+  key: string;
+  description: string;
+  example: string;
+  category: string;
+};
 
 // Variables globales disponibles en todos los templates
-export const GLOBAL_VARIABLES = {
+export const GLOBAL_VARIABLES: Record<string, TemplateVariable> = {
   // Variables del cliente
   clientName: {
     key: '{{clientName}}',
@@ -221,7 +228,7 @@ export const PACKAGE_VARIABLES = {
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.tenantId) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }

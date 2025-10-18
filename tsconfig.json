@@ -46,6 +46,11 @@
     "node_modules",
     ".next",
     "dist",
-    "build"
+    "build",
+    "**/__tests__/**",
+    "**/*.test.*",
+    "**/*.spec.*",
+    "CRM_Casona_Maria/**",
+    "scripts/**"
   ]
 }

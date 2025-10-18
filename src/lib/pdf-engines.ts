@@ -1,19 +1,21 @@
 // lib/pdf-engines.ts
-import { PDFGenerationOptions, PDFGenerationResult, PDFEngine, PDFEngineConfig } from '@/types/pdf';
-import handlebars from 'handlebars';
+import { PDFGenerationOptions, PDFGenerationResult, PDFEngine, PDFEngineConfig } from '../types/pdf';
+import * as Handlebars from 'handlebars';
+import { createElement } from 'react';
 
-// React-PDF Engine
+// React-PDF Engine (Migrado a API moderna con createElement)
 export class ReactPDFEngine {
   static async generate(options: PDFGenerationOptions, config: PDFEngineConfig): Promise<PDFGenerationResult> {
     try {
-      const { Document, Page, Text, View, StyleSheet, PDFDownloadLink, pdf } = await import('@react-pdf/renderer');
+      const ReactPDF = await import('@react-pdf/renderer');
+      const { Document, Page, Text, View, StyleSheet, pdf } = ReactPDF;
       
       // Procesar template con handlebars
-      const template = handlebars.compile(options.template.content);
+      const template = Handlebars.compile(options.template.htmlContent);
       const processedData = this.prepareData(options.data);
       const htmlContent = template(processedData);
       
-      // Configurar estilos
+      // Configurar estilos modernos
       const styles = StyleSheet.create({
         page: {
           flexDirection: 'column',
@@ -41,67 +43,122 @@ export class ReactPDFEngine {
           marginBottom: 5,
         },
         table: {
-          display: 'table',
           width: '100%',
-          borderStyle: 'solid',
-          borderWidth: 1,
-          borderColor: '#bfbfbf',
+          marginTop: 10,
         },
         tableRow: {
           flexDirection: 'row',
           borderBottomWidth: 1,
           borderBottomColor: '#bfbfbf',
         },
+        tableHeader: {
+          backgroundColor: '#f5f5f5',
+          fontWeight: 'bold',
+        },
         tableCell: {
           flex: 1,
-          padding: 5,
+          padding: 8,
           borderRightWidth: 1,
           borderRightColor: '#bfbfbf',
+          fontSize: 10,
         },
+        totalSection: {
+          marginTop: 20,
+          paddingTop: 15,
+          borderTopWidth: 2,
+          borderTopColor: '#333',
+        }
       });
 
-      // Crear documento PDF
-      const MyDocument = () => (
-        Document({},
-          Page({ size: config.metadata?.format || 'A4', style: styles.page },
-            View({ style: styles.section },
-              Text({ style: styles.title }, options.data.quoteNumber || 'Cotización'),
-              Text({ style: styles.text }, `Cliente: ${options.data.client.name}`),
-              Text({ style: styles.text }, `Email: ${options.data.client.email}`),
-              Text({ style: styles.text }, `Fecha: ${new Date().toLocaleDateString()}`),
-              options.data.event && Text({ style: styles.text }, `Evento: ${options.data.event.title}`),
-              
-              // Tabla de paquetes si existen
-              options.data.packages && options.data.packages.length > 0 && 
-              View({ style: styles.table },
-                View({ style: styles.tableRow },
-                  Text({ style: [styles.tableCell, styles.subtitle] }, 'Paquete'),
-                  Text({ style: [styles.tableCell, styles.subtitle] }, 'Descripción'),
-                  Text({ style: [styles.tableCell, styles.subtitle] }, 'Precio')
-                ),
-                ...options.data.packages.map(pkg => 
-                  View({ style: styles.tableRow },
-                    Text({ style: styles.tableCell }, pkg.name),
-                    Text({ style: styles.tableCell }, pkg.description || ''),
-                    Text({ style: styles.tableCell }, `$${pkg.subtotal.toFixed(2)}`)
-                  )
-                )
-              ),
-              
-              View({ style: { marginTop: 20 } },
-                Text({ style: styles.subtitle }, `Total: $${options.data.total?.toFixed(2) || '0.00'}`)
-              )
-            )
-          )
-        )
-      );
+      // Crear elementos de tabla dinámicamente
+      const createPackageRows = () => {
+        if (!options.data.packages || options.data.packages.length === 0) {
+          return [];
+        }
+        
+        return options.data.packages.map((pkg: any, index: number) =>
+          createElement(View, { key: index, style: styles.tableRow }, [
+            createElement(Text, { key: 'name', style: styles.tableCell }, pkg.name),
+            createElement(Text, { key: 'desc', style: styles.tableCell }, pkg.description || ''),
+            createElement(Text, { key: 'price', style: styles.tableCell }, `$${pkg.subtotal.toFixed(2)}`)
+          ])
+        );
+      };
 
-      // Generar PDF
-      const blob = await pdf(MyDocument()).toBlob();
+      // Crear tabla de paquetes
+      const createPackageTable = () => {
+        if (!options.data.packages || options.data.packages.length === 0) {
+          return null;
+        }
+        
+        return createElement(View, { style: styles.table }, [
+          // Header
+          createElement(View, { key: 'header', style: [styles.tableRow, styles.tableHeader] }, [
+            createElement(Text, { key: 'h1', style: [styles.tableCell, styles.subtitle] }, 'Paquete'),
+            createElement(Text, { key: 'h2', style: [styles.tableCell, styles.subtitle] }, 'Descripción'),
+            createElement(Text, { key: 'h3', style: [styles.tableCell, styles.subtitle] }, 'Precio')
+          ]),
+          // Rows
+          ...createPackageRows()
+        ]);
+      };
+
+      // Crear componente PDF con createElement
+      const createPDFDocument = () =>
+        createElement(Document, {}, [
+          createElement(Page, { 
+            key: 'page1',
+            size: (config.metadata as any)?.pageSize || 'A4', 
+            style: styles.page 
+          }, [
+            createElement(View, { key: 'section', style: styles.section }, [
+              createElement(Text, { 
+                key: 'title', 
+                style: styles.title 
+              }, options.data.quoteNumber || 'Cotización'),
+              
+              createElement(Text, { 
+                key: 'client', 
+                style: styles.text 
+              }, `Cliente: ${options.data.client.name}`),
+              
+              createElement(Text, { 
+                key: 'email', 
+                style: styles.text 
+              }, `Email: ${options.data.client.email}`),
+              
+              createElement(Text, { 
+                key: 'date', 
+                style: styles.text 
+              }, `Fecha: ${new Date().toLocaleDateString()}`),
+              
+              // Evento condicional
+              ...(options.data.event ? [
+                createElement(Text, { 
+                  key: 'event', 
+                  style: styles.text 
+                }, `Evento: ${options.data.event.title}`)
+              ] : []),
+              
+              // Tabla de paquetes
+              createPackageTable(),
+              
+              createElement(View, { key: 'total', style: styles.totalSection }, [
+                createElement(Text, { 
+                  key: 'totalText', 
+                  style: styles.subtitle 
+                }, `Total: $${options.data.total?.toFixed(2) || '0.00'}`)
+              ])
+            ].filter(Boolean))
+          ])
+        ]);
+
+      // Generar PDF usando la API moderna
+      const pdfBlob = await pdf(createPDFDocument()).toBlob();
       const fileName = options.metadata?.fileName || `cotizacion-${Date.now()}.pdf`;
       
       // Guardar archivo (implementar según configuración)
-      const pdfUrl = await this.saveFile(blob, fileName);
+      const pdfUrl = await this.saveFile(pdfBlob, fileName);
 
       return {
         success: true,
@@ -109,7 +166,7 @@ export class ReactPDFEngine {
         fileName,
         metadata: {
           pages: 1,
-          size: blob.size,
+          size: pdfBlob.size,
           generatedAt: new Date(),
         },
       };
@@ -122,7 +179,7 @@ export class ReactPDFEngine {
     }
   }
 
-  private static prepareData(data: any) {
+  public static prepareData(data: any) {
     return {
       ...data,
       currentDate: new Date().toLocaleDateString(),
@@ -147,8 +204,8 @@ export class PuppeteerEngine {
       const puppeteer = await import('puppeteer-core');
       
       // Procesar template
-      const template = handlebars.compile(options.template.content);
-      const processedData = ReactPDFEngine.prepareData ? ReactPDFEngine['prepareData'](options.data) : options.data;
+      const template = Handlebars.compile(options.template.htmlContent);
+      const processedData = ReactPDFEngine.prepareData(options.data);
       const htmlContent = template(processedData);
       
       // CSS por defecto
@@ -227,7 +284,7 @@ export class PuppeteerEngine {
       await page.setContent(fullHTML, { waitUntil: 'networkidle0' });
       
       const pdfBuffer = await page.pdf({
-        format: config.metadata?.format || 'A4',
+        format: (config.metadata as any)?.format || 'A4',
         margin: {
           top: '20mm',
           bottom: '20mm',
@@ -244,7 +301,7 @@ export class PuppeteerEngine {
       await browser.close();
 
       const fileName = options.metadata?.fileName || `cotizacion-${Date.now()}.pdf`;
-      const blob = new Blob([pdfBuffer], { type: 'application/pdf' });
+      const blob = new Blob([pdfBuffer as BlobPart], { type: 'application/pdf' });
       const pdfUrl = URL.createObjectURL(blob);
 
       return {
@@ -271,12 +328,13 @@ export class PuppeteerEngine {
 export class JSPDFEngine {
   static async generate(options: PDFGenerationOptions, config: PDFEngineConfig): Promise<PDFGenerationResult> {
     try {
-      const { jsPDF } = await import('jspdf');
+      const jsPDFModule = await import('jspdf');
+      const jsPDF = (jsPDFModule as any).jsPDF || jsPDFModule;
       const html2canvas = await import('html2canvas');
       
       // Crear contenido HTML
-      const template = handlebars.compile(options.template.content);
-      const processedData = ReactPDFEngine.prepareData ? ReactPDFEngine['prepareData'](options.data) : options.data;
+      const template = Handlebars.compile(options.template.htmlContent);
+      const processedData = ReactPDFEngine.prepareData(options.data);
       const htmlContent = template(processedData);
       
       // Crear elemento temporal
@@ -298,13 +356,13 @@ export class JSPDFEngine {
       document.body.removeChild(tempDiv);
       
       // Crear PDF
-      const imgData = canvas.toDataURL('image/jpeg', 0.8);
       const pdf = new jsPDF({
         orientation: options.metadata?.orientation || 'portrait',
         unit: 'mm',
-        format: config.metadata?.format || 'a4',
+        format: (config.metadata as any)?.format || 'a4',
       });
       
+      const imgData = canvas.toDataURL('image/jpeg', 0.8);
       const imgWidth = 210; // A4 width in mm
       const pageHeight = 295; // A4 height in mm
       const imgHeight = (canvas.height * imgWidth) / canvas.width;

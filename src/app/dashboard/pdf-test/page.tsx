@@ -285,11 +285,11 @@ export default function PDFTestPage() {
           </TabsContent>
 
           <TabsContent value="preview" className="space-y-6">
-            {generationResult ? (
+            {generationResult && generationResult.pdfUrl && generationResult.metadata ? (
               <div className="space-y-6">
                 <PDFPreview
                   pdfUrl={generationResult.pdfUrl}
-                  fileName={generationResult.fileName}
+                  fileName={generationResult.fileName || 'documento.pdf'}
                   metadata={generationResult.metadata}
                   onRegenerate={resetGeneration}
                 />

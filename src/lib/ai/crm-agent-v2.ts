@@ -240,8 +240,8 @@ Guías:
           startDate: event.startDate,
           endDate: event.endDate,
           status: event.status,
-          description: event.description,
-          guestCount: event.guestCount
+          description: event.notes || '',
+          guestCount: 0 // Campo no disponible en el schema actual
         }))
       };
 
@@ -319,8 +319,8 @@ Guías:
           name: client.name,
           email: client.email,
           phone: client.phone,
-          company: client.company,
-          type: client.clientType
+          company: '', // Campo no disponible en el schema actual
+          type: client.type
         }))
       };
 

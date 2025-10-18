@@ -528,7 +528,7 @@ const EmailManager: React.FC = () => {
                     <option value="">Seleccionar cotización</option>
                     {quotes.map(quote => (
                       <option key={quote.id} value={quote.id}>
-                        {quote.quoteNumber} - {quote.title}
+                        {quote.quoteNumber} - {quote.event?.title || 'Sin evento'}
                       </option>
                     ))}
                   </select>
@@ -599,7 +599,7 @@ const EmailManager: React.FC = () => {
                     }));
                     
                     const csv = [
-                      Object.keys(csvData[0]).join(','),
+                      Object.keys(csvData[0] || {}).join(','),
                       ...csvData.map(row => Object.values(row).join(','))
                     ].join('\n');
                     

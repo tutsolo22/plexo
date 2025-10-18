@@ -338,10 +338,10 @@ export function EventForm({
                   value={formData.title}
                   onChange={(e) => handleChange('title', e.target.value)}
                   placeholder="Ej: Matrimonio Silva-González"
-                  className={errors.title ? 'border-red-500' : ''}
+                  className={errors['title'] ? 'border-red-500' : ''}
                 />
-                {errors.title && (
-                  <p className="text-sm text-red-500">{errors.title}</p>
+                {errors['title'] && (
+                  <p className="text-sm text-red-500">{errors['title']}</p>
                 )}
               </div>
 
@@ -383,10 +383,10 @@ export function EventForm({
                   type="datetime-local"
                   value={formData.startDate}
                   onChange={(e) => handleChange('startDate', e.target.value)}
-                  className={errors.startDate ? 'border-red-500' : ''}
+                  className={errors['startDate'] ? 'border-red-500' : ''}
                 />
-                {errors.startDate && (
-                  <p className="text-sm text-red-500">{errors.startDate}</p>
+                {errors['startDate'] && (
+                  <p className="text-sm text-red-500">{errors['startDate']}</p>
                 )}
               </div>
 
@@ -397,10 +397,10 @@ export function EventForm({
                   type="datetime-local"
                   value={formData.endDate}
                   onChange={(e) => handleChange('endDate', e.target.value)}
-                  className={errors.endDate ? 'border-red-500' : ''}
+                  className={errors['endDate'] ? 'border-red-500' : ''}
                 />
-                {errors.endDate && (
-                  <p className="text-sm text-red-500">{errors.endDate}</p>
+                {errors['endDate'] && (
+                  <p className="text-sm text-red-500">{errors['endDate']}</p>
                 )}
               </div>
             </div>
@@ -447,7 +447,7 @@ export function EventForm({
                   onValueChange={(value) => handleChange('clientId', value)}
                   disabled={loadingOptions}
                 >
-                  <SelectTrigger className={errors.clientId ? 'border-red-500' : ''}>
+                  <SelectTrigger className={errors['clientId'] ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Selecciona un cliente" />
                   </SelectTrigger>
                   <SelectContent>
@@ -458,8 +458,8 @@ export function EventForm({
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.clientId && (
-                  <p className="text-sm text-red-500">{errors.clientId}</p>
+                {errors['clientId'] && (
+                  <p className="text-sm text-red-500">{errors['clientId']}</p>
                 )}
               </div>
 

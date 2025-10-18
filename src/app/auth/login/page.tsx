@@ -100,10 +100,10 @@ function LoginForm() {
             return;
           }
           // Verificar email (excepto SUPER_ADMIN)
-          if (!session.user.emailVerified && session.user.role !== 'SUPER_ADMIN') {
-            router.replace('/auth/verify-email');
-            return;
-          }
+          // if (!session.user.emailVerified && session.user.role !== 'SUPER_ADMIN') {
+          //   router.replace('/auth/verify-email');
+          //   return;
+          // }
 
           // Redirigir según el rol
           const roleRedirects = {
@@ -114,9 +114,9 @@ function LoginForm() {
             CLIENT_EXTERNAL: '/client-portal',
           } as const;
 
-          const redirectUrl =
-            roleRedirects[(session.user.role as keyof typeof roleRedirects) ?? 'USER'] ||
-            '/dashboard';
+          const redirectUrl = '/dashboard';
+          // roleRedirects[(session.user.role as keyof typeof roleRedirects) ?? 'USER'] ||
+          // '/dashboard';
           router.replace(redirectUrl);
         }
       } else {

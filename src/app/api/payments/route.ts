@@ -29,14 +29,17 @@ export async function GET(request: NextRequest) {
     if (quoteId) where["quoteId"] = quoteId
 
     // Verificar permisos y filtros adicionales
-    const isClientExternal = session.user.role?.roleId === $Enums.RoleType.CLIENT_EXTERNAL
+    const isClientExternal = session.user.role === $Enums.RoleType.CLIENT_EXTERNAL
     const isStaff = [
       $Enums.RoleType.SUPER_ADMIN, 
       $Enums.RoleType.TENANT_ADMIN, 
       $Enums.RoleType.MANAGER, 
       $Enums.RoleType.USER,
-      $Enums.RoleType.FINANCE
-    ].includes(session.user.role?.roleId as $Enums.RoleType)
+      $Enums.RoleType.FINANCE,
+      $Enums.RoleType.SALES,
+      $Enums.RoleType.COORDINATOR,
+      $Enums.RoleType.CLIENT_EXTERNAL
+    ].includes(session.user.role as $Enums.RoleType)
 
     if (isClientExternal) {
       // Cliente externo solo puede ver sus propios pagos

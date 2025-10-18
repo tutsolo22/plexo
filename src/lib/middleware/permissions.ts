@@ -80,7 +80,7 @@ export function withPermission(
           permissions: userWithRoles.permissions
         };
 
-        return handler(request, { user: authorizedUser }, ...args);
+        return (handler as any)(request, { user: authorizedUser }, ...args);
 
       } catch (error) {
         console.error('Error en middleware de permisos:', error);
@@ -158,7 +158,7 @@ export function withAnyPermission(
           permissions: userWithRoles.permissions
         };
 
-        return handler(request, { user: authorizedUser }, ...args);
+        return (handler as any)(request, { user: authorizedUser }, ...args);
 
       } catch (error) {
         console.error('Error en middleware de permisos múltiples:', error);

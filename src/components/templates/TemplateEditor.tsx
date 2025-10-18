@@ -252,12 +252,12 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = 'El nombre es requerido';
+    if (!formData['name'].trim()) {
+      newErrors['name'] = 'El nombre es requerido';
     }
 
-    if (!formData.htmlContent.trim()) {
-      newErrors.htmlContent = 'El contenido HTML es requerido';
+    if (!formData['htmlContent'].trim()) {
+      newErrors['htmlContent'] = 'El contenido HTML es requerido';
     }
 
     setErrors(newErrors);
@@ -490,13 +490,13 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
                   <Label htmlFor="name">Nombre del Template *</Label>
                   <Input
                     id="name"
-                    value={formData.name}
+                    value={formData['name']}
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     placeholder="Ej: Cotización Eventos Sociales"
-                    className={errors.name ? 'border-red-500' : ''}
+                    className={errors['name'] ? 'border-red-500' : ''}
                   />
-                  {errors.name && (
-                    <p className="text-sm text-red-500 mt-1">{errors.name}</p>
+                  {errors['name'] && (
+                    <p className="text-sm text-red-500 mt-1">{errors['name']}</p>
                   )}
                 </div>
 
@@ -540,7 +540,7 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
                 <div>
                   <Label htmlFor="category">Categoría</Label>
                   <Select 
-                    value={formData.category} 
+                    {...(formData.category ? { value: formData.category } : {})}
                     onValueChange={(value) => handleInputChange('category', value)}
                   >
                     <SelectTrigger>
@@ -737,13 +737,13 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
                   <Label htmlFor="htmlContent">Contenido HTML *</Label>
                   <Textarea
                     id="htmlContent"
-                    value={formData.htmlContent}
+                    value={formData['htmlContent']}
                     onChange={(e) => handleInputChange('htmlContent', e.target.value)}
                     placeholder="Escribe el contenido HTML del template..."
-                    className={`h-[550px] font-mono text-sm ${errors.htmlContent ? 'border-red-500' : ''}`}
+                    className={`h-[550px] font-mono text-sm ${errors['htmlContent'] ? 'border-red-500' : ''}`}
                   />
-                  {errors.htmlContent && (
-                    <p className="text-sm text-red-500 mt-1">{errors.htmlContent}</p>
+                  {errors['htmlContent'] && (
+                    <p className="text-sm text-red-500 mt-1">{errors['htmlContent']}</p>
                   )}
                 </div>
               </TabsContent>
@@ -768,7 +768,7 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
                   <div>
                     <Label>Fuente</Label>
                     <Input
-                      value={formData.styles?.fontFamily || ''}
+                      value={formData.styles?.['fontFamily'] || ''}
                       onChange={(e) => handleStyleChange('fontFamily', e.target.value)}
                       placeholder="Arial, sans-serif"
                     />
@@ -776,7 +776,7 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
                   <div>
                     <Label>Tamaño de fuente</Label>
                     <Input
-                      value={formData.styles?.fontSize || ''}
+                      value={formData.styles?.['fontSize'] || ''}
                       onChange={(e) => handleStyleChange('fontSize', e.target.value)}
                       placeholder="14px"
                     />
@@ -785,7 +785,7 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
                     <Label>Color de texto</Label>
                     <Input
                       type="color"
-                      value={formData.styles?.color || '#333333'}
+                      value={formData.styles?.['color'] || '#333333'}
                       onChange={(e) => handleStyleChange('color', e.target.value)}
                     />
                   </div>
@@ -793,14 +793,14 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
                     <Label>Color de fondo</Label>
                     <Input
                       type="color"
-                      value={formData.styles?.backgroundColor || '#ffffff'}
+                      value={formData.styles?.['backgroundColor'] || '#ffffff'}
                       onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
                     />
                   </div>
                   <div>
                     <Label>Margen superior</Label>
                     <Input
-                      value={formData.styles?.marginTop || ''}
+                      value={formData.styles?.['marginTop'] || ''}
                       onChange={(e) => handleStyleChange('marginTop', e.target.value)}
                       placeholder="20px"
                     />
@@ -808,7 +808,7 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
                   <div>
                     <Label>Margen inferior</Label>
                     <Input
-                      value={formData.styles?.marginBottom || ''}
+                      value={formData.styles?.['marginBottom'] || ''}
                       onChange={(e) => handleStyleChange('marginBottom', e.target.value)}
                       placeholder="20px"
                     />
@@ -816,7 +816,7 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
                   <div>
                     <Label>Margen izquierdo</Label>
                     <Input
-                      value={formData.styles?.marginLeft || ''}
+                      value={formData.styles?.['marginLeft'] || ''}
                       onChange={(e) => handleStyleChange('marginLeft', e.target.value)}
                       placeholder="40px"
                     />
@@ -824,7 +824,7 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
                   <div>
                     <Label>Margen derecho</Label>
                     <Input
-                      value={formData.styles?.marginRight || ''}
+                      value={formData.styles?.['marginRight'] || ''}
                       onChange={(e) => handleStyleChange('marginRight', e.target.value)}
                       placeholder="40px"
                     />

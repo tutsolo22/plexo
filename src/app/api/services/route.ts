@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
 
     // Solo ciertos roles pueden crear servicios
     const allowedRoles: $Enums.RoleType[] = [$Enums.RoleType.SUPER_ADMIN, $Enums.RoleType.TENANT_ADMIN, $Enums.RoleType.MANAGER]
-    if (!session.user.role?.roleId || !allowedRoles.includes(session.user.role.roleId as $Enums.RoleType)) {
+    if (!session.user.role || !allowedRoles.includes(session.user.role as $Enums.RoleType)) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
 

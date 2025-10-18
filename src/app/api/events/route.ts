@@ -290,8 +290,7 @@ export async function POST(request: NextRequest) {
         client: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
+            name: true,
             email: true,
             phone: true
           }
@@ -300,14 +299,15 @@ export async function POST(request: NextRequest) {
           select: {
             id: true,
             name: true,
-            capacity: true
+            minCapacity: true,
+            maxCapacity: true
           }
         },
         venue: {
           select: {
             id: true,
             name: true,
-            address: true
+            description: true
           }
         }
       }

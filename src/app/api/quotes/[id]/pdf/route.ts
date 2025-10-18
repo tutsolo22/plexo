@@ -24,7 +24,11 @@ export async function POST(
       where: { id },
       include: {
         template: true,
-        event: true,
+        event: {
+          include: {
+            client: true
+          }
+        },
         // Aquí incluirías otros campos relacionados como client, packages, etc.
         // Esto depende de cómo hayas estructurado tus relaciones en Prisma
       },
@@ -47,18 +51,19 @@ export async function POST(
     // Preparar datos para la generación del PDF
     // Nota: Ajustar según tu estructura real de datos
     const generationData = {
+      ...quote,
       client: {
-        name: quote.clientName || 'Cliente',
-        email: quote.clientEmail || 'cliente@email.com',
-        phone: quote.clientPhone || '',
-        address: quote.clientAddress || '',
+        name: quote.event?.client?.name || 'Cliente',
+        email: quote.event?.client?.email || 'cliente@email.com',
+        phone: quote.event?.client?.phone || '',
+        address: quote.event?.client?.address || '',
       },
       event: quote.event ? {
         title: quote.event.title,
-        date: quote.event.date,
-        time: quote.event.startTime || '',
-        duration: quote.event.duration || 0,
-        location: quote.event.location || '',
+        date: quote.event.startDate,
+        time: quote.event.startDate?.toLocaleTimeString() || '',
+        duration: 0, // Calculate from startDate/endDate if needed
+        location: '',
       } : undefined,
       // Agregar packages, business info, etc. según tu estructura
       business: {
@@ -67,20 +72,12 @@ export async function POST(
         email: 'info@casonamaria.com',
         address: 'Ciudad de Guatemala, Guatemala',
       },
-      quoteNumber: quote.quoteNumber || `Q-${quote.id.slice(-6)}`,
-      subtotal: quote.subtotal || 0,
-      discount: quote.discount || 0,
-      total: quote.total,
-      validUntil: quote.validUntil?.toISOString(),
-      notes: quote.notes || '',
+      validUntil: quote.validUntil || new Date(),
     };
 
     const generationOptions: PDFGenerationOptions = {
       template: quote.template,
-      data: {
-        ...quote,
-        ...generationData,
-      },
+      data: generationData as any,
       metadata: {
         fileName: `cotizacion-${quote.quoteNumber || quote.id.slice(-6)}.pdf`,
         showPageNumbers: options.showPageNumbers ?? true,
@@ -117,7 +114,7 @@ export async function POST(
     await prisma.quote.update({
       where: { id },
       data: {
-        pdfUrl: result.pdfUrl,
+        pdfUrl: result.pdfUrl || null,
         generatedContent: JSON.stringify({
           template: quote.template.name,
           generatedAt: new Date(),
@@ -214,7 +211,7 @@ export async function DELETE(
       where: { id },
       data: {
         pdfUrl: null,
-        generatedContent: null,
+        generatedContent: JSON.stringify({}),
         updatedAt: new Date(),
       },
     });

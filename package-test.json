@@ -1,0 +1,15 @@
+{
+  "name": "gestion-eventos-tests",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --watchAll=false",
+    "test:components": "jest --testPathPattern=components",
+    "test:api": "jest --testPathPattern=api",
+    "test:lib": "jest --testPathPattern=lib",
+    "test:integration": "jest --testPathPattern=integration",
+    "test:e2e": "playwright test",
+    "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand"
+  }
+}

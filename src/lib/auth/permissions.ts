@@ -1,5 +1,9 @@
-import { UserRole } from '@prisma/client'
+import { LegacyUserRole } from '@prisma/client'
 import { auth } from '@/lib/auth'
+
+// Alias para compatibilidad
+type UserRole = LegacyUserRole;
+const UserRole = LegacyUserRole;
 
 /**
  * Sistema de permisos y roles para CRM Casona María
@@ -199,6 +203,10 @@ export const hasPermission = (
   // Navegar por el objeto de permisos usando la notación de puntos
   const modulePermissions = permissions[module as keyof UserPermissions]
   if (!modulePermissions || typeof modulePermissions !== 'object') {
+    return false
+  }
+  
+  if (!action) {
     return false
   }
   

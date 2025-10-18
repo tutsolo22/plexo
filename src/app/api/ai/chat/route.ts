@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
-import { crmAgentService } from '@/lib/ai/crm-agent-v2';
+import { agentCoordinator } from '@/lib/ai/agent-coordinator';
 import { conversationMemoryService } from '@/lib/ai/conversation-memory';
 import { withValidation } from '@/lib/api/middleware/validation';
 import { withErrorHandling } from '@/lib/api/middleware/error-handling';
@@ -29,7 +29,7 @@ async function chatHandler(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { message, conversationId, sessionId, /* userId, */ platform, userPhone } =
+    const { message, conversationId, sessionId, userId, platform, userPhone } =
       chatRequestSchema.parse(body);
 
     // Usar sessionId como conversationId si no se proporciona conversationId
@@ -76,35 +76,52 @@ async function chatHandler(req: NextRequest) {
       },
     });
 
-    // Procesar mensaje con el agente CRM v2 especializado
-    const agentResponse = await crmAgentService.processQuery(message, {
-      tenantId: session.user.tenantId,
-      userRole: session.user.role.roleId,
-    });
+    // Preparar mensaje para el coordinador de agentes
+    const messageData = {
+      id: `msg_${Date.now()}`,
+      from: session.user.email || userId || 'user',
+      to: 'assistant',
+      body: message,
+      timestamp: new Date(),
+      type: 'text' as const,
+      platform
+    };
 
-    // Guardar respuesta del agente
+    // Procesar con el coordinador de agentes (incluye CRM y WhatsApp)
+    const coordinatorResponse = await agentCoordinator.processMessage(
+      messageData,
+      session.user.tenantId
+    );
+
+    // Guardar respuesta del agente coordinador
     await conversationMemoryService.addMessage({
       conversationId: currentConversationId,
       role: 'assistant',
-      content: agentResponse.response,
+      content: coordinatorResponse.response.message,
       metadata: {
-        intent: agentResponse.intent,
-        results: agentResponse.results,
-        timestamp: agentResponse.timestamp.toISOString(),
+        agent: coordinatorResponse.source,
+        escalated: coordinatorResponse.escalated,
+        intent: 'intent' in coordinatorResponse.response ? coordinatorResponse.response.intent : undefined,
+        confidence: 'confidence' in coordinatorResponse.response ? coordinatorResponse.response.confidence : undefined,
+        processingTime: coordinatorResponse.metadata.processingTime,
+        timestamp: new Date().toISOString(),
       },
     });
 
     return ApiResponses.success({
-      message: agentResponse.response,
+      message: coordinatorResponse.response.message,
       conversationId: currentConversationId,
-      intent: agentResponse.intent,
-      results: agentResponse.results,
-      searchType: agentResponse.results?.searchType,
+      agent: coordinatorResponse.source,
+      escalated: coordinatorResponse.escalated,
+      intent: 'intent' in coordinatorResponse.response ? coordinatorResponse.response.intent : undefined,
+      confidence: 'confidence' in coordinatorResponse.response ? coordinatorResponse.response.confidence : undefined,
+      results: 'results' in coordinatorResponse.response ? coordinatorResponse.response.results : undefined,
       platform,
       metadata: {
         userRole: session.user.role,
         tenantId: session.user.tenantId,
         tenantName: session.user.tenantName,
+        processingTime: coordinatorResponse.metadata.processingTime,
         timestamp: new Date().toISOString(),
       },
     });

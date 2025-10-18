@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Solo TENANT_ADMIN y MANAGER pueden crear identidades
-    const userRoleType = session.user.role.roleId as $Enums.RoleType;
+    const userRoleType = session.user.role as $Enums.RoleType;
     if (
       userRoleType !== $Enums.RoleType.SUPER_ADMIN &&
       userRoleType !== $Enums.RoleType.TENANT_ADMIN &&

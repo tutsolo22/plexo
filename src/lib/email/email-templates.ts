@@ -81,7 +81,7 @@ const basicTemplate = `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{quote.title}}</title>
+    <title>{{quote.quoteNumber}}</title>
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
         .header { background: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
@@ -97,7 +97,7 @@ const basicTemplate = `
 <body>
     <div class="header">
         <h1>{{company.name}}</h1>
-        <h2>{{quote.title}}</h2>
+        <h2>{{quote.quoteNumber}}</h2>
     </div>
 
     <div class="content">
@@ -184,7 +184,7 @@ const professionalTemplate = `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{quote.title}} - {{company.name}}</title>
+    <title>{{quote.quoteNumber}} - {{company.name}}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Georgia', serif; line-height: 1.6; color: #2c3e50; background: #f8f9fa; }
@@ -238,7 +238,7 @@ const professionalTemplate = `
     <div class="container">
         <div class="header">
             <div class="logo">{{company.name}}</div>
-            <div class="quote-title">{{quote.title}}</div>
+            <div class="quote-title">{{quote.quoteNumber}}</div>
         </div>
 
         <div class="content">
@@ -414,7 +414,7 @@ const customTemplate = `
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{quote.title}} - {{company.name}}</title>
+    <title>{{quote.quoteNumber}} - {{company.name}}</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -492,7 +492,7 @@ const customTemplate = `
             <div class="header-bg"></div>
             <div class="header-content">
                 <div class="company-name">{{company.name}}</div>
-                <div class="quote-subtitle">{{quote.title}}</div>
+                <div class="quote-subtitle">{{quote.quoteNumber}}</div>
             </div>
         </div>
 

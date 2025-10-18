@@ -208,13 +208,16 @@ export default function PDFGenerator({
   };
 
   const handleFormChange = (section: string, field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [section]: {
-        ...prev[section as keyof typeof prev],
-        [field]: value,
-      },
-    }));
+    setFormData(prev => {
+      const currentSection = prev[section as keyof typeof prev];
+      return {
+        ...prev,
+        [section]: {
+          ...(currentSection && typeof currentSection === 'object' && !Array.isArray(currentSection) ? currentSection as any : {}),
+          [field]: value,
+        },
+      };
+    });
   };
 
   const getEngineIcon = (engine: PDFEngine) => {

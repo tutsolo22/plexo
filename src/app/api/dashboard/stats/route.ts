@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
         where: {
           events: {
             some: {
-              eventDate: {
+              startDate: {
                 gte: startDate,
                 lte: endDate
               }
@@ -60,21 +60,21 @@ export async function GET(request: NextRequest) {
       // Cotizaciones pendientes
       prisma.quote.count({
         where: {
-          status: 'PENDING'
+          status: 'PENDING_MANAGER'
         }
       }),
       
-      // Eventos completados
+      // Eventos confirmados
       prisma.event.count({
         where: {
-          status: 'COMPLETED'
+          status: 'CONFIRMED'
         }
       }),
       
       // Eventos próximos (siguiente semana)
       prisma.event.findMany({
         where: {
-          eventDate: {
+          startDate: {
             gte: new Date(),
             lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // próximos 7 días
           }
@@ -85,24 +85,24 @@ export async function GET(request: NextRequest) {
           }
         },
         orderBy: {
-          eventDate: 'asc'
+          startDate: 'asc'
         },
         take: 5
       }),
       
-      // Revenue del mes actual
-      prisma.event.aggregate({
+      // Revenue del mes actual - usar total de quotes confirmadas
+      prisma.quote.aggregate({
         where: {
-          eventDate: {
-            gte: new Date(endDate.getFullYear(), endDate.getMonth(), 1),
-            lte: endDate
-          },
-          status: {
-            in: ['CONFIRMED', 'COMPLETED']
+          event: {
+            startDate: {
+              gte: new Date(endDate.getFullYear(), endDate.getMonth(), 1),
+              lte: endDate
+            },
+            status: 'CONFIRMED'
           }
         },
         _sum: {
-          totalAmount: true
+          total: true
         }
       })
     ])
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
     // Calcular métricas adicionales
     const eventsThisPeriod = await prisma.event.count({
       where: {
-        eventDate: {
+        startDate: {
           gte: startDate,
           lte: endDate
         }
@@ -129,7 +129,7 @@ export async function GET(request: NextRequest) {
     // Calcular tasa de conversión de cotizaciones
     const approvedQuotes = await prisma.quote.count({
       where: {
-        status: 'APPROVED',
+        status: 'APPROVED_BY_MANAGER',
         createdAt: {
           gte: startDate,
           lte: endDate
@@ -168,7 +168,7 @@ export async function GET(request: NextRequest) {
       conversionRate: Math.round(conversionRate * 100) / 100,
       
       // Revenue
-      monthlyRevenue: Number(monthlyRevenue._sum.totalAmount || 0),
+      monthlyRevenue: Number(monthlyRevenue._sum.total || 0),
       
       // Período de consulta
       period: {

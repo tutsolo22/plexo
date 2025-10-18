@@ -1,4 +1,5 @@
-import { NextAuthOptions } from 'next-auth'
+import NextAuth from 'next-auth'
+type NextAuthOptions = Parameters<typeof NextAuth>[0]
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/prisma'
@@ -47,8 +48,8 @@ export const authOptions: NextAuthOptions = {
         }
       },
       async authorize(credentials) {
-        if (process.env.UPSTASH_REDIS_REST_URL) {
-          const identifier = credentials?.email || 'unknown';
+        if (process.env['UPSTASH_REDIS_REST_URL']) {
+          const identifier = (credentials?.email || 'unknown') as string;
           const { success } = await ratelimit.limit(identifier);
           if (!success) {
             throw new Error('Demasiados intentos de inicio de sesión. Inténtalo de nuevo en un minuto.');
@@ -62,7 +63,7 @@ export const authOptions: NextAuthOptions = {
         try {
           // Buscar usuario por email
           const user = await prisma.user.findUnique({
-            where: { email: credentials.email },
+            where: { email: credentials.email as string },
             include: {
               tenant: {
                 select: {
@@ -85,12 +86,12 @@ export const authOptions: NextAuthOptions = {
           }
 
           // Validar que el tenant esté activo
-          if (!user.tenant.isActive) {
+          if (!user.tenant?.isActive) {
             throw new Error('La organización está inactiva. Contacta al administrador.')
           }
 
           // Validar email verificado (solo para usuarios no SUPER_ADMIN)
-          if (!user.emailVerified && user.role !== UserRole.SUPER_ADMIN) {
+          if (!user.emailVerified && user.role !== 'SUPER_ADMIN') {
             throw new Error('Debes verificar tu email antes de iniciar sesión')
           }
 
@@ -100,7 +101,7 @@ export const authOptions: NextAuthOptions = {
           }
           
           const isValidPassword = await verifyPassword(
-            credentials.password, 
+            credentials.password as string, 
             user.password
           )
 
@@ -115,7 +116,7 @@ export const authOptions: NextAuthOptions = {
             name: user.name,
             role: user.role,
             tenantId: user.tenantId,
-            tenantName: user.tenant.name,
+            tenantName: user.tenant?.name || '',
             emailVerified: user.emailVerified
           }
         } catch (error) {
@@ -142,7 +143,7 @@ export const authOptions: NextAuthOptions = {
     /**
      * Callback JWT - Ejecutado cuando se crea/actualiza el token
      */
-    async jwt({ token, user }) {
+    async jwt({ token, user }: { token: any; user: any }) {
       // Si es el primer login, agregar datos del usuario al token
       if (user) {
         token.role = user.role
@@ -156,7 +157,7 @@ export const authOptions: NextAuthOptions = {
     /**
      * Callback Session - Ejecutado cuando se accede a la sesión
      */
-    async session({ session, token }) {
+    async session({ session, token }: { session: any; token: any }) {
       // Agregar datos adicionales a la sesión
       if (token) {
         session.user.id = token.sub!
@@ -171,7 +172,7 @@ export const authOptions: NextAuthOptions = {
     /**
      * Callback de redirección después del login
      */
-    async redirect({ url, baseUrl }) {
+    async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
       // Si la URL es relativa, agregar baseUrl
       if (url.startsWith('/')) {
         return `${baseUrl}${url}`
@@ -194,7 +195,7 @@ export const authOptions: NextAuthOptions = {
 
   // Configuración de eventos para auditoría
   events: {
-    async signIn({ user, account, profile, isNewUser }) {
+    async signIn({ user, account, profile, isNewUser }: { user: any; account: any; profile: any; isNewUser: any }) {
       // Log de inicio de sesión exitoso
       if (user.id) {
         const userData = await prisma.user.findUnique({
@@ -221,7 +222,7 @@ export const authOptions: NextAuthOptions = {
       }
     },
 
-    async signOut({ session, token }) {
+    async signOut({ session, token }: { session: any; token: any }) {
       // Log de cierre de sesión
       if (token?.sub) {
         const userData = await prisma.user.findUnique({

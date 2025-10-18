@@ -339,8 +339,8 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
                 email: event.client.email,
                 ...(event.client.phone && { phone: event.client.phone })
               },
-              venue: event.venue ? { name: event.venue.name } : undefined,
-              room: event.room ? { name: event.room.name } : undefined
+              ...(event.venue && { venue: { name: event.venue.name } }),
+              ...(event.room && { room: { name: event.room.name } })
             }}
             onQuoteCreated={(quote) => {
               // Opcional: actualizar la vista del evento si es necesario
@@ -437,7 +437,7 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={() => router.push(`/dashboard/quotes/${event.quote.id}`)}
+                  onClick={() => event.quote && router.push(`/dashboard/quotes/${event.quote.id}`)}
                   className="w-full"
                 >
                   Ver Cotización

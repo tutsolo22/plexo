@@ -35,7 +35,6 @@ const EventQuoteButton: React.FC<EventQuoteButtonProps> = ({
 
   // Quick quote data
   const [quickQuote, setQuickQuote] = useState({
-    title: `Cotización para ${event.title}`,
     price: 0,
     description: '',
     autoSend: false
@@ -53,7 +52,6 @@ const EventQuoteButton: React.FC<EventQuoteButtonProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: quickQuote.title,
           description: quickQuote.description,
           packages: [{
             name: 'Paquete Principal',
@@ -72,7 +70,6 @@ const EventQuoteButton: React.FC<EventQuoteButtonProps> = ({
         const data = await response.json();
         setShowQuickForm(false);
         setQuickQuote({
-          title: `Cotización para ${event.title}`,
           price: 0,
           description: '',
           autoSend: false
@@ -131,19 +128,6 @@ const EventQuoteButton: React.FC<EventQuoteButtonProps> = ({
         <div className="space-y-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Título de la Cotización
-            </label>
-            <input
-              type="text"
-              value={quickQuote.title}
-              onChange={(e) => setQuickQuote(prev => ({ ...prev, title: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Ej: Cotización para Boda Juan y María"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
               Precio Base
             </label>
             <div className="relative">
@@ -199,7 +183,7 @@ const EventQuoteButton: React.FC<EventQuoteButtonProps> = ({
           <Button
             size="sm"
             onClick={handleQuickCreate}
-            disabled={creating || !quickQuote.title.trim() || quickQuote.price <= 0}
+            disabled={creating || quickQuote.price <= 0}
           >
             {creating ? 'Creando...' : (quickQuote.autoSend ? 'Crear y Enviar' : 'Crear Cotización')}
           </Button>

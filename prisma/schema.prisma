@@ -330,6 +330,7 @@ model Tenant {
   venues             Venue[]
   masterEvents       MasterEvent[]
   payments           Payment[]
+  aiEmbeddings       AIEmbedding[]      // AI embeddings para búsqueda semántica
   
   // Flexible Role System Relations
   roles              Role[]             // Roles específicos del tenant
@@ -545,22 +546,28 @@ model BotMessage {
   createdAt DateTime @default(now())
 }
 
-// /// Almacenamiento de embeddings en PostgreSQL usando la extensión pgvector
-// model AIEmbedding {
-//   id        String   @id @default(cuid())
-//   tenantId  String
-//   sessionId String?
-//   messageId String?
-//   content   String
-//   // Tipo nativo vector (pgvector). Prisma lo maneja como Unsupported("vector").
-//   embedding Unsupported("vector")
-//   dim       Int
-//   createdAt DateTime @default(now())
+// Almacenamiento de embeddings en PostgreSQL usando la extensión pgvector
+model AIEmbedding {
+  id         String   @id @default(cuid())
+  tenantId   String
+  entityId   String   // ID de la entidad (event, client, quote, product, etc.)
+  entityType String   // Tipo de entidad (EVENT, CLIENT, QUOTE, PRODUCT, etc.)
+  content    String   // Contenido textual usado para generar el embedding
+  // Tipo nativo vector (pgvector). Prisma lo maneja como Unsupported("vector").
+  embedding  Unsupported("vector")
+  dimensions Int      @default(768) // Dimensiones del vector
+  metadata   Json?    // Metadatos adicionales como status, type, etc.
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-//   @@index([tenantId])
-//   @@index([sessionId])
-//   @@index([messageId])
-// }
+  // Relations
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([entityId, entityType]) // Un embedding por entidad
+  @@index([tenantId])
+  @@index([entityType])
+  @@map("ai_embeddings")
+}
 
 model SupplierProduct {
   id           String   @id @default(cuid())

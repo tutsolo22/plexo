@@ -364,8 +364,8 @@ export function TemplateList({ onEdit, onNew }: TemplateListProps) {
               <SelectContent>
                 <SelectItem value="all">Todas las categorías</SelectItem>
                 {filteredCategories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category.charAt(0).toUpperCase() + category.slice(1)}
+                  <SelectItem key={category || 'unknown'} value={category || 'unknown'}>
+                    {category ? category.charAt(0).toUpperCase() + category.slice(1) : 'Sin categoría'}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -445,13 +445,13 @@ export function TemplateList({ onEdit, onNew }: TemplateListProps) {
                 <TableBody>
                   {templates.map((template) => {
                     const typeConfig = getTemplateTypeConfig(template.type);
-                    const Icon = typeConfig.icon;
+                    const Icon = typeConfig?.icon || FileText;
 
                     return (
                       <TableRow key={template.id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-lg ${typeConfig.color}`}>
+                            <div className={`p-2 rounded-lg ${typeConfig?.color || 'bg-gray-100'}`}>
                               <Icon className="h-4 w-4" />
                             </div>
                             <div>
@@ -475,7 +475,7 @@ export function TemplateList({ onEdit, onNew }: TemplateListProps) {
                         
                         <TableCell>
                           <Badge variant="outline">
-                            {typeConfig.label}
+                            {typeConfig?.label || 'Sin tipo'}
                           </Badge>
                         </TableCell>
                         
@@ -587,7 +587,7 @@ export function TemplateList({ onEdit, onNew }: TemplateListProps) {
             <AlertDialogTitle>¿Eliminar template?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción no se puede deshacer. El template "{templateToDelete?.name}" será eliminado permanentemente.
-              {templateToDelete?._count.quotes > 0 && (
+              {templateToDelete?._count?.quotes && templateToDelete._count.quotes > 0 && (
                 <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
                   <p className="text-sm text-yellow-800">
                     ⚠️ Este template está siendo usado por {templateToDelete._count.quotes} cotizaciones.

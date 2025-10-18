@@ -24,7 +24,7 @@ export async function POST(
     const event = await prisma.event.findUnique({
       where: { id: eventId },
       include: {
-        quotes: {
+        quote: {
           select: {
             id: true,
             status: true,
@@ -58,36 +58,25 @@ export async function POST(
             newQuoteStatus = 'EXPIRED';
             break;
           case 'CONFIRMED':
-            // Solo marcar como aceptadas las cotizaciones que están en SENT o VIEWED
-            const quotesToAccept = event.quotes.filter(q => 
-              ['SENT', 'VIEWED'].includes(q.status)
-            );
-            if (quotesToAccept.length > 0) {
-              await prisma.quote.updateMany({
-                where: {
-                  id: { in: quotesToAccept.map(q => q.id) },
-                },
-                data: { status: 'ACCEPTED' }
+            // Solo marcar como aceptada la cotización que está en SENT_TO_CLIENT
+            if (event.quote && ['SENT_TO_CLIENT'].includes(event.quote.status)) {
+              await prisma.quote.update({
+                where: { id: event.quote.id },
+                data: { status: 'ACCEPTED_BY_CLIENT' }
               });
-              updates.quotesUpdated = quotesToAccept.length;
-              updates.changes.push(`${quotesToAccept.length} cotizaciones marcadas como aceptadas`);
+              updates.quotesUpdated = 1;
+              updates.changes.push('Cotización marcada como aceptada por el cliente');
             }
             break;
         }
 
-        if (newQuoteStatus) {
-          const quotesToUpdate = event.quotes.filter(q => q.status !== newQuoteStatus);
-          if (quotesToUpdate.length > 0) {
-            await prisma.quote.updateMany({
-              where: {
-                eventId: eventId,
-                id: { in: quotesToUpdate.map(q => q.id) }
-              },
-              data: { status: newQuoteStatus }
-            });
-            updates.quotesUpdated = quotesToUpdate.length;
-            updates.changes.push(`${quotesToUpdate.length} cotizaciones actualizadas a ${newQuoteStatus}`);
-          }
+        if (newQuoteStatus && event.quote && event.quote.status !== newQuoteStatus) {
+          await prisma.quote.update({
+            where: { id: event.quote.id },
+            data: { status: newQuoteStatus as any } // TODO: Fix enum types
+          });
+          updates.quotesUpdated = 1;
+          updates.changes.push(`Cotización actualizada a ${newQuoteStatus}`);
         }
 
         // Actualizar el evento
@@ -113,9 +102,8 @@ export async function POST(
             }
             break;
           case 'REJECTED':
-            // Si todas las cotizaciones están rechazadas, mantener como reservado
-            const allRejected = event.quotes.every(q => q.status === 'REJECTED');
-            if (allRejected && event.status !== 'RESERVED') {
+            // Si la cotización está rechazada, mantener como reservado
+            if (event.quote && event.quote.status === 'REJECTED_BY_MANAGER' && event.status !== 'RESERVED') {
               newEventStatus = 'RESERVED';
             }
             break;
@@ -140,9 +128,8 @@ export async function POST(
 
     // Lógica automática de sincronización inteligente
     if (validatedData.syncDirection === 'both') {
-      // Verificar si hay cotizaciones aceptadas y el evento no está confirmado
-      const acceptedQuotes = event.quotes.filter(q => q.status === 'ACCEPTED');
-      if (acceptedQuotes.length > 0 && event.status !== 'CONFIRMED') {
+      // Verificar si la cotización está aceptada y el evento no está confirmado
+      if (event.quote && event.quote.status === 'ACCEPTED_BY_CLIENT' && event.status !== 'CONFIRMED') {
         await prisma.event.update({
           where: { id: eventId },
           data: { status: 'CONFIRMED' }
@@ -151,15 +138,14 @@ export async function POST(
         updates.changes.push('Evento confirmado automáticamente por cotización aceptada');
       }
 
-      // Verificar si hay cotizaciones enviadas y el evento no está cotizado
-      const sentQuotes = event.quotes.filter(q => ['SENT', 'VIEWED'].includes(q.status));
-      if (sentQuotes.length > 0 && event.status === 'RESERVED') {
+      // Verificar si la cotización está enviada y el evento no está cotizado
+      if (event.quote && event.quote.status === 'SENT_TO_CLIENT' && event.status === 'RESERVED') {
         await prisma.event.update({
           where: { id: eventId },
           data: { status: 'QUOTED' }
         });
         updates.eventUpdated = true;
-        updates.changes.push('Evento marcado como cotizado por cotizaciones enviadas');
+        updates.changes.push('Evento marcado como cotizado por cotización enviada');
       }
     }
 
@@ -167,15 +153,14 @@ export async function POST(
     const updatedEvent = await prisma.event.findUnique({
       where: { id: eventId },
       include: {
-        quotes: {
+        quote: {
           select: {
             id: true,
             quoteNumber: true,
             status: true,
             total: true,
             validUntil: true
-          },
-          orderBy: { createdAt: 'desc' }
+          }
         }
       }
     });
@@ -228,7 +213,7 @@ export async function GET(
     const event = await prisma.event.findUnique({
       where: { id: eventId },
       include: {
-        quotes: {
+        quote: {
           select: {
             id: true,
             quoteNumber: true,
@@ -236,8 +221,7 @@ export async function GET(
             total: true,
             validUntil: true,
             createdAt: true
-          },
-          orderBy: { createdAt: 'desc' }
+          }
         }
       }
     });
@@ -252,38 +236,35 @@ export async function GET(
     // Analizar el estado de sincronización
     const syncStatus = {
       eventStatus: event.status,
-      quotesCount: event.quotes.length,
-      quotesByStatus: event.quotes.reduce((acc, quote) => {
-        acc[quote.status] = (acc[quote.status] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>),
+      quotesCount: event.quote ? 1 : 0,
+      quotesByStatus: event.quote ? { [event.quote.status]: 1 } : {},
       recommendations: [] as string[],
       needsSync: false
     };
 
     // Generar recomendaciones de sincronización
-    const acceptedQuotes = event.quotes.filter(q => q.status === 'ACCEPTED');
-    const sentQuotes = event.quotes.filter(q => ['SENT', 'VIEWED'].includes(q.status));
-    const rejectedQuotes = event.quotes.filter(q => q.status === 'REJECTED');
+    const acceptedQuote = event.quote?.status === 'ACCEPTED_BY_CLIENT' ? event.quote : null;
+    const sentQuote = event.quote && ['SENT_TO_CLIENT'].includes(event.quote.status) ? event.quote : null;
+    const rejectedQuote = event.quote?.status === 'REJECTED_BY_MANAGER' ? event.quote : null;
 
-    if (acceptedQuotes.length > 0 && event.status !== 'CONFIRMED') {
+    if (acceptedQuote && event.status !== 'CONFIRMED') {
       syncStatus.recommendations.push('Considerar confirmar el evento (hay cotizaciones aceptadas)');
       syncStatus.needsSync = true;
     }
 
-    if (sentQuotes.length > 0 && event.status === 'RESERVED') {
+    if (sentQuote && event.status === 'RESERVED') {
       syncStatus.recommendations.push('Marcar evento como cotizado (hay cotizaciones enviadas)');
       syncStatus.needsSync = true;
     }
 
-    if (event.quotes.length === rejectedQuotes.length && rejectedQuotes.length > 0 && event.status !== 'RESERVED') {
+    if (rejectedQuote && event.status !== 'RESERVED') {
       syncStatus.recommendations.push('Todas las cotizaciones están rechazadas, considerar volver a reservado');
       syncStatus.needsSync = true;
     }
 
     if (event.status === 'CANCELLED') {
-      const nonExpiredQuotes = event.quotes.filter(q => q.status !== 'EXPIRED');
-      if (nonExpiredQuotes.length > 0) {
+      const nonExpiredQuote = event.quote?.status !== 'EXPIRED' ? event.quote : null;
+      if (nonExpiredQuote) {
         syncStatus.recommendations.push('Marcar cotizaciones como expiradas (evento cancelado)');
         syncStatus.needsSync = true;
       }

@@ -1,9 +1,10 @@
-// API para Dashboard de Analytics - Métricas principales
+// API para Dashboard de Analytics - Métricas principales con Redis Cache
 // /api/analytics/dashboard/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { redisCache, CacheKeys, ANALYTICS_TTL } from '@/lib/redis';
 import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -16,6 +17,21 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period') || '6'; // Últimos 6 meses por defecto
+
+    // Verificar cache primero
+    const cacheKey = CacheKeys.ANALYTICS_DASHBOARD(period, session.user.tenantId);
+    const cachedData = await redisCache.get(cacheKey);
+
+    if (cachedData) {
+      console.log('📊 Analytics data served from cache');
+      return NextResponse.json({
+        ...cachedData,
+        fromCache: true,
+        cacheKey
+      });
+    }
+
+    console.log('📊 Generating fresh analytics data...');
 
     // Calcular fechas para el período seleccionado
     const endDate = endOfMonth(new Date());
@@ -47,16 +63,16 @@ export async function GET(request: NextRequest) {
     const approvedQuotes = await prisma.quote.findMany({
       where: {
         tenantId: session.user.tenantId,
-        status: 'APPROVED',
+        status: 'APPROVED_BY_MANAGER',
         createdAt: { gte: startDate, lte: endDate }
       },
       select: {
-        totalAmount: true,
+        total: true,
         createdAt: true
       }
     });
 
-    const totalRevenue = approvedQuotes.reduce((sum, quote) => sum + quote.totalAmount, 0);
+    const totalRevenue = approvedQuotes.reduce((sum, quote) => sum + Number(quote.total), 0);
 
     // 3. Estadísticas de cotizaciones por estado
     const quotesByStatus = await prisma.quote.groupBy({
@@ -99,13 +115,13 @@ export async function GET(request: NextRequest) {
       const monthQuotes = await prisma.quote.findMany({
         where: {
           tenantId: session.user.tenantId,
-          status: 'APPROVED',
+          status: 'APPROVED_BY_MANAGER',
           createdAt: { gte: monthStart, lte: monthEnd }
         },
-        select: { totalAmount: true }
+        select: { total: true }
       });
 
-      const monthRevenue = monthQuotes.reduce((sum, quote) => sum + quote.totalAmount, 0);
+      const monthRevenue = monthQuotes.reduce((sum, quote) => sum + Number(quote.total), 0);
 
       revenueByMonth.push({
         month: format(monthStart, 'MMM yyyy', { locale: es }),
@@ -117,21 +133,15 @@ export async function GET(request: NextRequest) {
     // 6. Top clientes por ingresos
     const topClients = await prisma.client.findMany({
       where: {
-        tenantId: session.user.tenantId,
-        quotes: {
-          some: {
-            status: 'APPROVED',
-            createdAt: { gte: startDate, lte: endDate }
-          }
-        }
+        tenantId: session.user.tenantId
       },
       include: {
         quotes: {
           where: {
-            status: 'APPROVED',
+            status: 'APPROVED_BY_MANAGER',
             createdAt: { gte: startDate, lte: endDate }
           },
-          select: { totalAmount: true }
+          select: { total: true }
         }
       },
       take: 10
@@ -142,9 +152,10 @@ export async function GET(request: NextRequest) {
         id: client.id,
         name: client.name,
         email: client.email,
-        totalRevenue: client.quotes.reduce((sum, quote) => sum + quote.totalAmount, 0),
+        totalRevenue: client.quotes.reduce((sum: number, quote: any) => sum + Number(quote.total), 0),
         quotesCount: client.quotes.length
       }))
+      .filter(client => client.totalRevenue > 0)
       .sort((a, b) => b.totalRevenue - a.totalRevenue)
       .slice(0, 5);
 
@@ -153,15 +164,13 @@ export async function GET(request: NextRequest) {
     try {
       const emailsCount = await prisma.emailLog.count({
         where: {
-          tenantId: session.user.tenantId,
           createdAt: { gte: startDate, lte: endDate }
         }
       });
 
       const emailsOpened = await prisma.emailLog.count({
         where: {
-          tenantId: session.user.tenantId,
-          status: 'OPENED',
+          status: 'opened',
           createdAt: { gte: startDate, lte: endDate }
         }
       });
@@ -236,8 +245,13 @@ export async function GET(request: NextRequest) {
       user: {
         id: session.user.id,
         name: session.user.name
-      }
+      },
+      fromCache: false
     };
+
+    // Guardar en cache por 15 minutos
+    await redisCache.set(cacheKey, analytics, ANALYTICS_TTL);
+    console.log('💾 Analytics data cached successfully');
 
     return NextResponse.json(analytics);
 

@@ -47,13 +47,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Solo clientes externos o staff pueden crear pagos
-    const isClientExternal = session.user.role?.roleId === $Enums.RoleType.CLIENT_EXTERNAL;
+    const isClientExternal = session.user.role === $Enums.RoleType.CLIENT_EXTERNAL;
     const isStaff = [
       $Enums.RoleType.SUPER_ADMIN,
       $Enums.RoleType.TENANT_ADMIN,
       $Enums.RoleType.MANAGER,
       $Enums.RoleType.USER,
-    ].includes(session.user.role?.roleId as $Enums.RoleType);
+      $Enums.RoleType.CLIENT_EXTERNAL,
+      $Enums.RoleType.SALES,
+      $Enums.RoleType.COORDINATOR,
+      $Enums.RoleType.FINANCE,
+    ].includes(session.user.role as $Enums.RoleType);
 
     if (!isClientExternal && !isStaff) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
@@ -91,7 +95,7 @@ export async function POST(request: NextRequest) {
       ],
       payer: {
         name: quote.client.name,
-        email: quote.client.email || undefined,
+        ...(quote.client.email ? { email: quote.client.email } : {}),
       },
       external_reference: externalReference,
       notification_url: `${process.env['NEXTAUTH_URL']}/api/payments/mercadopago/webhook`,

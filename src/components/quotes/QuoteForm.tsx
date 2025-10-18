@@ -123,7 +123,7 @@ export default function QuoteForm({
     defaultValidUntil.setDate(defaultValidUntil.getDate() + 30);
     setFormData(prev => ({
       ...prev,
-      validUntil: defaultValidUntil.toISOString().split('T')[0],
+      validUntil: defaultValidUntil.toISOString().split('T')[0] || '',
     }));
   }, []);
 

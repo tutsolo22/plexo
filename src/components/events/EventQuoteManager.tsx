@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import useEventQuotes from '@/hooks/useEventQuotes';
-import { Plus, FileText, Send, DollarSign, Calendar, User, MapPin, Trash2, Edit, AlertTriangle, Sync } from 'lucide-react';
+import { Plus, FileText, Send, DollarSign, Calendar, User, MapPin, Trash2, Edit, AlertTriangle, RotateCcw } from 'lucide-react';
 
 interface EventQuoteManagerProps {
   eventId: string;
@@ -60,6 +60,29 @@ interface QuoteStats {
   averageValue: number;
 }
 
+interface PackageItem {
+  id?: string;
+  name: string;
+  description: string;
+  price: number;
+  quantity: number;
+}
+
+interface QuotePackage {
+  name: string;
+  description: string;
+  price: number;
+  quantity: number;
+  items: PackageItem[];
+}
+
+interface QuoteAdjustment {
+  type: 'discount' | 'fee' | 'tax';
+  description: string;
+  amount: number;
+  isPercentage?: boolean;
+}
+
 const EventQuoteManager: React.FC<EventQuoteManagerProps> = ({ 
   eventId, 
   event, 
@@ -85,7 +108,16 @@ const EventQuoteManager: React.FC<EventQuoteManagerProps> = ({
   const [syncing, setSyncing] = useState(false);
 
   // Formulario para nueva cotización
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    title: string;
+    description: string;
+    templateId: string;
+    validUntil: string;
+    packages: QuotePackage[];
+    adjustments: QuoteAdjustment[];
+    autoSend: boolean;
+    emailTemplate: 'basic' | 'professional' | 'custom';
+  }>({
     title: `Cotización para ${event.title}`,
     description: '',
     templateId: '',
@@ -99,7 +131,7 @@ const EventQuoteManager: React.FC<EventQuoteManagerProps> = ({
     }],
     adjustments: [],
     autoSend: false,
-    emailTemplate: 'professional' as 'basic' | 'professional' | 'custom'
+    emailTemplate: 'professional'
   });
 
   useEffect(() => {
@@ -111,7 +143,7 @@ const EventQuoteManager: React.FC<EventQuoteManagerProps> = ({
     setFormData(prev => ({
       ...prev,
       validUntil: defaultValidUntil.toISOString().split('T')[0]
-    }));
+    }) as typeof prev);
   }, [eventId]);
 
   const fetchTemplates = async () => {
@@ -132,7 +164,7 @@ const EventQuoteManager: React.FC<EventQuoteManagerProps> = ({
       return;
     }
 
-    if (formData.packages.length === 0 || formData.packages[0].price <= 0) {
+    if (formData.packages.length === 0 || (formData.packages[0] && formData.packages[0].price <= 0)) {
       alert('Debe incluir al menos un paquete con precio');
       return;
     }
@@ -140,8 +172,30 @@ const EventQuoteManager: React.FC<EventQuoteManagerProps> = ({
     setCreating(true);
     try {
       const quote = await createQuote({
-        ...formData,
-        validUntil: new Date(formData.validUntil).toISOString()
+        title: formData.title,
+        description: formData.description,
+        ...(formData.templateId ? { templateId: formData.templateId } : {}),
+        validUntil: new Date(formData.validUntil).toISOString(),
+        packages: formData.packages.map(pkg => ({
+          name: pkg.name,
+          description: pkg.description,
+          price: pkg.price,
+          quantity: pkg.quantity,
+          items: pkg.items.map(item => ({
+            name: item.name,
+            description: item.description,
+            quantity: item.quantity,
+            unitPrice: item.price
+          }))
+        })),
+        adjustments: formData.adjustments.map(adj => ({
+          type: adj.type === 'fee' || adj.type === 'tax' ? 'surcharge' as const : adj.type,
+          description: adj.description,
+          amount: adj.amount,
+          ...(adj.isPercentage ? { percentage: adj.amount } : {})
+        })),
+        autoSend: formData.autoSend,
+        emailTemplate: formData.emailTemplate
       });
 
       setShowCreateForm(false);
@@ -162,7 +216,7 @@ const EventQuoteManager: React.FC<EventQuoteManagerProps> = ({
         }],
         adjustments: [],
         autoSend: false
-      }));
+      }) as typeof prev);
       
       alert('Cotización creada exitosamente');
     } catch (error) {
@@ -190,14 +244,14 @@ const EventQuoteManager: React.FC<EventQuoteManagerProps> = ({
       packages: prev.packages.map((pkg, i) => 
         i === index ? { ...pkg, [field]: value } : pkg
       )
-    }));
+    }) as typeof prev);
   };
 
   const addAdjustment = () => {
     setFormData(prev => ({
       ...prev,
       adjustments: [...prev.adjustments, {
-        type: 'discount' as 'discount' | 'surcharge',
+        type: 'discount' as 'discount' | 'fee' | 'tax',
         description: '',
         amount: 0
       }]
@@ -281,7 +335,7 @@ const EventQuoteManager: React.FC<EventQuoteManagerProps> = ({
               disabled={syncing}
               className="text-orange-600 border-orange-600 hover:bg-orange-50"
             >
-              <Sync className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+              <RotateCcw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
               {syncing ? 'Sincronizando...' : 'Sincronizar'}
             </Button>
           )}
@@ -353,7 +407,7 @@ const EventQuoteManager: React.FC<EventQuoteManagerProps> = ({
                 <Send className="h-8 w-8 text-purple-500" />
                 <div className="ml-3">
                   <p className="text-sm font-medium text-gray-600">Enviadas</p>
-                  <p className="text-lg font-semibold">{stats.byStatus.SENT || 0}</p>
+                  <p className="text-lg font-semibold">{stats.byStatus['SENT'] || 0}</p>
                 </div>
               </div>
             </CardContent>
@@ -365,7 +419,7 @@ const EventQuoteManager: React.FC<EventQuoteManagerProps> = ({
                 <User className="h-8 w-8 text-orange-500" />
                 <div className="ml-3">
                   <p className="text-sm font-medium text-gray-600">Aceptadas</p>
-                  <p className="text-lg font-semibold">{stats.byStatus.ACCEPTED || 0}</p>
+                  <p className="text-lg font-semibold">{stats.byStatus['ACCEPTED'] || 0}</p>
                 </div>
               </div>
             </CardContent>
@@ -608,7 +662,7 @@ const EventQuoteManager: React.FC<EventQuoteManagerProps> = ({
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
                       <h4 className="text-lg font-medium text-gray-900">
-                        {quote.title}
+                        {quote.quoteNumber}
                       </h4>
                       <Badge className={getStatusColor(quote.status)}>
                         {getStatusText(quote.status)}
@@ -628,16 +682,16 @@ const EventQuoteManager: React.FC<EventQuoteManagerProps> = ({
                       </div>
                     </div>
 
-                    {quote.description && (
-                      <p className="text-sm text-gray-600 mt-2">{quote.description}</p>
+                    {(quote as any).description && (
+                      <p className="text-sm text-gray-600 mt-2">{(quote as any).description}</p>
                     )}
 
                     <div className="flex items-center space-x-4 mt-3 text-xs text-gray-500">
-                      <span>{quote._count.packages} paquete(s)</span>
-                      <span>{quote._count.adjustments} ajuste(s)</span>
+                      <span>{(quote as any)?._count?.packages || 0} paquete(s)</span>
+                      <span>{(quote as any)?._count?.adjustments || 0} ajuste(s)</span>
                       <span>Creada: {new Date(quote.createdAt).toLocaleDateString()}</span>
-                      {quote.template && (
-                        <span>Plantilla: {quote.template.name}</span>
+                      {(quote as any)?.template && (
+                        <span>Plantilla: {(quote as any).template.name}</span>
                       )}
                     </div>
                   </div>

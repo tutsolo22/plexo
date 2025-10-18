@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Solo SUPER_ADMIN puede listar tenants
-    if (session.user.role?.roleId !== $Enums.RoleType.SUPER_ADMIN) {
+    if (session.user.role !== $Enums.RoleType.SUPER_ADMIN) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
 
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Solo SUPER_ADMIN puede crear tenants
-    if (session.user.role?.roleId !== $Enums.RoleType.SUPER_ADMIN) {
+    if (session.user.role !== $Enums.RoleType.SUPER_ADMIN) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
 

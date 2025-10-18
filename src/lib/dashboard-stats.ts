@@ -62,14 +62,14 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     totalVenues,
     recentEvents: recentEventsData.map(event => ({
       id: event.id,
-      title: event.name,
-      startDate: event.eventDate,
+      title: event.title,
+      startDate: event.startDate,
       client: event.client,
       venue: event.venue
     })),
     recentQuotes: recentQuotesData.map(quote => ({
       id: quote.id,
-      number: quote.number,
+      number: quote.quoteNumber,
       total: Number(quote.total),
       client: quote.client,
       status: quote.status

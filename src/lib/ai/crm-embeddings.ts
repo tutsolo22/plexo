@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
 // Configuración de Gemini AI para embeddings
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || '');
+const genAI = new GoogleGenerativeAI(process.env['GOOGLE_AI_API_KEY'] || '');
 
 export interface EmbeddingResult {
   embedding: number[];
@@ -99,10 +99,10 @@ export class CRMEmbeddingService {
                 }
               }
             }
-          },
-          user: {
-            select: { name: true }
           }
+          // user: { // user relation doesn't exist in Event model
+          //   select: { name: true }
+          // }
         }
       });
 
@@ -113,40 +113,28 @@ export class CRMEmbeddingService {
       const { embedding } = await this.generateEmbedding(content);
 
       // Guardar en la tabla de vectores
-      await prisma.aiEmbedding.upsert({
-        where: {
-          entityId_entityType: {
-            entityId: eventId,
-            entityType: 'EVENT'
-          }
-        },
-        update: {
-          embedding: embedding,
-          content,
-          metadata: {
-            status: event.status,
-            clientType: event.client?.type,
-            businessIdentity: event.room?.location?.businessIdentity?.name,
-            location: event.room?.location?.name,
-            room: event.room?.name
-          },
-          updatedAt: new Date()
-        },
-        create: {
-          entityId: eventId,
-          entityType: 'EVENT',
-          tenantId,
-          embedding: embedding,
-          content,
-          metadata: {
-            status: event.status,
-            clientType: event.client?.type,
-            businessIdentity: event.room?.location?.businessIdentity?.name,
-            location: event.room?.location?.name,
-            room: event.room?.name
-          }
-        }
-      });
+      // Usar raw SQL para manejar el tipo vector de pgvector
+      const vectorString = `[${embedding.join(',')}]`;
+      const metadata = {
+        status: event.status,
+        clientType: event.client?.type,
+        businessIdentity: event.room?.location?.businessIdentity?.name,
+        location: event.room?.location?.name,
+        room: event.room?.name
+      };
+
+      // Usar upsert con raw SQL para el vector
+      await prisma.$executeRaw`
+        INSERT INTO ai_embeddings (id, tenant_id, entity_id, entity_type, content, embedding, dimensions, metadata, created_at, updated_at)
+        VALUES (gen_random_uuid(), ${tenantId}, ${eventId}, 'EVENT', ${content}, ${vectorString}::vector, ${embedding.length}, ${JSON.stringify(metadata)}, NOW(), NOW())
+        ON CONFLICT (entity_id, entity_type) 
+        DO UPDATE SET 
+          content = EXCLUDED.content,
+          embedding = EXCLUDED.embedding,
+          dimensions = EXCLUDED.dimensions,
+          metadata = EXCLUDED.metadata,
+          updated_at = NOW()
+      `;
 
     } catch (error) {
       console.error('Error indexando evento:', error);
@@ -162,7 +150,7 @@ export class CRMEmbeddingService {
         where: { id: clientId, tenantId },
         include: {
           priceList: {
-            select: { name: true, type: true }
+            select: { name: true } // removed type field - doesn't exist in PriceList model
           },
           user: {
             select: { name: true }
@@ -181,38 +169,27 @@ export class CRMEmbeddingService {
       const content = this.createClientContent(client);
       const { embedding } = await this.generateEmbedding(content);
 
-      await prisma.aiEmbedding.upsert({
-        where: {
-          entityId_entityType: {
-            entityId: clientId,
-            entityType: 'CLIENT'
-          }
-        },
-        update: {
-          embedding: embedding,
-          content,
-          metadata: {
-            type: client.type,
-            priceListType: client.priceList?.type,
-            eventsCount: client._count.events,
-            quotesCount: client._count.quotes
-          },
-          updatedAt: new Date()
-        },
-        create: {
-          entityId: clientId,
-          entityType: 'CLIENT',
-          tenantId,
-          embedding: embedding,
-          content,
-          metadata: {
-            type: client.type,
-            priceListType: client.priceList?.type,
-            eventsCount: client._count.events,
-            quotesCount: client._count.quotes
-          }
-        }
-      });
+      // Usar raw SQL para manejar el tipo vector de pgvector
+      const vectorString = `[${embedding.join(',')}]`;
+      const metadata = {
+        type: client.type,
+        priceListType: client.priceList?.name,
+        eventsCount: client._count.events,
+        quotesCount: client._count.quotes
+      };
+
+      // Usar upsert con raw SQL para el vector
+      await prisma.$executeRaw`
+        INSERT INTO ai_embeddings (id, tenant_id, entity_id, entity_type, content, embedding, dimensions, metadata, created_at, updated_at)
+        VALUES (gen_random_uuid(), ${tenantId}, ${clientId}, 'CLIENT', ${content}, ${vectorString}::vector, ${embedding.length}, ${JSON.stringify(metadata)}, NOW(), NOW())
+        ON CONFLICT (entity_id, entity_type) 
+        DO UPDATE SET 
+          content = EXCLUDED.content,
+          embedding = EXCLUDED.embedding,
+          dimensions = EXCLUDED.dimensions,
+          metadata = EXCLUDED.metadata,
+          updated_at = NOW()
+      `;
 
     } catch (error) {
       console.error('Error indexando cliente:', error);
@@ -230,9 +207,9 @@ export class CRMEmbeddingService {
           client: {
             select: { name: true, email: true, type: true }
           },
-          businessIdentity: {
-            select: { name: true }
-          },
+          // businessIdentity: { // businessIdentity relation doesn't exist in Quote model
+          //   select: { name: true }
+          // },
           event: {
             include: {
               room: {
@@ -243,14 +220,14 @@ export class CRMEmbeddingService {
                 }
               }
             }
-          },
-          packages: {
-            include: {
-              packageTemplate: {
-                select: { name: true, description: true }
-              }
-            }
           }
+          // packages: { // packages relation doesn't exist in Quote model
+          //   include: {
+          //     packageTemplate: {
+          //       select: { name: true, description: true }
+          //     }
+          //   }
+          // }
         }
       });
 
@@ -259,42 +236,27 @@ export class CRMEmbeddingService {
       const content = this.createQuoteContent(quote);
       const { embedding } = await this.generateEmbedding(content);
 
-      await prisma.aiEmbedding.upsert({
-        where: {
-          entityId_entityType: {
-            entityId: quoteId,
-            entityType: 'QUOTE'
-          }
-        },
-        update: {
-          embedding: embedding,
-          content,
-          metadata: {
-            status: quote.status,
-            total: Number(quote.total),
-            clientType: quote.client.type,
-            businessIdentity: quote.businessIdentity.name,
-            hasEvent: !!quote.event,
-            packagesCount: quote.packages.length
-          },
-          updatedAt: new Date()
-        },
-        create: {
-          entityId: quoteId,
-          entityType: 'QUOTE',
-          tenantId,
-          embedding: embedding,
-          content,
-          metadata: {
-            status: quote.status,
-            total: Number(quote.total),
-            clientType: quote.client.type,
-            businessIdentity: quote.businessIdentity.name,
-            hasEvent: !!quote.event,
-            packagesCount: quote.packages.length
-          }
-        }
-      });
+      // Usar raw SQL para manejar el tipo vector de pgvector
+      const vectorString = `[${embedding.join(',')}]`;
+      const metadata = {
+        status: quote.status,
+        total: Number(quote.total),
+        clientType: quote.client.type,
+        hasEvent: !!quote.event
+      };
+
+      // Usar upsert con raw SQL para el vector
+      await prisma.$executeRaw`
+        INSERT INTO ai_embeddings (id, tenant_id, entity_id, entity_type, content, embedding, dimensions, metadata, created_at, updated_at)
+        VALUES (gen_random_uuid(), ${tenantId}, ${quoteId}, 'QUOTE', ${content}, ${vectorString}::vector, ${embedding.length}, ${JSON.stringify(metadata)}, NOW(), NOW())
+        ON CONFLICT (entity_id, entity_type) 
+        DO UPDATE SET 
+          content = EXCLUDED.content,
+          embedding = EXCLUDED.embedding,
+          dimensions = EXCLUDED.dimensions,
+          metadata = EXCLUDED.metadata,
+          updated_at = NOW()
+      `;
 
     } catch (error) {
       console.error('Error indexando cotización:', error);
@@ -309,13 +271,13 @@ export class CRMEmbeddingService {
       const product = await prisma.product.findFirst({
         where: { id: productId, tenantId },
         include: {
-          productPrices: {
-            include: {
-              priceList: {
-                select: { name: true, type: true }
-              }
-            }
-          }
+          // productPrices: { // productPrices relation doesn't exist in Product model
+          //   include: {
+          //     priceList: {
+          //       select: { name: true, type: true }
+          //     }
+          //   }
+          // }
         }
       });
 
@@ -324,40 +286,26 @@ export class CRMEmbeddingService {
       const content = this.createProductContent(product);
       const { embedding } = await this.generateEmbedding(content);
 
-      await prisma.aiEmbedding.upsert({
-        where: {
-          entityId_entityType: {
-            entityId: productId,
-            entityType: 'PRODUCT'
-          }
-        },
-        update: {
-          embedding: embedding,
-          content,
-          metadata: {
-            type: product.type,
-            category: product.category,
-            unit: product.unit,
-            isActive: product.isActive,
-            pricesCount: product.productPrices.length
-          },
-          updatedAt: new Date()
-        },
-        create: {
-          entityId: productId,
-          entityType: 'PRODUCT', 
-          tenantId,
-          embedding: embedding,
-          content,
-          metadata: {
-            type: product.type,
-            category: product.category,
-            unit: product.unit,
-            isActive: product.isActive,
-            pricesCount: product.productPrices.length
-          }
-        }
-      });
+      // Usar raw SQL para manejar el tipo vector de pgvector
+      const vectorString = `[${embedding.join(',')}]`;
+      const metadata = {
+        itemType: product.itemType,
+        unit: product.unit,
+        isActive: product.isActive
+      };
+
+      // Usar upsert con raw SQL para el vector
+      await prisma.$executeRaw`
+        INSERT INTO ai_embeddings (id, tenant_id, entity_id, entity_type, content, embedding, dimensions, metadata, created_at, updated_at)
+        VALUES (gen_random_uuid(), ${tenantId}, ${productId}, 'PRODUCT', ${content}, ${vectorString}::vector, ${embedding.length}, ${JSON.stringify(metadata)}, NOW(), NOW())
+        ON CONFLICT (entity_id, entity_type) 
+        DO UPDATE SET 
+          content = EXCLUDED.content,
+          embedding = EXCLUDED.embedding,
+          dimensions = EXCLUDED.dimensions,
+          metadata = EXCLUDED.metadata,
+          updated_at = NOW()
+      `;
 
     } catch (error) {
       console.error('Error indexando producto:', error);
@@ -606,7 +554,7 @@ Precios: ${prices}
         return prisma.client.findFirst({
           where: { id: entityId, tenantId },
           include: {
-            priceList: { select: { name: true, type: true } },
+            priceList: { select: { name: true } }, // removed type field
             _count: { select: { events: true, quotes: true } }
           }
         });
@@ -616,7 +564,7 @@ Precios: ${prices}
           where: { id: entityId, tenantId },
           include: {
             client: { select: { name: true, email: true } },
-            businessIdentity: { select: { name: true } },
+            // businessIdentity: { select: { name: true } }, // businessIdentity doesn't exist in Quote
             event: {
               include: {
                 room: { include: { location: { select: { name: true } } } }
@@ -629,9 +577,9 @@ Precios: ${prices}
         return prisma.product.findFirst({
           where: { id: entityId, tenantId },
           include: {
-            productPrices: {
-              include: { priceList: { select: { name: true, type: true } } }
-            }
+            // productPrices: { // productPrices doesn't exist in Product model
+            //   include: { priceList: { select: { name: true } } }
+            // }
           }
         });
 
