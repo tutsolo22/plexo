@@ -6,6 +6,9 @@ import { prisma } from '@/lib/prisma'
 import { verifyPassword } from '@/lib/auth/password'
 import { UserRole } from '@prisma/client'
 import type { Adapter } from 'next-auth/adapters'
+import type { User, Account, Profile } from 'next-auth'
+import type { JWT } from 'next-auth/jwt'
+import type { AdapterSession } from 'next-auth/adapters'
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
 
@@ -195,7 +198,12 @@ export const authOptions: NextAuthOptions = {
 
   // Configuración de eventos para auditoría
   events: {
-    async signIn({ user, account, profile, isNewUser }: { user: any; account: any; profile: any; isNewUser: any }) {
+    async signIn({ user, account, profile, isNewUser }: { 
+      user: User; 
+      account: Account | null; 
+      profile?: Profile; 
+      isNewUser?: boolean; 
+    }) {
       // Log de inicio de sesión exitoso
       if (user.id) {
         const userData = await prisma.user.findUnique({
@@ -222,11 +230,19 @@ export const authOptions: NextAuthOptions = {
       }
     },
 
-    async signOut({ session, token }: { session: any; token: any }) {
+    async signOut(message: { session: void | AdapterSession | null } | { token: JWT | null }) {
       // Log de cierre de sesión
-      if (token?.sub) {
+      let userId: string | undefined;
+      
+      if ('token' in message && message.token?.sub) {
+        userId = message.token.sub;
+      } else if ('session' in message && message.session && typeof message.session === 'object' && 'userId' in message.session) {
+        userId = message.session.userId;
+      }
+      
+      if (userId) {
         const userData = await prisma.user.findUnique({
-          where: { id: token.sub },
+          where: { id: userId },
           select: { tenantId: true }
         });
         
@@ -234,9 +250,9 @@ export const authOptions: NextAuthOptions = {
           data: {
             action: 'LOGOUT',
             tableName: 'User',
-            recordId: token.sub,
+            recordId: userId,
             newData: { action: `Usuario cerró sesión` },
-            userId: token.sub,
+            userId: userId,
             tenantId: userData?.tenantId || ''
           }
         }).catch((error: unknown) => {
