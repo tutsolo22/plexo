@@ -1,4 +1,4 @@
-import { PrismaClient, EmailCategory, EmailTemplateType } from '@prisma/client'
+import { PrismaClient, EmailCategory } from '@prisma/client'
 import { createBaseTenantTemplates, createBaseBusinessTemplates } from '../src/lib/template-inheritance'
 
 const prisma = new PrismaClient()

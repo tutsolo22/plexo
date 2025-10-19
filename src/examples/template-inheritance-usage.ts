@@ -28,20 +28,21 @@ export async function sendRegistrationEmail(
     const resolvedTemplate = await resolveTemplate(template)
 
     // 3. Reemplazar variables en el contenido
+    const emailSubject = replaceTemplateVariables(resolvedTemplate.subject, {
+      businessName: 'Mi Empresa de Eventos'
+    })
+
     const emailContent = replaceTemplateVariables(resolvedTemplate.htmlContent, {
       businessName: 'Mi Empresa de Eventos',
       clientName: clientName,
       activationLink: `https://miempresa.com/activate?email=${clientEmail}`
     })
 
-    const emailSubject = replaceTemplateVariables(resolvedTemplate.subject, {
-      businessName: 'Mi Empresa de Eventos'
-    })
-
     // 4. Enviar el email (aquí iría la lógica de envío real)
     console.log(`📧 Enviando email de registro a ${clientEmail}`)
     console.log(`Asunto: ${emailSubject}`)
     console.log(`Template usado: ${template.name} (${template.templateType})`)
+    console.log(`Contenido: ${emailContent.substring(0, 100)}...`)
 
     return {
       success: true,

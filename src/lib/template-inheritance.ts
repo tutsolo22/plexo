@@ -1,4 +1,4 @@
-import { PrismaClient, EmailTemplate, EmailCategory, EmailTemplateType } from '@prisma/client'
+import { PrismaClient, EmailTemplate, EmailCategory } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -106,7 +106,7 @@ export async function findBestTemplate(options: TemplateInheritanceOptions): Pro
 /**
  * Resuelve un template aplicando las personalizaciones de la herencia
  */
-export async function resolveTemplate(template: EmailTemplate): Promise<EmailTemplate> {
+export async function resolveTemplate(template: EmailTemplate & { parentTemplate?: EmailTemplate | null }): Promise<EmailTemplate> {
   // Si no tiene padre, devolver tal como está
   if (!template.parentTemplateId || !template.parentTemplate) {
     return template
@@ -161,13 +161,13 @@ export async function createInheritedTemplate(
       subject: parentTemplate.subject, // Se mantendrá el del padre, las personalizaciones van en customizations
       htmlContent: parentTemplate.htmlContent,
       textContent: parentTemplate.textContent,
-      variables: parentTemplate.variables,
+      variables: parentTemplate.variables as any,
       category: parentTemplate.category,
       isDefault: options.isDefault || false,
       templateType: 'INHERITED',
       inheritanceLevel: (parentTemplate.inheritanceLevel || 0) + 1,
       parentTemplateId: parentTemplateId,
-      customizations: customizations,
+      customizations: customizations as any,
       tenantId: options.tenantId,
       businessIdentityId: options.businessIdentityId
     },
@@ -264,7 +264,7 @@ export async function createBaseTenantTemplates(tenantId: string): Promise<Email
         subject: globalTemplate.subject,
         htmlContent: globalTemplate.htmlContent,
         textContent: globalTemplate.textContent,
-        variables: globalTemplate.variables,
+        variables: globalTemplate.variables as any,
         category: globalTemplate.category,
         isDefault: globalTemplate.isDefault,
         templateType: 'TENANT_BASE',
@@ -304,7 +304,7 @@ export async function createBaseBusinessTemplates(
         subject: tenantTemplate.subject,
         htmlContent: tenantTemplate.htmlContent,
         textContent: tenantTemplate.textContent,
-        variables: tenantTemplate.variables,
+        variables: tenantTemplate.variables as any,
         category: tenantTemplate.category,
         isDefault: tenantTemplate.isDefault,
         templateType: 'BUSINESS_BASE',

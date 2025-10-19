@@ -1,4 +1,4 @@
-import { PrismaClient, LegacyUserRole, ClientType, EventStatus, QuoteStatus, VenueType, ItemType, TemplateType } from '@prisma/client'
+import { PrismaClient, LegacyUserRole, ClientType, EventStatus, QuoteStatus, VenueType, ItemType } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
