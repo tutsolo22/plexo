@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/lib/auth'
 import { z } from 'zod'
 import { EventStatus } from '@prisma/client'
 
@@ -40,6 +41,10 @@ const QuerySchema = z.object({
  */
 export async function GET(request: NextRequest) {
   try {
+    // Verificar autenticación (temporalmente usando fallback para pruebas)
+    const session = await auth()
+    const tenantId = session?.user?.tenantId || 'cm2nqrb370001v3ajgdvkjlm2' // Fallback al tenant del seed
+
     const { searchParams } = new URL(request.url)
     const query = QuerySchema.parse({
       page: searchParams.get('page') || '1',
@@ -56,8 +61,10 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(query.limit)
     const skip = (page - 1) * limit
 
-    // Construir filtros
-    const where: any = {}
+    // Construir filtros - SIEMPRE filtrar por tenantId
+    const where: any = {
+      tenantId: tenantId
+    }
 
     if (query.status) {
       where.status = query.status
@@ -95,8 +102,7 @@ export async function GET(request: NextRequest) {
         client: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
+            name: true,
             email: true,
             phone: true
           }
@@ -105,14 +111,16 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             name: true,
-            capacity: true
+            minCapacity: true,
+            maxCapacity: true,
+            description: true,
+            color: true
           }
         },
         venue: {
           select: {
             id: true,
-            name: true,
-            address: true
+            name: true
           }
         },
         quote: {
@@ -136,7 +144,7 @@ export async function GET(request: NextRequest) {
 
     const [events, total] = await Promise.all([
       prisma.event.findMany(queryOptions),
-      prisma.event.count({ where })
+      isCalendarView ? 0 : prisma.event.count({ where }) // Solo contar si no es vista de calendario
     ])
 
     const response: any = {
@@ -187,6 +195,10 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Verificar autenticación (temporalmente usando fallback para pruebas)
+    const session = await auth()
+    const tenantId = session?.user?.tenantId || 'cm2nqrb370001v3ajgdvkjlm2' // Fallback al tenant del seed
+
     const body = await request.json()
     const validatedData = CreateEventSchema.parse(body)
 
@@ -281,7 +293,7 @@ export async function POST(request: NextRequest) {
       notes: validatedData.notes || null,
       isFullVenue: validatedData.isFullVenue || false,
       colorCode: validatedData.colorCode || statusColors[validatedData.status || EventStatus.RESERVED],
-      tenantId: 'default' // TODO: Obtener del contexto de autenticación
+      tenantId: tenantId
     }
 
     const event = await prisma.event.create({

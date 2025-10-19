@@ -10,10 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { PlexoBranding } from '@/components/plexo-branding';
 
-/**
- * Componente del formulario de login que maneja searchParams
- */
 function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,36 +24,33 @@ function LoginForm() {
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
   const errorParam = searchParams.get('error');
 
-  // Mapeo de errores de NextAuth a mensajes legibles
   const getErrorMessage = (error: string | null) => {
     if (!error) return '';
 
     const errorMessages: { [key: string]: string } = {
-      Signin: 'Ocurrió un error durante el inicio de sesión',
-      OAuthSignin: 'Error al iniciar sesión con el proveedor externo',
+      Signin: 'Ocurrio un error durante el inicio de sesion',
+      OAuthSignin: 'Error al iniciar sesion con el proveedor externo',
       OAuthCallback: 'Error en la respuesta del proveedor externo',
       OAuthCreateAccount: 'No se pudo crear la cuenta con el proveedor externo',
       EmailCreateAccount: 'No se pudo crear la cuenta con email',
-      Callback: 'Error en el callback de autenticación',
-      OAuthAccountNotLinked: 'Esta cuenta ya está vinculada a otro método de login',
-      EmailSignin: 'Error al enviar el email de verificación',
-      CredentialsSignin: 'Credenciales inválidas. Verifica tu email y contraseña.',
-      SessionRequired: 'Debes iniciar sesión para acceder a esta página',
-      Configuration: 'Error de configuración del servidor',
+      Callback: 'Error en el callback de autenticacion',
+      OAuthAccountNotLinked: 'Esta cuenta ya esta vinculada a otro metodo de inicio de sesion',
+      EmailSignin: 'Error al enviar el correo de verificacion',
+      CredentialsSignin: 'Credenciales incorrectas. Verifica tu correo electronico y contraseña.',
+      SessionRequired: 'Debes iniciar sesion para acceder a esta pagina',
+      Configuration: 'Error de configuracion del servidor',
+      AccessDenied: 'Acceso denegado. No tienes permisos para acceder.',
+      Verification: 'Error en la verificacion. El enlace puede haber expirado.',
     };
 
-    return errorMessages[error] || 'Ocurrió un error inesperado';
+    return errorMessages[error] || 'Ocurrio un error inesperado. Intenta nuevamente.';
   };
 
-  /**
-   * Maneja el envío del formulario de login
-   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validaciones básicas
     if (!email.trim()) {
-      setError({ message: 'El email es requerido' });
+      setError({ message: 'El correo electronico es requerido' });
       return;
     }
 
@@ -64,8 +59,8 @@ function LoginForm() {
       return;
     }
 
-    if (password.length < 8) {
-      setError({ message: 'La contraseña debe tener al menos 8 caracteres' });
+    if (password.length < 6) {
+      setError({ message: 'La contraseña debe tener al menos 6 caracteres' });
       return;
     }
 
@@ -73,80 +68,61 @@ function LoginForm() {
     setError(null);
 
     try {
-      // Intentar inicio de sesión con NextAuth
       const result = await signIn('credentials', {
         email: email.trim().toLowerCase(),
         password: password,
-        redirect: false, // No redirigir automáticamente
+        redirect: false,
       });
 
       if (result?.error) {
-        if (result.error === 'Debes verificar tu email antes de iniciar sesión') {
+        if (result.error === 'Debes verificar tu correo electronico antes de iniciar sesion') {
           setError({ message: result.error, isUnverified: true });
           return;
         }
-        // Manejar errores específicos de la autenticación
-        setError({ message: result.error });
+        setError({ message: getErrorMessage(result.error) });
       } else if (result?.ok) {
-        // Redirección inmediata para evitar quedarse en login mientras la sesión se propaga
         router.push(callbackUrl);
 
-        // Login exitoso - refinar redirección cuando la sesión esté disponible
         const session = await getSession();
         if (session?.user) {
-          // Forzar cambio de contraseña si aplica
           if ((session.user as any).mustChangePassword) {
             router.replace('/auth/change-password');
             return;
           }
-          // Verificar email (excepto SUPER_ADMIN)
-          // if (!session.user.emailVerified && session.user.role !== 'SUPER_ADMIN') {
-          //   router.replace('/auth/verify-email');
-          //   return;
-          // }
 
-          // Redirigir según el rol
-          const roleRedirects = {
-            SUPER_ADMIN: '/dashboard/users',
-            TENANT_ADMIN: '/admin/tenant',
-            MANAGER: '/dashboard',
-            USER: '/dashboard',
-            CLIENT_EXTERNAL: '/client-portal',
-          } as const;
-
-          const redirectUrl = '/dashboard';
-          // roleRedirects[(session.user.role as keyof typeof roleRedirects) ?? 'USER'] ||
-          // '/dashboard';
-          router.replace(redirectUrl);
+          router.replace('/dashboard');
         }
       } else {
-        setError({ message: 'Error inesperado durante el inicio de sesión' });
+        setError({ message: 'Error inesperado durante el inicio de sesion. Intenta nuevamente.' });
       }
     } catch (error) {
       console.error('Error en login:', error);
-      setError({ message: 'Error de conexión. Inténtalo de nuevo.' });
+      setError({ message: 'Error de conexion. Verifica tu conexion a internet e intenta nuevamente.' });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className='flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4'>
-      <Card className='w-full max-w-md'>
-        <CardHeader className='space-y-4 text-center'>
-          {/* Logo */}
-          <div className='mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary'>
-            <span className='text-2xl font-bold text-primary-foreground'>CM</span>
-          </div>
+    <div className='flex min-h-screen items-center justify-center bg-gradient-to-br from-plexo-light-bg to-plexo-light-bg-secondary dark:from-plexo-dark-bg dark:to-plexo-dark-bg-secondary p-4'>
+      <div className='w-full max-w-md space-y-6'>
+        <div className='text-center'>
+          <PlexoBranding />
+        </div>
 
-          <div>
-            <CardTitle className='text-2xl font-bold'>Iniciar Sesión</CardTitle>
-            <CardDescription>Accede a tu cuenta de Casona María</CardDescription>
-          </div>
-        </CardHeader>
+        <Card className='w-full bg-white/90 dark:bg-plexo-dark-surface/90 backdrop-blur-sm border-plexo-light-border dark:border-plexo-dark-border shadow-2xl'>
+          <CardHeader className='space-y-4 text-center'>
+            <div>
+              <CardTitle className='text-2xl font-bold text-plexo-primary dark:text-plexo-dark-lavender'>
+                Iniciar Sesion
+              </CardTitle>
+              <CardDescription className='text-plexo-secondary dark:text-plexo-dark-text-secondary'>
+                Accede a tu cuenta de Plexo
+              </CardDescription>
+            </div>
+          </CardHeader>
 
         <CardContent>
-          {/* Mostrar errores de URL params o del formulario */}
           {(errorParam || error) && (
             <Alert variant='destructive' className='mb-4'>
               <AlertCircle className='h-4 w-4' />
@@ -154,7 +130,7 @@ function LoginForm() {
                 {error?.message || getErrorMessage(errorParam)}
                 {error?.isUnverified && (
                   <a href='/auth/resend-activation' className='ml-2 underline'>
-                    Reenviar correo de activación
+                    Reenviar correo de activacion
                   </a>
                 )}
               </AlertDescription>
@@ -162,9 +138,10 @@ function LoginForm() {
           )}
 
           <form onSubmit={handleSubmit} className='space-y-4'>
-            {/* Campo Email */}
             <div className='space-y-2'>
-              <Label htmlFor='email'>Email</Label>
+              <Label htmlFor='email' className='text-plexo-primary dark:text-plexo-dark-lavender font-medium'>
+                Correo Electronico
+              </Label>
               <Input
                 id='email'
                 type='email'
@@ -174,13 +151,14 @@ function LoginForm() {
                 disabled={isLoading}
                 required
                 autoComplete='email'
-                className='w-full'
+                className='w-full border-plexo-light-border dark:border-plexo-dark-border focus:border-plexo-primary dark:focus:border-plexo-dark-lavender bg-white dark:bg-plexo-dark-surface'
               />
             </div>
 
-            {/* Campo Contraseña */}
             <div className='space-y-2'>
-              <Label htmlFor='password'>Contraseña</Label>
+              <Label htmlFor='password' className='text-plexo-primary dark:text-plexo-dark-lavender font-medium'>
+                Contraseña
+              </Label>
               <div className='relative'>
                 <Input
                   id='password'
@@ -191,8 +169,8 @@ function LoginForm() {
                   disabled={isLoading}
                   required
                   autoComplete='current-password'
-                  className='w-full pr-10'
-                  minLength={8}
+                  className='w-full pr-10 border-plexo-light-border dark:border-plexo-dark-border focus:border-plexo-primary dark:focus:border-plexo-dark-lavender bg-white dark:bg-plexo-dark-surface'
+                  minLength={6}
                 />
                 <Button
                   type='button'
@@ -203,64 +181,58 @@ function LoginForm() {
                   disabled={isLoading}
                 >
                   {showPassword ? (
-                    <EyeOff className='h-4 w-4 text-gray-500' />
+                    <EyeOff className='h-4 w-4 text-plexo-secondary dark:text-plexo-dark-text-secondary' />
                   ) : (
-                    <Eye className='h-4 w-4 text-gray-500' />
+                    <Eye className='h-4 w-4 text-plexo-secondary dark:text-plexo-dark-text-secondary' />
                   )}
                 </Button>
               </div>
             </div>
 
-            {/* Botón de Iniciar Sesión */}
-            <Button type='submit' className='w-full' size='lg' disabled={isLoading}>
+            <Button 
+              type='submit' 
+              className='w-full bg-plexo-primary hover:bg-plexo-primary/90 text-white dark:bg-plexo-dark-lavender dark:hover:bg-plexo-dark-lavender/90' 
+              size='lg' 
+              disabled={isLoading}
+            >
               {isLoading ? (
                 <>
                   <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                  Iniciando sesión...
+                  Iniciando sesion...
                 </>
               ) : (
-                'Iniciar Sesión'
+                'Iniciar Sesion'
               )}
             </Button>
           </form>
 
-          {/* Enlaces adicionales */}
           <div className='mt-6 space-y-2 text-center text-sm'>
-            <Link href='/auth/forgot-password' className='block text-primary hover:underline'>
+            <Link href='/auth/forgot-password' className='block text-plexo-primary dark:text-plexo-dark-lavender hover:underline'>
               ¿Olvidaste tu contraseña?
             </Link>
 
-            <div className='text-muted-foreground'>
+            <div className='text-plexo-secondary dark:text-plexo-dark-text-secondary'>
               ¿No tienes cuenta?{' '}
-              <Link href='/auth/register' className='text-primary hover:underline'>
-                Regístrate aquí
+              <Link href='/auth/register' className='text-plexo-primary dark:text-plexo-dark-lavender hover:underline'>
+                Registrate aqui
               </Link>
             </div>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }
 
-/**
- * Página de inicio de sesión para CRM Casona María
- *
- * Características:
- * - Formulario de login con validación
- * - Manejo de errores de autenticación
- * - Redirección automática después del login
- * - Mostrar/ocultar contraseña
- * - Integración completa con NextAuth.js
- */
 export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className='flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100'>
+        <div className='flex min-h-screen items-center justify-center bg-gradient-to-br from-plexo-light-bg to-plexo-light-bg-secondary dark:from-plexo-dark-bg dark:to-plexo-dark-bg-secondary'>
           <div className='flex items-center space-x-2'>
-            <Loader2 className='h-6 w-6 animate-spin' />
-            <span>Cargando...</span>
+            <Loader2 className='h-6 w-6 animate-spin text-plexo-primary dark:text-plexo-dark-lavender' />
+            <span className='text-plexo-primary dark:text-plexo-dark-lavender'>Cargando...</span>
           </div>
         </div>
       }

@@ -112,7 +112,18 @@ npm run dev
 # Aplicación disponible en http://localhost:3200
 ```
 
-## � Configuración de MercadoPago
+## 🔐 Credenciales de Prueba
+
+Para probar la aplicación, utiliza las siguientes credenciales:
+
+### **Usuario de Soporte**
+- **Email**: `soporteapps@hexalux.mx`
+- **Contraseña**: `password123`
+- **Permisos**: Acceso completo al sistema (Super Admin)
+
+> **Nota**: Estas credenciales se crean automáticamente al ejecutar `npm run db:seed`
+
+## 💳 Configuración de MercadoPago
 
 ### **Requisitos Previos**
 1. Cuenta de MercadoPago activa

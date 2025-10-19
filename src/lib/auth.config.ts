@@ -5,6 +5,8 @@ import Credentials from 'next-auth/providers/credentials';
 
 export const authConfig: NextAuthConfig = {
   adapter: PrismaAdapter(prisma) as any,
+  trustHost: true,
+  useSecureCookies: process.env.NODE_ENV === 'production',
   providers: [
     Credentials({
       name: 'credentials',
@@ -17,27 +19,29 @@ export const authConfig: NextAuthConfig = {
           return null;
         }
 
-        // Por ahora, permitir login con credenciales de ejemplo
-        // En producción, aquí iría la verificación real con bcrypt
-        if (
-          credentials.email === 'admin@gestioneventos.com' &&
-          credentials.password === 'admin123'
-        ) {
-          const user = await prisma.user.findUnique({
-            where: { email: credentials.email as string },
-          });
-          return user;
+        // Buscar usuario en la base de datos
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email as string },
+        });
+
+        if (!user) {
+          return null;
         }
 
-        if (
-          credentials.email === 'manager@gestioneventos.com' &&
-          credentials.password === 'manager123'
-        ) {
-          const user = await prisma.user.findUnique({
-            where: { email: credentials.email as string },
-          });
-          return user;
+        // Verificar contraseña con bcrypt
+        const bcrypt = require('bcryptjs');
+        const isPasswordValid = await bcrypt.compare(
+          credentials.password as string,
+          user.password
+        );
+
+        if (!isPasswordValid) {
+          return null;
         }
+
+        // Retornar usuario sin la contraseña
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword;
 
         return null;
       },

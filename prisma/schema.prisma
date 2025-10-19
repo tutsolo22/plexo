@@ -1,4 +1,3 @@
-// CRM Casona María V2.0 - Database Schema Limpio
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,38 +7,838 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ===============================
-// ENUMS DEL SISTEMA
-// ===============================
-// ===============================
-// ENUMS DEL SISTEMA
-// ===============================
+model BusinessIdentity {
+  id             String          @id @default(cuid())
+  name           String
+  address        String?
+  phone          String?
+  email          String?
+  logo           String?
+  slogan         String?
+  facebook       String?
+  instagram      String?
+  twitter        String?
+  website        String?
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  tenantId       String
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  emailTemplates EmailTemplate[]
+  locations      Location[]
+  quoteTemplates QuoteTemplate[]
+
+  @@index([tenantId])
+  @@index([isActive])
+  @@map("business_identities")
+}
+
+model Location {
+  id                 String           @id @default(cuid())
+  name               String
+  address            String
+  latitude           Float?
+  longitude          Float?
+  description        String?
+  isActive           Boolean          @default(true)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  businessIdentityId String
+  businessIdentity   BusinessIdentity @relation(fields: [businessIdentityId], references: [id], onDelete: Cascade)
+  rooms              Room[]
+
+  @@index([businessIdentityId])
+  @@map("locations")
+}
+
+model User {
+  id                 String          @id @default(cuid())
+  email              String          @unique
+  password           String?
+  mustChangePassword Boolean         @default(false)
+  name               String?
+  role               LegacyUserRole  @default(USER)
+  isActive           Boolean         @default(true)
+  emailVerified      DateTime?
+  image              String?
+  activationCode     String?
+  isExternal         Boolean         @default(false)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  tenantId           String
+  accounts           Account[]
+  auditLogs          AuditLog[]
+  clientCredits      ClientCredits[]
+  client             Client?
+  emailChanges       EmailChange[]
+  quoteComments      QuoteComment[]
+  assignedRoles      UserRole[]      @relation("AssignedRoles")
+  userRoles          UserRole[]
+  tenant             Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Role {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  type        RoleType
+  description String?
+  isActive    Boolean      @default(true)
+  tenantId    String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  permissions Permission[]
+  tenant      Tenant?      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userRoles   UserRole[]
+
+  @@index([type])
+  @@index([tenantId])
+  @@map("roles")
+}
+
+model UserRole {
+  id             String    @id @default(cuid())
+  userId         String
+  roleId         String
+  tenantId       String?
+  assignedAt     DateTime  @default(now())
+  assignedBy     String?
+  expiresAt      DateTime?
+  isActive       Boolean   @default(true)
+  assignedByUser User?     @relation("AssignedRoles", fields: [assignedBy], references: [id])
+  role           Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  tenant         Tenant?   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId, tenantId])
+  @@index([userId])
+  @@index([roleId])
+  @@index([tenantId])
+  @@map("user_roles")
+}
+
+model Permission {
+  id         String             @id @default(cuid())
+  roleId     String
+  action     PermissionAction
+  resource   PermissionResource
+  conditions Json?
+  createdAt  DateTime           @default(now())
+  role       Role               @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, action, resource])
+  @@index([roleId])
+  @@index([action])
+  @@index([resource])
+  @@map("permissions")
+}
+
+model Tenant {
+  id                 String             @id @default(cuid())
+  name               String
+  domain             String             @unique
+  isActive           Boolean            @default(true)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  auditLogs          AuditLog[]
+  businessIdentities BusinessIdentity[]
+  clients            Client[]
+  configurations     Configuration[]
+  emailTemplates     EmailTemplate[]
+  events             Event[]
+  masterEvents       MasterEvent[]
+  packageTemplates   PackageTemplate[]
+  packages           Package[]
+  payments           Payment[]
+  priceLists         PriceList[]
+  products           Product[]
+  quoteTemplates     QuoteTemplate[]
+  quotes             Quote[]
+  roles              Role[]
+  services           Service[]
+  suppliers          Supplier[]
+  userRoles          UserRole[]
+  users              User[]
+  venues             Venue[]
+  workShifts         WorkShift[]
+
+  @@map("tenants")
+}
+
+model WorkShift {
+  id          String        @id @default(cuid())
+  name        String
+  startTime   DateTime
+  endTime     DateTime
+  description String?
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  tenantId    String
+  roomPricing RoomPricing[]
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("work_shifts")
+}
+
+model PriceList {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  tenantId    String
+  clients     Client[]
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  roomPricing RoomPricing[]
+
+  @@index([tenantId])
+  @@map("price_lists")
+}
+
+model Room {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  minCapacity Int
+  maxCapacity Int
+  color       String        @default("#3B82F6")
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  locationId  String
+  venueId     String
+  events      Event[]
+  roomPricing RoomPricing[]
+  location    Location      @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  venue       Venue         @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  @@index([locationId])
+  @@index([venueId])
+  @@map("rooms")
+}
+
+model RoomPricing {
+  id          String    @id @default(cuid())
+  price       Decimal   @db.Decimal(10, 2)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  roomId      String
+  workShiftId String
+  priceListId String
+  priceList   PriceList @relation(fields: [priceListId], references: [id], onDelete: Cascade)
+  room        Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  workShift   WorkShift @relation(fields: [workShiftId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, workShiftId, priceListId])
+  @@index([roomId])
+  @@index([workShiftId])
+  @@index([priceListId])
+  @@map("room_pricing")
+}
+
+model PackageTemplate {
+  id              String                @id @default(cuid())
+  name            String
+  description     String?
+  type            PackageType           @default(BASICO)
+  basePrice       Decimal?              @db.Decimal(10, 2)
+  isActive        Boolean               @default(true)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  tenantId        String
+  packageItems    PackageTemplateItem[]
+  tenant          Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  packageUpgrades PackageUpgrade[]
+  packages        Package[]
+
+  @@index([tenantId])
+  @@index([type])
+  @@map("package_templates")
+}
+
+model PackageTemplateItem {
+  id                String          @id @default(cuid())
+  quantity          Int             @default(1)
+  description       String?
+  packageTemplateId String
+  productId         String?
+  serviceId         String?
+  packageTemplate   PackageTemplate @relation(fields: [packageTemplateId], references: [id], onDelete: Cascade)
+  product           Product?        @relation(fields: [productId], references: [id])
+  service           Service?        @relation(fields: [serviceId], references: [id])
+
+  @@index([packageTemplateId])
+  @@map("package_template_items")
+}
+
+model PackageUpgrade {
+  id                String          @id @default(cuid())
+  name              String
+  description       String
+  additionalPrice   Decimal         @db.Decimal(10, 2)
+  upgradeType       PackageType
+  isActive          Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  packageTemplateId String
+  packageTemplate   PackageTemplate @relation(fields: [packageTemplateId], references: [id], onDelete: Cascade)
+
+  @@index([packageTemplateId])
+  @@map("package_upgrades")
+}
+
+model Venue {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  type        VenueType
+  capacity    Int?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  imagenes    String[]
+  tenantId    String
+  events      Event[]
+  rooms       Room[]
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([isActive])
+  @@index([type])
+  @@map("venues")
+}
+
+model BotSession {
+  id        String   @id @default(uuid())
+  tenantId  String
+  phone     String
+  state     String
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([phone, tenantId])
+}
+
+model BotMessage {
+  id        String   @id @default(uuid())
+  tenantId  String
+  phone     String
+  direction String
+  text      String?
+  imageUrl  String?
+  createdAt DateTime @default(now())
+}
+
+model SupplierProduct {
+  id           String   @id @default(cuid())
+  cost         Decimal  @db.Decimal(10, 2)
+  deliveryDays Int      @default(1)
+  minQuantity  Int?     @default(1)
+  notes        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  supplierId   String
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  supplier     Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([supplierId])
+  @@index([productId])
+  @@map("supplier_products")
+}
+
+model SupplierService {
+  id           String   @id @default(cuid())
+  pricePerUnit Decimal  @db.Decimal(10, 2)
+  unit         String
+  minQuantity  Int?     @default(1)
+  notes        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  supplierId   String
+  serviceId    String
+  service      Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  supplier     Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([supplierId])
+  @@index([serviceId])
+  @@map("supplier_services")
+}
+
+model Client {
+  id               String          @id @default(cuid())
+  name             String
+  email            String
+  phone            String?
+  address          String?
+  type             ClientType      @default(GENERAL)
+  discountPercent  Decimal?        @db.Decimal(5, 2)
+  eventCounter     Int             @default(0)
+  freeEventsTarget Int?
+  notes            String?
+  isActive         Boolean         @default(true)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  tenantId         String
+  priceListId      String?
+  userId           String?         @unique
+  clientCredits    ClientCredits[]
+  priceList        PriceList?      @relation(fields: [priceListId], references: [id])
+  tenant           Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user             User?           @relation(fields: [userId], references: [id])
+  events           Event[]
+  loyaltyPoints    LoyaltyPoints[]
+  masterEvents     MasterEvent[]
+  quotes           Quote[]
+
+  @@unique([email, tenantId])
+  @@index([tenantId])
+  @@index([type])
+  @@index([isActive])
+  @@map("clients")
+}
+
+model ClientCredits {
+  id          String   @id @default(cuid())
+  amount      Decimal  @db.Decimal(10, 2)
+  description String
+  type        String
+  createdAt   DateTime @default(now())
+  clientId    String
+  userId      String
+  quoteId     String?
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  quote       Quote?   @relation(fields: [quoteId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([userId])
+  @@index([type])
+  @@map("client_credits")
+}
+
+model LoyaltyPoints {
+  id          String   @id @default(cuid())
+  points      Int
+  description String
+  type        String
+  createdAt   DateTime @default(now())
+  clientId    String
+  eventId     String?
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  event       Event?   @relation(fields: [eventId], references: [id])
+
+  @@index([clientId])
+  @@map("loyalty_points")
+}
+
+model Product {
+  id                   String                @id @default(cuid())
+  name                 String
+  description          String?
+  cost                 Decimal?              @db.Decimal(10, 2)
+  price                Decimal               @db.Decimal(10, 2)
+  itemType             ItemType              @default(VENTA)
+  unit                 String                @default("pieza")
+  isActive             Boolean               @default(true)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  tenantId             String
+  packageItems         PackageItem[]
+  packageTemplateItems PackageTemplateItem[]
+  tenant               Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplierProducts     SupplierProduct[]
+
+  @@index([tenantId])
+  @@map("products")
+}
+
+model Service {
+  id                   String                @id @default(cuid())
+  name                 String
+  description          String?
+  price                Decimal               @db.Decimal(10, 2)
+  itemType             ItemType              @default(VENTA)
+  unit                 String                @default("servicio")
+  isActive             Boolean               @default(true)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  tenantId             String
+  packageItems         PackageItem[]
+  packageTemplateItems PackageTemplateItem[]
+  tenant               Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplierServices     SupplierService[]
+
+  @@index([tenantId])
+  @@map("services")
+}
+
+model MasterEvent {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  clientId    String
+  status      String   @default("DRAFT")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tenantId    String
+  events      Event[]
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([clientId])
+  @@map("master_events")
+}
+
+model Event {
+  id            String          @id @default(cuid())
+  title         String
+  startDate     DateTime
+  endDate       DateTime
+  status        EventStatus     @default(RESERVED)
+  notes         String?
+  isFullVenue   Boolean         @default(false)
+  colorCode     String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  tenantId      String
+  clientId      String
+  roomId        String?
+  venueId       String?
+  masterEventId String?
+  client        Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  masterEvent   MasterEvent?    @relation(fields: [masterEventId], references: [id])
+  room          Room?           @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venue         Venue?          @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  loyaltyPoints LoyaltyPoints[]
+  quote         Quote?
+
+  @@index([tenantId])
+  @@index([clientId])
+  @@index([roomId])
+  @@index([venueId])
+  @@index([startDate])
+  @@index([isFullVenue])
+  @@index([masterEventId])
+  @@map("events")
+}
+
+model Quote {
+  id                String          @id @default(cuid())
+  quoteNumber       String          @unique
+  status            QuoteStatus     @default(DRAFT)
+  subtotal          Decimal         @db.Decimal(10, 2)
+  discount          Decimal         @default(0) @db.Decimal(10, 2)
+  total             Decimal         @db.Decimal(10, 2)
+  validUntil        DateTime
+  notes             String?
+  publicToken       String?         @unique
+  templateId        String?
+  generatedContent  Json?
+  pdfUrl            String?
+  version           Int             @default(1)
+  previousVersionId String?
+  sentAt            DateTime?
+  viewedAt          DateTime?
+  respondedAt       DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  tenantId          String
+  clientId          String
+  eventId           String?         @unique
+  clientCredits     ClientCredits[]
+  emailLogs         EmailLog[]
+  packages          Package[]
+  payments          Payment[]
+  comments          QuoteComment[]
+  client            Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  event             Event?          @relation(fields: [eventId], references: [id])
+  template          QuoteTemplate?  @relation(fields: [templateId], references: [id])
+  tenant            Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([clientId])
+  @@index([status])
+  @@index([templateId])
+  @@map("quotes")
+}
+
+model Package {
+  id                String           @id @default(cuid())
+  name              String
+  description       String?
+  subtotal          Decimal          @db.Decimal(10, 2)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  tenantId          String
+  quoteId           String
+  packageTemplateId String?
+  packageItems      PackageItem[]
+  packageTemplate   PackageTemplate? @relation(fields: [packageTemplateId], references: [id])
+  quote             Quote            @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  tenant            Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([quoteId])
+  @@map("packages")
+}
+
+model PackageItem {
+  id          String   @id @default(cuid())
+  quantity    Int
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  totalPrice  Decimal  @db.Decimal(10, 2)
+  description String?
+  packageId   String
+  productId   String?
+  serviceId   String?
+  package     Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  product     Product? @relation(fields: [productId], references: [id])
+  service     Service? @relation(fields: [serviceId], references: [id])
+
+  @@index([packageId])
+  @@map("package_items")
+}
+
+model QuoteComment {
+  id        String      @id @default(cuid())
+  comment   String
+  type      CommentType @default(INTERNAL_MANAGER)
+  createdAt DateTime    @default(now())
+  quoteId   String
+  userId    String
+  quote     Quote       @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id])
+
+  @@index([quoteId])
+  @@map("quote_comments")
+}
+
+model QuoteTemplate {
+  id                 String           @id @default(cuid())
+  name               String
+  description        String?
+  type               TemplateType     @default(QUOTE)
+  category           String?
+  htmlContent        String
+  variables          Json?
+  styles             Json?
+  metadata           Json?
+  isDefault          Boolean          @default(false)
+  isActive           Boolean          @default(true)
+  version            Int              @default(1)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  tenantId           String
+  businessIdentityId String
+  businessIdentity   BusinessIdentity @relation(fields: [businessIdentityId], references: [id], onDelete: Cascade)
+  tenant             Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  quotes             Quote[]
+
+  @@index([tenantId])
+  @@index([businessIdentityId])
+  @@index([type, category])
+  @@map("quote_templates")
+}
+
+model EmailTemplate {
+  id                 String            @id @default(cuid())
+  name               String
+  subject            String
+  htmlContent        String
+  textContent        String?
+  variables          Json?
+  category           EmailCategory
+  isDefault          Boolean           @default(false)
+  isActive           Boolean           @default(true)
+  parentTemplateId   String?
+  templateType       EmailTemplateType @default(CUSTOM)
+  isGlobal           Boolean           @default(false)
+  inheritanceLevel   Int               @default(0)
+  metadata           Json?
+  customizations     Json?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  tenantId           String
+  businessIdentityId String?
+  businessIdentity   BusinessIdentity? @relation(fields: [businessIdentityId], references: [id], onDelete: Cascade)
+  parentTemplate     EmailTemplate?    @relation("TemplateInheritance", fields: [parentTemplateId], references: [id])
+  childTemplates     EmailTemplate[]   @relation("TemplateInheritance")
+  tenant             Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([businessIdentityId])
+  @@index([category])
+  @@index([isDefault, category])
+  @@index([parentTemplateId])
+  @@index([templateType, isGlobal])
+  @@index([inheritanceLevel])
+  @@map("email_templates")
+}
+
+model Configuration {
+  id        String   @id @default(cuid())
+  key       String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key])
+  @@map("configurations")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  tableName String
+  recordId  String
+  oldData   Json?
+  newData   Json?
+  createdAt DateTime @default(now())
+  tenantId  String
+  userId    String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([tableName, recordId])
+  @@map("audit_logs")
+}
+
+model Supplier {
+  id        String            @id @default(cuid())
+  name      String
+  type      SupplierType
+  isActive  Boolean           @default(true)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  tenantId  String
+  products  SupplierProduct[]
+  services  SupplierService[]
+  tenant    Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("suppliers")
+}
+
+model EmailChange {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("email_changes")
+}
+
+model EmailLog {
+  id             String    @id @default(cuid())
+  quoteId        String
+  recipientEmail String
+  subject        String
+  template       String
+  status         String
+  messageId      String?
+  trackingToken  String?   @unique
+  sentAt         DateTime
+  openedAt       DateTime?
+  clickedAt      DateTime?
+  failureReason  String?
+  metadata       Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  quote          Quote     @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@index([quoteId])
+  @@index([trackingToken])
+  @@index([status])
+  @@map("email_logs")
+}
+
+model Payment {
+  id                      String        @id @default(cuid())
+  quoteId                 String
+  amount                  Decimal       @db.Decimal(10, 2)
+  currency                String        @default("GTQ")
+  status                  PaymentStatus @default(PENDING)
+  paymentMethod           String
+  mercadoPagoPreferenceId String?
+  mercadoPagoPaymentId    String?
+  externalReference       String        @unique
+  transactionId           String?
+  authorizationCode       String?
+  installments            Int?
+  metadata                Json?
+  paidAt                  DateTime?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+  tenantId                String
+  quote                   Quote         @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  tenant                  Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([quoteId])
+  @@index([externalReference])
+  @@index([mercadoPagoPaymentId])
+  @@index([status])
+  @@map("payments")
+}
+
 enum LegacyUserRole {
-  SUPER_ADMIN     // Administrador del sistema completo
-  TENANT_ADMIN    // Administrador del tenant
-  MANAGER         // Manager con permisos de aprobación
-  USER            // Usuario básico
-  CLIENT_EXTERNAL // Cliente externo con acceso limitado (NUEVO)
+  SUPER_ADMIN
+  TENANT_ADMIN
+  MANAGER
+  USER
+  CLIENT_EXTERNAL
 }
 
 enum ClientType {
-  GENERAL      // Cliente público general
-  COLABORADOR  // Cliente colaborador interno
-  EXTERNO      // Cliente externo con conversión a créditos
+  GENERAL
+  COLABORADOR
+  EXTERNO
 }
 
-// ===============================
-// ENUMS SISTEMA ROLES FLEXIBLES
-// ===============================
 enum RoleType {
-  SUPER_ADMIN    // Super administrador del sistema
-  TENANT_ADMIN   // Administrador del tenant
-  MANAGER        // Manager con permisos de aprobación
-  SALES          // Ejecutivo de ventas
-  COORDINATOR    // Coordinador de eventos
-  FINANCE        // Personal de finanzas
-  USER           // Usuario básico
-  CLIENT_EXTERNAL // Cliente externo con acceso limitado
+  SUPER_ADMIN
+  TENANT_ADMIN
+  MANAGER
+  SALES
+  COORDINATOR
+  FINANCE
+  USER
+  CLIENT_EXTERNAL
 }
 
 enum PermissionAction {
@@ -68,901 +867,95 @@ enum PermissionResource {
 }
 
 enum EventStatus {
-  RESERVED    // Fecha separada sin cotización
-  QUOTED      // Cotización creada pero no aprobada
-  CONFIRMED   // Cotización aprobada y evento confirmado
-  CANCELLED   // Evento cancelado
+  RESERVED
+  QUOTED
+  CONFIRMED
+  CANCELLED
 }
 
 enum QuoteStatus {
-  DRAFT                 // Borrador del usuario
-  PENDING_MANAGER       // Enviada para aprobación del manager
-  REJECTED_BY_MANAGER   // Rechazada por manager con comentarios
-  APPROVED_BY_MANAGER   // Aprobada por manager, lista para envío
-  SENT_TO_CLIENT        // Enviada al cliente con enlaces públicos
-  CLIENT_REQUESTED_CHANGES // Cliente solicitó modificaciones
-  ACCEPTED_BY_CLIENT    // Aceptada por cliente - evento confirmado
-  EXPIRED               // Vencida por tiempo
-  CANCELLED             // Cancelada
+  DRAFT
+  PENDING_MANAGER
+  REJECTED_BY_MANAGER
+  APPROVED_BY_MANAGER
+  SENT_TO_CLIENT
+  CLIENT_REQUESTED_CHANGES
+  ACCEPTED_BY_CLIENT
+  EXPIRED
+  CANCELLED
 }
 
 enum PriceType {
-  GENERAL     // Precio público general
-  FRIENDS     // Precio amigos y familia
-  CORPORATE   // Precio corporativo
-  VIP         // Precio VIP
-  CUSTOM      // Precio personalizado
+  GENERAL
+  FRIENDS
+  CORPORATE
+  VIP
+  CUSTOM
 }
 
 enum PackageType {
-  BASICO     // Paquete básico
-  VIP        // Paquete VIP
-  GOLD       // Paquete Gold
-  DIAMANTE   // Paquete Diamante
+  BASICO
+  VIP
+  GOLD
+  DIAMANTE
 }
 
 enum SupplierType {
-  PRODUCT    // Proveedor de productos
-  SERVICE    // Proveedor de servicios
+  PRODUCT
+  SERVICE
 }
 
 enum ItemType {
-  CONSUMO    // Para consumo interno
-  VENTA      // Para venta al cliente
+  CONSUMO
+  VENTA
 }
 
 enum PaymentStatus {
-  PENDING       // Pago pendiente
-  APPROVED      // Pago aprobado
-  AUTHORIZED    // Pago autorizado
-  IN_PROCESS    // Pago en proceso
-  IN_MEDIATION  // Pago en mediación
-  REJECTED      // Pago rechazado
-  CANCELLED     // Pago cancelado
-  REFUNDED      // Pago reembolsado
-  CHARGED_BACK  // Pago contracargado
-}
-
-// ===============================
-// TENANT SYSTEM
-// ===============================
-// (Eliminado bloque Venue duplicado y corrupto; se mantiene la definición única más abajo)
-
-// ===============================
-// BUSINESS IDENTITIES (NUEVO)
-// Identidades comerciales del negocio - Máximo 5 por tenant
-// Permite manejar múltiples marcas o divisiones del negocio
-// Solo TENANT_ADMIN y MANAGER pueden gestionar
-// ===============================
-model BusinessIdentity {
-  id          String   @id @default(cuid())
-  name        String   // Nombre comercial (ej: "Casona María Centro", "Casona María Eventos")
-  address     String?  // Dirección física de la identidad
-  phone       String?  // Teléfono de contacto específico
-  email       String?  // Email de contacto específico
-  logo        String?  // URL del logo (almacenado en /public/logos/)
-  slogan      String?  // Slogan o frase comercial
-  facebook    String?  // URL del perfil de Facebook
-  instagram   String?  // URL del perfil de Instagram
-  twitter     String?  // URL del perfil de Twitter/X
-  website     String?  // Sitio web oficial
-  isActive    Boolean  @default(true) // Control de activación de identidad
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tenantId       String
-  locations      Location[]     // Locales asociados a esta identidad (1:N)
-  quoteTemplates QuoteTemplate[] // Plantillas de cotización específicas por identidad
-
-  @@map("business_identities")
-  @@index([tenantId])
-  @@index([isActive]) // Para filtrar identidades activas eficientemente
-}
-
-// ===============================
-// LOCATIONS (NUEVO)
-// ===============================
-model Location {
-  id               String   @id @default(cuid())
-  name             String
-  address          String
-  latitude         Float?
-  longitude        Float?
-  description      String?
-  isActive         Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  // Relations
-  businessIdentity   BusinessIdentity @relation(fields: [businessIdentityId], references: [id], onDelete: Cascade)
-  businessIdentityId String
-  rooms              Room[]
-
-  @@map("locations")
-  @@index([businessIdentityId])
-}
-
-// ===============================
-// USERS & AUTHENTICATION
-// ===============================
-model User {
-  id             String    @id @default(cuid())
-  email          String    @unique
-  password       String?
-  mustChangePassword Boolean @default(false)
-  name           String?
-  role           LegacyUserRole  @default(USER) // TEMPORAL: Mantenido para compatibilidad durante migración
-  isActive       Boolean   @default(true)
-  emailVerified  DateTime?
-  image          String?
-  activationCode String?   // Para clientes externos
-  isExternal     Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  // Relations
-  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tenantId      String
-  accounts      Account[]
-  auditLogs     AuditLog[]
-  client        Client?         // Relación con cliente si es externo
-  clientCredits ClientCredits[]
-  quoteComments QuoteComment[]  // Comentarios en cotizaciones del usuario
-  emailChanges  EmailChange[]
-  
-  // Flexible Role System Relations
-  userRoles     UserRole[]      // Roles asignados al usuario
-  assignedRoles UserRole[]      @relation("AssignedRoles") // Roles que este usuario ha asignado
-
-  @@map("users")
-}
-
-
-
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-  @@map("accounts")
-}
-
-// Flexible Role System Models
-model Role {
-  id          String     @id @default(cuid())
-  name        String     @unique
-  type        RoleType
-  description String?
-  isActive    Boolean    @default(true)
-  tenantId    String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  // Relations
-  tenant      Tenant?     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  userRoles   UserRole[]
-  permissions Permission[]
-
-  @@index([type])
-  @@index([tenantId])
-  @@map("roles")
-}
-
-model UserRole {
-  id       String   @id @default(cuid())
-  userId   String
-  roleId   String
-  tenantId String?
-  assignedAt DateTime @default(now())
-  assignedBy String?
-  expiresAt  DateTime?
-  isActive   Boolean  @default(true)
-
-  // Relations
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  tenant     Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  assignedByUser User? @relation("AssignedRoles", fields: [assignedBy], references: [id])
-
-  @@unique([userId, roleId, tenantId])
-  @@index([userId])
-  @@index([roleId])
-  @@index([tenantId])
-  @@map("user_roles")
-}
-
-model Permission {
-  id       String             @id @default(cuid())
-  roleId   String
-  action   PermissionAction
-  resource PermissionResource
-  conditions Json?            // Condiciones adicionales en formato JSON
-  createdAt DateTime          @default(now())
-
-  // Relations
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  @@unique([roleId, action, resource])
-  @@index([roleId])
-  @@index([action])
-  @@index([resource])
-  @@map("permissions")
-}
-
-model Tenant {
-  id        String   @id @default(cuid())
-  name      String
-  domain    String   @unique
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  users              User[]
-  businessIdentities BusinessIdentity[]
-  clients            Client[]
-  events             Event[]
-  products           Product[]
-  services           Service[]
-  quotes             Quote[]
-  configurations     Configuration[]
-  auditLogs          AuditLog[]
-  packages           Package[]
-  suppliers          Supplier[]
-  priceLists         PriceList[]
-  quoteTemplates     QuoteTemplate[]
-  workShifts         WorkShift[]
-  packageTemplates   PackageTemplate[]
-  venues             Venue[]
-  masterEvents       MasterEvent[]
-  payments           Payment[]
-  aiEmbeddings       AIEmbedding[]      // AI embeddings para búsqueda semántica
-  
-  // Flexible Role System Relations
-  roles              Role[]             // Roles específicos del tenant
-  userRoles          UserRole[]         // Asignaciones de roles del tenant
-
-  @@map("tenants")
-}
-
-
-// ===============================
-// WORK SHIFTS (NUEVO)
-// ===============================
-model WorkShift {
-  id          String    @id @default(cuid())
-  name        String
-  startTime   DateTime  // Solo hora, fecha será ignorada
-  endTime     DateTime  // Solo hora, fecha será ignorada
-  description String?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Relations
-  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tenantId    String
-  roomPricing RoomPricing[]
-
-  @@map("work_shifts")
-  @@index([tenantId])
-}
-
-// ===============================
-// PRICE LISTS (NUEVO)
-// ===============================
-model PriceList {
-  id          String    @id @default(cuid())
-  name        String
-  description String?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Relations
-  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tenantId      String
-  roomPricing   RoomPricing[]
-  clients       Client[]
-
-  @@map("price_lists")
-  @@index([tenantId])
-}
-
-// ===============================
-// ROOMS & PRICING
-// ===============================
-model Room {
-  id            String  @id @default(cuid())
-  name          String
-  description   String?
-  minCapacity   Int
-  maxCapacity   Int
-  color         String  @default("#3B82F6") // Para el calendario
-  isActive      Boolean @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relations
-  location    Location      @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  locationId  String
-  venue       Venue         @relation(fields: [venueId], references: [id], onDelete: Cascade)
-  venueId     String
-  events      Event[]
-  roomPricing RoomPricing[]
-
-  @@map("rooms")
-  @@index([locationId])
-  @@index([venueId])
-}
-
-// Relación compleja sala-turno-precio (NUEVO)
-model RoomPricing {
-  id        String   @id @default(cuid())
-  price     Decimal  @db.Decimal(10, 2)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  room        Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  roomId      String
-  workShift   WorkShift @relation(fields: [workShiftId], references: [id], onDelete: Cascade)
-  workShiftId String
-  priceList   PriceList @relation(fields: [priceListId], references: [id], onDelete: Cascade)
-  priceListId String
-
-  @@unique([roomId, workShiftId, priceListId])
-  @@map("room_pricing")
-  @@index([roomId])
-  @@index([workShiftId])
-  @@index([priceListId])
-}
-
-// ===============================
-// PACKAGE TEMPLATES (NUEVO)
-// Paquetes predefinidos que SOLO pueden ser creados y nombrados por MANAGER+
-// Incluyen productos/servicios base y sus respectivos upgrades automáticos
-// ===============================
-model PackageTemplate {
-  id          String      @id @default(cuid())
-  name        String      // Nombre del paquete (ej: "Paquete VIP Sala Principal")
-  description String?     // Descripción detallada del contenido
-  type        PackageType @default(BASICO) // Tipo: BASICO, VIP, GOLD, DIAMANTE
-  basePrice   Decimal?    @db.Decimal(10, 2) // Precio base (sin definir por inflación de insumos)
-  isActive    Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  // Relations
-  tenant           Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tenantId         String
-  packageItems     PackageTemplateItem[] // Productos/servicios incluidos
-  packageUpgrades  PackageUpgrade[]      // Upgrades disponibles (VIP→GOLD→DIAMANTE)
-  packages         Package[]             // Instancias utilizadas en cotizaciones
-
-  @@map("package_templates")
-  @@index([tenantId])
-  @@index([type]) // Para búsqueda eficiente por tipo de paquete
-}
-
-model PackageTemplateItem {
-  id          String  @id @default(cuid())
-  quantity    Int     @default(1)
-  description String?
-
-  // Relations
-  packageTemplate   PackageTemplate @relation(fields: [packageTemplateId], references: [id], onDelete: Cascade)
-  packageTemplateId String
-  product           Product?        @relation(fields: [productId], references: [id])
-  productId         String?
-  service           Service?        @relation(fields: [serviceId], references: [id])
-  serviceId         String?
-
-  @@map("package_template_items")
-  @@index([packageTemplateId])
-}
-
-model PackageUpgrade {
-  id              String      @id @default(cuid())
-  name            String
-  description     String
-  additionalPrice Decimal     @db.Decimal(10, 2)
-  upgradeType     PackageType
-  isActive        Boolean     @default(true)
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-
-  // Relations
-  packageTemplate   PackageTemplate @relation(fields: [packageTemplateId], references: [id], onDelete: Cascade)
-  packageTemplateId String
-
-  @@map("package_upgrades")
-  @@index([packageTemplateId])
-}
-
-// ===============================
-// SUPPLIERS (NUEVO)
-// ===============================
-model Venue {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  type        VenueType
-  capacity    Int?     // Capacidad del venue
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Imágenes del venue
-  imagenes    String[]
-
-  // Relations
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tenantId    String
-  events      Event[]
-  rooms       Room[]
-
-  @@map("venues")
-  @@index([tenantId])
-  @@index([isActive])
-  @@index([type])
-}
-
-// --- Chatbot WhatsApp ---
-model BotSession {
-  id           String   @id @default(uuid())
-  tenantId     String
-  phone        String
-  state        String   // INIT, DONE, etc.
-  data         Json
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@unique([phone, tenantId])
-}
-
-model BotMessage {
-  id        String   @id @default(uuid())
-  tenantId  String
-  phone     String
-  direction String   // 'in' | 'out'
-  text      String?
-  imageUrl  String?
-  createdAt DateTime @default(now())
-}
-
-// Almacenamiento de embeddings en PostgreSQL usando la extensión pgvector
-model AIEmbedding {
-  id         String   @id @default(cuid())
-  tenantId   String
-  entityId   String   // ID de la entidad (event, client, quote, product, etc.)
-  entityType String   // Tipo de entidad (EVENT, CLIENT, QUOTE, PRODUCT, etc.)
-  content    String   // Contenido textual usado para generar el embedding
-  // Tipo nativo vector (pgvector). Prisma lo maneja como Unsupported("vector").
-  embedding  Unsupported("vector")
-  dimensions Int      @default(768) // Dimensiones del vector
-  metadata   Json?    // Metadatos adicionales como status, type, etc.
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  // Relations
-  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([entityId, entityType]) // Un embedding por entidad
-  @@index([tenantId])
-  @@index([entityType])
-  @@map("ai_embeddings")
-}
-
-model SupplierProduct {
-  id           String   @id @default(cuid())
-  cost         Decimal  @db.Decimal(10, 2)
-  deliveryDays Int      @default(1)
-  minQuantity  Int?     @default(1)
-  notes        String?
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  // Relations
-  supplier  Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-  supplierId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  productId String
-
-  @@map("supplier_products")
-  @@index([supplierId])
-  @@index([productId])
-}
-
-model SupplierService {
-  id           String   @id @default(cuid())
-  pricePerUnit Decimal  @db.Decimal(10, 2)
-  unit         String   // "persona", "hora", "evento", "mesa", etc.
-  minQuantity  Int?     @default(1)
-  notes        String?
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  // Relations
-  supplier  Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-  supplierId String
-  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  serviceId String
-
-  @@map("supplier_services")
-  @@index([supplierId])
-  @@index([serviceId])
-}
-
-// ===============================
-// CLIENTS & EXTERNAL USERS (ACTUALIZADO)
-// Sistema de clientes con 3 tipos y diferentes comportamientos de precios
-// ===============================
-model Client {
-  id                String     @id @default(cuid())
-  name              String     // Nombre completo del cliente
-  email             String     // Email único por tenant
-  phone             String?    // Teléfono de contacto
-  address           String?    // Dirección física
-  type              ClientType @default(GENERAL) // GENERAL, COLABORADOR, EXTERNO
-  discountPercent   Decimal?   @db.Decimal(5, 2) // Descuento personalizado (0-100%)
-  eventCounter      Int        @default(0)       // Contador eventos para COLABORADOR
-  freeEventsTarget  Int?       // Meta eventos gratis para COLABORADOR (ej: cada 10 eventos)
-  notes             String?    // Notas internas del cliente
-  isActive          Boolean    @default(true)
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
-
-  // Relations
-  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tenantId      String
-  priceList     PriceList?      @relation(fields: [priceListId], references: [id]) // Lista de precios asignada
-  priceListId   String?         // NULL = usar lista general del tenant
-  user          User?           @relation(fields: [userId], references: [id]) // Solo si type = EXTERNO
-  userId        String?         @unique // Usuario restringido para clientes externos
-  events        Event[]         // Historial de eventos del cliente
-  quotes        Quote[]         // Cotizaciones del cliente
-  clientCredits ClientCredits[] // Créditos acumulados (solo EXTERNO)
-  loyaltyPoints LoyaltyPoints[] // Puntos de fidelidad (solo GENERAL)
-  masterEvents  MasterEvent[]   // Mega Eventos asociados al cliente
-
-  @@unique([email, tenantId]) // Email único por tenant
-  @@map("clients")
-  @@index([tenantId])
-  @@index([type]) // Para filtros eficientes por tipo de cliente
-  @@index([isActive]) // Para consultas de clientes activos
-}
-
-// ===============================
-// CLIENT CREDITS (NUEVO)
-// Sistema de créditos para clientes EXTERNOS
-// Conversión automática: Descuento en pesos = Créditos (1:1)
-// Los créditos NO se devuelven en efectivo, solo se usan en futuros eventos
-// ===============================
-model ClientCredits {
-  id          String   @id @default(cuid())
-  amount      Decimal  @db.Decimal(10, 2) // Cantidad de créditos (positivo o negativo)
-  description String   // Descripción del movimiento
-  type        String   // "EARNED" (ganado por descuento) o "USED" (usado en evento)
-  createdAt   DateTime @default(now())
-
-  // Relations
-  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientId String // Cliente externo que recibe/usa créditos
-  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId   String // Usuario restringido asociado al cliente externo
-  quote    Quote? @relation(fields: [quoteId], references: [id])
-  quoteId  String? // Cotización donde se ganaron/usaron los créditos
-
-  @@map("client_credits")
-  @@index([clientId])
-  @@index([userId])
-  @@index([type]) // Para filtros eficientes por tipo de movimiento
-}
-
-// Puntos de fidelidad para clientes generales (NUEVO)
-model LoyaltyPoints {
-  id          String   @id @default(cuid())
-  points      Int
-  description String
-  type        String   // "EARNED", "REDEEMED"
-  createdAt   DateTime @default(now())
-
-  // Relations
-  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientId String
-  event    Event? @relation(fields: [eventId], references: [id])
-  eventId  String?
-
-  @@map("loyalty_points")
-  @@index([clientId])
-}
-
-// ===============================
-// PRODUCTS & SERVICES
-// ===============================
-model Product {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  cost        Decimal? @db.Decimal(10, 2) // Costo sin proveedor
-  price       Decimal  @db.Decimal(10, 2) // Precio de venta
-  itemType    ItemType @default(VENTA)
-  unit        String   @default("pieza")
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  tenant              Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tenantId            String
-  supplierProducts    SupplierProduct[]
-  packageItems        PackageItem[]
-  packageTemplateItems PackageTemplateItem[]
-
-  @@map("products")
-  @@index([tenantId])
-}
-
-model Service {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  price       Decimal  @db.Decimal(10, 2)
-  itemType    ItemType @default(VENTA)
-  unit        String   @default("servicio")
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  tenant              Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tenantId            String
-  supplierServices    SupplierService[]
-  packageItems        PackageItem[]
-  packageTemplateItems PackageTemplateItem[]
-
-  @@map("services")
-  @@index([tenantId])
-}
-
-// ===============================
-// EVENTS & QUOTES
-// ===============================
-model MasterEvent {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  clientId    String
-  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  status      String   @default("DRAFT") // DRAFT, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED
-  events      Event[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@map("master_events")
-  @@index([tenantId])
-  @@index([clientId])
-}
-
-model Event {
-  id             String      @id @default(cuid())
-  title          String
-  startDate      DateTime
-  endDate        DateTime
-  status         EventStatus @default(RESERVED)
-  notes          String?
-  isFullVenue    Boolean     @default(false) // True si reserva todo el local
-  colorCode      String?     // Color para el calendario
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-
-  // Relations
-  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tenantId      String
-  client        Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientId      String
-  room          Room?           @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  roomId        String?         // Para salas individuales
-  venue         Venue?          @relation(fields: [venueId], references: [id], onDelete: Cascade)
-  venueId       String?         // Para locales completos
-  quote         Quote?
-  loyaltyPoints LoyaltyPoints[]
-  masterEvent   MasterEvent?    @relation(fields: [masterEventId], references: [id], onDelete: SetNull)
-  masterEventId String?
-
-  @@map("events")
-  @@index([tenantId])
-  @@index([clientId])
-  @@index([roomId])
-  @@index([venueId])
-  @@index([startDate])
-  @@index([isFullVenue])
-  @@index([masterEventId])
-}
-
-model Quote {
-  id            String      @id @default(cuid())
-  quoteNumber   String      @unique
-  status        QuoteStatus @default(DRAFT)
-  subtotal      Decimal     @db.Decimal(10, 2)
-  discount      Decimal     @default(0) @db.Decimal(10, 2)
-  total         Decimal     @db.Decimal(10, 2)
-  validUntil    DateTime
-  notes         String?
-  publicToken   String?     @unique // Para acceso sin login
-  
-  // NUEVO: Template y generación (Fase 2D)
-  templateId    String?     // NUEVO: Template usado para generar
-  template      QuoteTemplate? @relation(fields: [templateId], references: [id])
-  generatedContent Json?    // NUEVO: Contenido HTML final generado
-  pdfUrl        String?     // NUEVO: URL del PDF almacenado
-  version       Int         @default(1) // NUEVO: Control de versiones
-  previousVersionId String? // NUEVO: Referencia a versión anterior
-  
-  // NUEVO: Envío y seguimiento
-  sentAt        DateTime?   // NUEVO: Cuándo se envió
-  viewedAt      DateTime?   // NUEVO: Primera vez vista por cliente
-  respondedAt   DateTime?   // NUEVO: Cuándo respondió el cliente
-  
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  // Relations
-  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tenantId      String
-  client        Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientId      String
-  event         Event?          @relation(fields: [eventId], references: [id])
-  eventId       String?         @unique
-  packages      Package[]
-  clientCredits ClientCredits[]
-  comments      QuoteComment[]
-  payments      Payment[]
-  emailLogs     EmailLog[]      // NUEVO: Logs de emails enviados
-
-  @@map("quotes")
-  @@index([tenantId])
-  @@index([clientId])
-  @@index([status])
-  @@index([templateId]) // NUEVO: Índice para templates
-}
-
-// Sistema de paquetes dinámicos
-model Package {
-  id            String   @id @default(cuid())
-  name          String
-  description   String?
-  subtotal      Decimal  @db.Decimal(10, 2)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relations
-  tenant            Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tenantId          String
-  quote             Quote            @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-  quoteId           String
-  packageTemplate   PackageTemplate? @relation(fields: [packageTemplateId], references: [id])
-  packageTemplateId String?
-  packageItems      PackageItem[]
-
-  @@map("packages")
-  @@index([tenantId])
-  @@index([quoteId])
-}
-
-model PackageItem {
-  id          String  @id @default(cuid())
-  quantity    Int
-  unitPrice   Decimal @db.Decimal(10, 2)
-  totalPrice  Decimal @db.Decimal(10, 2)
-  description String?
-
-  // Relations
-  package   Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  packageId String
-  product   Product? @relation(fields: [productId], references: [id])
-  productId String?
-  service   Service? @relation(fields: [serviceId], references: [id])
-  serviceId String?
-
-  @@map("package_items")
-  @@index([packageId])
+  PENDING
+  APPROVED
+  AUTHORIZED
+  IN_PROCESS
+  IN_MEDIATION
+  REJECTED
+  CANCELLED
+  REFUNDED
+  CHARGED_BACK
 }
 
 enum CommentType {
-  INTERNAL_MANAGER // Comentario interno del manager
-  CLIENT_FEEDBACK  // Comentario del cliente
-  SYSTEM_NOTE      // Nota del sistema
+  INTERNAL_MANAGER
+  CLIENT_FEEDBACK
+  SYSTEM_NOTE
 }
-
-model QuoteComment {
-  id        String      @id @default(cuid())
-  comment   String
-  type      CommentType @default(INTERNAL_MANAGER)
-  createdAt DateTime    @default(now())
-
-  // Relations
-  quote   Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-  quoteId String
-  user    User   @relation(fields: [userId], references: [id])
-  userId  String
-
-  @@map("quote_comments")
-  @@index([quoteId])
-}
-
-// ===============================
-// QUOTE TEMPLATES EXTENDIDO (FASE 2D)
-// ===============================
 
 enum TemplateType {
-  QUOTE       // Cotizaciones (por defecto)
-  CONTRACT    // Contratos
-  INVOICE     // Facturas  
-  EMAIL       // Templates de email
-  PROPOSAL    // Propuestas comerciales
+  QUOTE
+  CONTRACT
+  INVOICE
+  EMAIL
+  PROPOSAL
 }
 
-model QuoteTemplate {
-  id              String       @id @default(cuid())
-  name            String
-  description     String?      // Descripción del template
-  type            TemplateType @default(QUOTE) // NUEVO: Tipo de template
-  category        String?      // NUEVO: "eventos", "bodas", "corporativo"
-  
-  // Contenido del template
-  htmlContent     String       @db.Text // Contenido HTML existente
-  variables       Json?        // NUEVO: Variables disponibles ["clientName", "total"]
-  styles          Json?        // NUEVO: Estilos CSS para PDF
-  metadata        Json?        // NUEVO: Configuraciones adicionales
-  
-  // Estados y versioning
-  isDefault       Boolean      @default(false)
-  isActive        Boolean      @default(true)
-  version         Int          @default(1) // NUEVO: Control de versiones
-  
-  // Timestamps
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-
-  // Relations (mantener compatibilidad)
-  tenant             Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tenantId           String
-  businessIdentity   BusinessIdentity @relation(fields: [businessIdentityId], references: [id], onDelete: Cascade)
-  businessIdentityId String
-  
-  // NUEVO: Relaciones con cotizaciones
-  quotes             Quote[]          // Cotizaciones que usan este template
-
-  @@map("quote_templates")
-  @@index([tenantId])
-  @@index([businessIdentityId])
-  @@index([type, category]) // NUEVO: Índice para filtros
+enum EmailCategory {
+  REGISTRATION
+  PASSWORD_RESET
+  ACTIVATION_REMINDER
+  QUOTE_SEND
+  QUOTE_ACCEPTED
+  EVENT_CONFIRMATION
+  EVENT_REMINDER
+  MARKETING
+  TEST
+  GENERAL
 }
 
-// ===============================
-// VENUES & PRODUCTS MANAGEMENT
-// ===============================
+enum EmailTemplateType {
+  GLOBAL
+  TENANT_BASE
+  BUSINESS_BASE
+  CUSTOM
+  INHERITED
+}
 
 enum VenueType {
   VENUE
@@ -970,146 +963,7 @@ enum VenueType {
 }
 
 enum ProductType {
-  PRODUCT   // Producto físico
-  SERVICE   // Servicio
-  PACKAGE   // Paquete de productos/servicios
-}
-
-
-
-
-
-// ===============================
-// CONFIGURATION & AUDIT
-// ===============================
-model Configuration {
-  id        String   @id @default(cuid())
-  key       String
-  value     String   @db.Text
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tenantId String
-
-  @@unique([tenantId, key])
-  @@map("configurations")
-}
-
-model AuditLog {
-  id         String   @id @default(cuid())
-  action     String   // CREATE, UPDATE, DELETE
-  tableName  String
-  recordId   String
-  oldData    Json?    // Datos anteriores
-  newData    Json?    // Datos nuevos
-  createdAt  DateTime @default(now())
-
-  // Relations
-  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tenantId String
-  user     User   @relation(fields: [userId], references: [id])
-  userId   String
-
-  @@map("audit_logs")
-  @@index([tenantId])
-  @@index([tableName, recordId])
-}
-
-// ===============================
-// SUPPLIER (mínimo para referencias)
-// ===============================
-model Supplier {
-  id        String   @id @default(cuid())
-  name      String
-  type      SupplierType
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relaciones
-  products SupplierProduct[]
-  services SupplierService[]
-  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tenantId String
-
-  @@map("suppliers")
-}
-
-// Cambios de email (mínimo para referencias)
-model EmailChange {
-  id        String   @id @default(cuid())
-  userId    String
-  token     String   @unique
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("email_changes")
-  @@index([userId])
-  @@index([token])
-}
-
-// ===============================
-// EMAIL SYSTEM (NUEVO)
-// ===============================
-model EmailLog {
-  id              String   @id @default(cuid())
-  quoteId         String
-  recipientEmail  String
-  subject         String
-  template        String   // basic, professional, custom
-  status          String   // sent, failed, delivered, opened, clicked
-  messageId       String?  // ID del mensaje enviado
-  trackingToken   String?  @unique // Token para seguimiento de apertura
-  sentAt          DateTime
-  openedAt        DateTime? // Cuando el cliente abrió el email
-  clickedAt       DateTime? // Cuando el cliente hizo click en el email
-  failureReason   String?  // Razón del fallo si status es failed
-  metadata        Json?    // Información adicional
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  // Relations
-  quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-
-  @@map("email_logs")
-  @@index([quoteId])
-  @@index([trackingToken])
-  @@index([status])
-}
-
-// ===============================
-// PAYMENTS SYSTEM
-// ===============================
-model Payment {
-  id                        String        @id @default(cuid())
-  quoteId                   String        // Cotización asociada
-  amount                    Decimal       @db.Decimal(10, 2) // Monto del pago
-  currency                  String        @default("GTQ") // Moneda
-  status                    PaymentStatus @default(PENDING) // Estado del pago
-  paymentMethod             String        // MERCADOPAGO, STRIPE, etc.
-  mercadoPagoPreferenceId   String?       // ID de preferencia MP
-  mercadoPagoPaymentId      String?       // ID de pago MP
-  externalReference         String        @unique // Referencia externa
-  transactionId             String?       // ID de transacción
-  authorizationCode         String?       // Código de autorización
-  installments              Int?          // Número de cuotas
-  metadata                  Json?         // Datos adicionales
-  paidAt                    DateTime?     // Fecha de pago
-  createdAt                 DateTime      @default(now())
-  updatedAt                 DateTime      @updatedAt
-
-  // Relations
-  quote    Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tenantId String
-
-  @@map("payments")
-  @@index([tenantId])
-  @@index([quoteId])
-  @@index([externalReference])
-  @@index([mercadoPagoPaymentId])
-  @@index([status])
+  PRODUCT
+  SERVICE
+  PACKAGE
 }

@@ -15,6 +15,69 @@ import { prisma } from './prisma';
 export class DatabaseOptimizer {
   
   /**
+   * Crear índices recomendados para optimización
+   */
+  async createIndexes() {
+    try {
+      // Índices recomendados para optimización
+      const indexes = [
+        'CREATE INDEX IF NOT EXISTS "idx_events_tenant_date" ON "Event" ("tenantId", "startDate")',
+        'CREATE INDEX IF NOT EXISTS "idx_quotes_tenant_status" ON "Quote" ("tenantId", "status")',
+        'CREATE INDEX IF NOT EXISTS "idx_clients_tenant_email" ON "Client" ("tenantId", "email")',
+        'CREATE INDEX IF NOT EXISTS "idx_users_tenant_role" ON "User" ("tenantId", "role")',
+        'CREATE INDEX IF NOT EXISTS "idx_audit_tenant_action" ON "AuditLog" ("tenantId", "action")',
+        'CREATE INDEX IF NOT EXISTS "idx_venues_tenant_active" ON "Venue" ("tenantId", "isActive")',
+        'CREATE INDEX IF NOT EXISTS "idx_items_tenant_type" ON "Item" ("tenantId", "type")',
+        'CREATE INDEX IF NOT EXISTS "idx_suppliers_tenant_active" ON "Supplier" ("tenantId", "isActive")'
+      ];
+      
+      for (const indexQuery of indexes) {
+        try {
+          await prisma.$executeRawUnsafe(indexQuery);
+        } catch (error) {
+          // Ignorar errores de índices que ya existen
+          console.warn('Index creation warning:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error creating indexes:', error);
+    }
+  }
+
+  /**
+   * Analizar estadísticas de tablas
+   */
+  async analyzeTableStats() {
+    try {
+      const tables = ['User', 'Event', 'Client', 'Quote', 'Venue'];
+      
+      for (const table of tables) {
+        try {
+          await prisma.$executeRawUnsafe(`ANALYZE TABLE "${table}"`);
+        } catch (error) {
+          console.warn(`Analyze table warning for ${table}:`, error);
+        }
+      }
+    } catch (error) {
+      console.error('Error analyzing table stats:', error);
+    }
+  }
+
+  /**
+   * Obtener estadísticas de tablas
+   */
+  async getTableStats() {
+    return DatabaseOptimizer.getQueryPerformanceReport();
+  }
+
+  /**
+   * Obtener consultas lentas
+   */
+  async getSlowQueries() {
+    return DatabaseOptimizer.getQueryPerformanceReport();
+  }
+
+  /**
    * Obtener estadísticas del dashboard con queries optimizadas
    */
   static async getDashboardStats(tenantId: string, startDate: Date, endDate: Date) {
@@ -324,3 +387,59 @@ export const RECOMMENDED_INDEXES = {
     WHERE status = 'APPROVED';
   `
 } as const;
+
+/**
+ * Función para reintentar operaciones de base de datos
+ */
+export async function withDatabaseRetry<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  delay: number = 1000
+): Promise<T> {
+  let lastError: Error;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error as Error;
+      if (attempt === maxRetries) break;
+      
+      await new Promise(resolve => setTimeout(resolve, delay * attempt));
+    }
+  }
+  
+  throw lastError!;
+}
+
+/**
+ * Validar parámetros de paginación
+ */
+export function validatePaginationParams(
+  page?: number,
+  limit?: number
+): { page: number; limit: number } {
+  const validatedPage = Math.max(1, page || 1);
+  const validatedLimit = Math.min(100, Math.max(1, limit || 10));
+  
+  return { page: validatedPage, limit: validatedLimit };
+}
+
+/**
+ * Construir cláusula WHERE dinámica
+ */
+export function buildWhereClause(filters: Record<string, any>): Record<string, any> {
+  const where: Record<string, any> = {};
+  
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      if (typeof value === 'string') {
+        where[key] = { contains: value, mode: 'insensitive' };
+      } else {
+        where[key] = value;
+      }
+    }
+  });
+  
+  return where;
+}

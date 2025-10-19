@@ -62,7 +62,7 @@ export function EventsCalendar({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
-  const [filterStatus, setFilterStatus] = useState<string>('')
+  const [filterStatus, setFilterStatus] = useState<string>('all')
   const [searchTerm, setSearchTerm] = useState<string>('')
 
   // Colores por estado
@@ -84,7 +84,7 @@ export function EventsCalendar({
         limit: '1000'
       })
 
-      if (filterStatus) {
+      if (filterStatus && filterStatus !== 'all') {
         params.set('status', filterStatus)
       }
 
@@ -275,7 +275,7 @@ export function EventsCalendar({
                 <SelectValue placeholder="Filtrar por estado" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos los estados</SelectItem>
+                <SelectItem value="all">Todos los estados</SelectItem>
                 <SelectItem value="RESERVED">Reservado</SelectItem>
                 <SelectItem value="QUOTED">Cotizado</SelectItem>
                 <SelectItem value="CONFIRMED">Confirmado</SelectItem>

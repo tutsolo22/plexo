@@ -8,7 +8,7 @@ import {
   withDatabaseRetry, 
   validatePaginationParams,
   buildWhereClause 
-} from '@/lib/database-optimizer'
+} from '../database-optimizer'
 
 // Mock de Prisma
 const mockPrisma = {

@@ -1,14 +1,12 @@
-import NextAuth from 'next-auth'
+import NextAuth, { type User, type Account, type Profile, type Session } from 'next-auth'
 type NextAuthOptions = Parameters<typeof NextAuth>[0]
 import CredentialsProvider from 'next-auth/providers/credentials'
+import type { JWT } from 'next-auth/jwt'
+import type { Adapter, AdapterSession, AdapterUser } from 'next-auth/adapters'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/prisma'
 import { verifyPassword } from '@/lib/auth/password'
-import { UserRole } from '@prisma/client'
-import type { Adapter } from 'next-auth/adapters'
-import type { User, Account, Profile } from 'next-auth'
-import type { JWT } from 'next-auth/jwt'
-import type { AdapterSession } from 'next-auth/adapters'
+import { LegacyUserRole as UserRole } from '@prisma/client'
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
 
@@ -146,13 +144,19 @@ export const authOptions: NextAuthOptions = {
     /**
      * Callback JWT - Ejecutado cuando se crea/actualiza el token
      */
-    async jwt({ token, user }: { token: any; user: any }) {
+    async jwt({ token, user }: { token: JWT; user?: User | AdapterUser }) {
       // Si es el primer login, agregar datos del usuario al token
       if (user) {
-        token.role = user.role
-        token.tenantId = user.tenantId
-        token.tenantName = user.tenantName
-        token.emailVerified = user.emailVerified
+        const extendedUser = user as User & {
+          role: UserRole;
+          tenantId: string;
+          tenantName: string;
+          emailVerified: Date | null;
+        };
+        token.role = extendedUser.role
+        token.tenantId = extendedUser.tenantId
+        token.tenantName = extendedUser.tenantName
+        token.emailVerified = extendedUser.emailVerified
       }
       return token
     },
@@ -160,14 +164,22 @@ export const authOptions: NextAuthOptions = {
     /**
      * Callback Session - Ejecutado cuando se accede a la sesión
      */
-    async session({ session, token }: { session: any; token: any }) {
+    async session({ session, token }: { session: Session; token: JWT }) {
       // Agregar datos adicionales a la sesión
       if (token) {
-        session.user.id = token.sub!
-        session.user.role = token.role as UserRole
-        session.user.tenantId = token.tenantId as string
-        session.user.tenantName = token.tenantName as string
-        session.user.emailVerified = token.emailVerified as Date | null
+        const extendedSession = session as Session & {
+          user: User & {
+            role: UserRole;
+            tenantId: string;
+            tenantName: string;
+            emailVerified: Date | null;
+          };
+        };
+        extendedSession.user.id = token.sub!
+        extendedSession.user.role = token.role as UserRole
+        extendedSession.user.tenantId = token.tenantId as string
+        extendedSession.user.tenantName = token.tenantName as string
+        extendedSession.user.emailVerified = (token.emailVerified as Date | null | undefined) ?? null
       }
       return session
     },
@@ -198,7 +210,7 @@ export const authOptions: NextAuthOptions = {
 
   // Configuración de eventos para auditoría
   events: {
-    async signIn({ user, account, profile, isNewUser }: { 
+    async signIn({ user, account, profile: _profile, isNewUser: _isNewUser }: { 
       user: User; 
       account: Account | null; 
       profile?: Profile; 

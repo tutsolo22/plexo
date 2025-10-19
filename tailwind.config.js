@@ -17,6 +17,32 @@ module.exports = {
   	},
   	extend: {
   		colors: {
+        // Paleta de colores Plexo
+        plexo: {
+          primary: '#5D38A2',      // Púrpura principal
+          accent: '#B8FF40',       // Verde Volt (CTA y IA)
+          secondary: '#8A817C',    // Gris cálido
+          light: {
+            background: '#F7F7F9',   // Fondo principal (modo claro)
+            card: '#FFFFFF',         // Fondo paneles/tarjetas
+            text: '#242424',         // Texto principal
+            'text-secondary': '#8A817C', // Texto secundario
+            lavender: '#F0EBF9',     // Secundario (etiquetas)
+          },
+          dark: {
+            background: '#19181B',   // Fondo principal (modo oscuro)
+            card: '#262529',         // Fondo paneles/tarjetas
+            text: '#F0F0F0',         // Texto principal
+            'text-secondary': '#A19A93', // Texto secundario
+            lavender: '#A088D1',     // Primario claro
+            purple: '#3E305C',       // Púrpura oscuro (etiquetas)
+          },
+          success: '#28a745',        // Verde éxito (modo claro)
+          'success-dark': '#30C551', // Verde éxito (modo oscuro)
+          error: '#dc3545',          // Rojo error (modo claro)
+          'error-dark': '#F85364',   // Rojo error (modo oscuro)
+        },
+        // Mantener compatibilidad con shadcn/ui
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',

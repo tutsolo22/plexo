@@ -71,7 +71,7 @@ export const GLOBAL_VARIABLES: Record<string, TemplateVariable> = {
   locationName: {
     key: '{{locationName}}',
     description: 'Nombre del local o venue',
-    example: 'Casona María',
+    example: 'Plexo Events',
     category: 'evento'
   },
   
@@ -117,7 +117,7 @@ export const GLOBAL_VARIABLES: Record<string, TemplateVariable> = {
   businessName: {
     key: '{{businessName}}',
     description: 'Nombre de la empresa',
-    example: 'Casona María',
+    example: 'Plexo',
     category: 'empresa'
   },
   businessPhone: {
@@ -129,7 +129,7 @@ export const GLOBAL_VARIABLES: Record<string, TemplateVariable> = {
   businessEmail: {
     key: '{{businessEmail}}',
     description: 'Email de la empresa',
-    example: 'info@casonamaria.com',
+    example: 'info@plexo.app',
     category: 'empresa'
   },
   businessAddress: {

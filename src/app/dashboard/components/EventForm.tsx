@@ -466,15 +466,15 @@ export function EventForm({
               <div className="space-y-2">
                 <Label htmlFor="roomId">Sala</Label>
                 <Select 
-                  value={formData.roomId || ''} 
-                  onValueChange={(value) => handleChange('roomId', value || undefined)}
+                  value={formData.roomId || 'none'} 
+                  onValueChange={(value) => handleChange('roomId', value === 'none' ? undefined : value)}
                   disabled={loadingOptions}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona una sala" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sin sala específica</SelectItem>
+                    <SelectItem value="none">Sin sala específica</SelectItem>
                     {rooms.map((room) => (
                       <SelectItem key={room.id} value={room.id}>
                         {room.name} (Cap: {room.capacity})
@@ -487,15 +487,15 @@ export function EventForm({
               <div className="space-y-2">
                 <Label htmlFor="venueId">Venue</Label>
                 <Select 
-                  value={formData.venueId || ''} 
-                  onValueChange={(value) => handleChange('venueId', value || undefined)}
+                  value={formData.venueId || 'none'} 
+                  onValueChange={(value) => handleChange('venueId', value === 'none' ? undefined : value)}
                   disabled={loadingOptions}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona un venue" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sin venue específico</SelectItem>
+                    <SelectItem value="none">Sin venue específico</SelectItem>
                     {venues.map((venue) => (
                       <SelectItem key={venue.id} value={venue.id}>
                         {venue.name}

@@ -5,6 +5,18 @@
 
 import { NextRequest } from 'next/server'
 import type { Session } from 'next-auth'
+import { LegacyUserRole } from '@prisma/client'
+
+// Extender el tipo Session para las pruebas
+type ExtendedSession = Session & {
+  user: Session['user'] & {
+    id: string
+    role: LegacyUserRole
+    tenantId: string
+    tenantName?: string
+    emailVerified?: Date | null
+  }
+}
 
 // Mock de next-auth
 const mockAuth = jest.fn()
@@ -16,6 +28,9 @@ jest.mock('@/lib/auth', () => ({
   signIn: mockSignIn,
   signOut: mockSignOut
 }))
+
+// Importar después del mock
+import { auth } from '@/lib/auth'
 
 // Mock de Prisma
 const mockPrisma = {
@@ -58,13 +73,15 @@ describe('Auth Configuration', () => {
 
   describe('auth function', () => {
     it('should return session when user is authenticated', async () => {
-      const mockSession: Session = {
+      const mockSession: ExtendedSession = {
         user: {
           id: '1',
           email: 'test@example.com',
           name: 'Test User',
-          role: 'TENANT_ADMIN',
-          tenantId: 'tenant-1'
+          role: LegacyUserRole.TENANT_ADMIN,
+          tenantId: 'tenant-1',
+          tenantName: 'Test Tenant',
+          emailVerified: new Date()
         },
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
       }
@@ -253,10 +270,10 @@ describe('Auth Configuration', () => {
       const request = new NextRequest('http://localhost:3000/dashboard')
       
       // Mock unauthenticated session
-      const mockAuth = auth as jest.MockedFunction<typeof auth>
-      mockAuth.mockResolvedValue(null)
+      const mockedAuth = mockAuth as jest.MockedFunction<typeof auth>
+      mockedAuth.mockResolvedValue(null)
 
-      const session = await auth()
+      const session = await mockAuth()
       
       expect(session).toBeNull()
       // In actual middleware, this would redirect to sign-in
@@ -274,10 +291,10 @@ describe('Auth Configuration', () => {
         }
       }
 
-      const mockAuth = auth as jest.MockedFunction<typeof auth>
-      mockAuth.mockResolvedValue(mockSession)
+      const mockedAuth = mockAuth as jest.MockedFunction<typeof auth>
+      mockedAuth.mockResolvedValue(mockSession)
 
-      const session = await auth()
+      const session = await mockAuth()
       
       expect(session).toEqual(mockSession)
       expect(session?.user?.role).toBe('TENANT_ADMIN')
@@ -303,16 +320,16 @@ describe('Auth Configuration', () => {
       }
 
       // Test admin access
-      const mockAuth = auth as jest.MockedFunction<typeof auth>
-      mockAuth.mockResolvedValueOnce(adminSession)
+      const mockedAuth = mockAuth as jest.MockedFunction<typeof auth>
+      mockedAuth.mockResolvedValueOnce(adminSession)
       
-      let session = await auth()
+      let session = await mockAuth()
       expect(session?.user?.role).toBe('ADMIN')
 
       // Test tenant access
-      mockAuth.mockResolvedValueOnce(tenantSession)
+      mockedAuth.mockResolvedValueOnce(tenantSession)
       
-      session = await auth()
+      session = await mockAuth()
       expect(session?.user?.role).toBe('TENANT_ADMIN')
       expect(session?.user?.tenantId).toBe('tenant-1')
     })

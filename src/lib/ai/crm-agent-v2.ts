@@ -501,7 +501,7 @@ Guías:
 
     try {
       const prompt = `
-Eres un asistente del CRM Casona María. Responde de manera natural basándote en estos resultados:
+Eres un asistente de Plexo. Responde de manera natural basándote en estos resultados:
 
 Consulta: "${query}"
 Resultados: ${JSON.stringify(results, null, 2)}

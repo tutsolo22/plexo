@@ -4,14 +4,18 @@ import { StatsCards } from './components/StatsCards'
 import { QuickActions } from './components/QuickActions'
 import { RecentActivity } from './components/RecentActivity'
 import { LazyAnalyticsDashboard, LazyNotificationSystem, preloadCriticalComponents } from '@/lib/lazy-components'
+import { AIAgent } from '@/components/ai-agent'
 import { useEffect, useState } from 'react'
 
 export default function DashboardPage() {
   const [showAdvancedAnalytics, setShowAdvancedAnalytics] = useState(false);
+  const [isAIMinimized, setIsAIMinimized] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   // Precargar componentes críticos
   useEffect(() => {
     preloadCriticalComponents();
+    setMounted(true);
   }, []);
 
   return (
@@ -57,6 +61,14 @@ export default function DashboardPage() {
           <RecentActivity limit={8} type="all" />
         </div>
       </div>
+
+      {/* AI Agent - Solo renderizar cuando esté montado */}
+      {mounted && (
+        <AIAgent 
+          isMinimized={isAIMinimized} 
+          onToggleMinimize={() => setIsAIMinimized(!isAIMinimized)} 
+        />
+      )}
     </div>
   )
 }

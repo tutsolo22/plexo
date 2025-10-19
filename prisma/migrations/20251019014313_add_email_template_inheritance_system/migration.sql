@@ -1,64 +1,8 @@
-/*
-  Warnings:
-
-  - The values [INDIVIDUAL,CORPORATE,GOVERNMENT,NONPROFIT] on the enum `ClientType` will be removed. If these variants are still used in the database, this will fail.
-  - The values [IN_PROGRESS,COMPLETED] on the enum `EventStatus` will be removed. If these variants are still used in the database, this will fail.
-  - The values [PRODUCT,SERVICE,VENUE,CUSTOM] on the enum `ItemType` will be removed. If these variants are still used in the database, this will fail.
-  - The values [PENDING_APPROVAL,APPROVED,ACCEPTED,REJECTED] on the enum `QuoteStatus` will be removed. If these variants are still used in the database, this will fail.
-  - You are about to drop the column `clientType` on the `clients` table. All the data in the column will be lost.
-  - You are about to drop the column `company` on the `clients` table. All the data in the column will be lost.
-  - You are about to drop the column `createdById` on the `clients` table. All the data in the column will be lost.
-  - You are about to drop the column `confirmedGuests` on the `events` table. All the data in the column will be lost.
-  - You are about to drop the column `createdById` on the `events` table. All the data in the column will be lost.
-  - You are about to drop the column `description` on the `events` table. All the data in the column will be lost.
-  - You are about to drop the column `duration` on the `events` table. All the data in the column will be lost.
-  - You are about to drop the column `eventType` on the `events` table. All the data in the column will be lost.
-  - You are about to drop the column `guestCount` on the `events` table. All the data in the column will be lost.
-  - You are about to drop the column `basePrice` on the `products` table. All the data in the column will be lost.
-  - You are about to drop the column `category` on the `products` table. All the data in the column will be lost.
-  - You are about to drop the column `createdById` on the `quotes` table. All the data in the column will be lost.
-  - You are about to drop the column `number` on the `quotes` table. All the data in the column will be lost.
-  - You are about to drop the column `tax` on the `quotes` table. All the data in the column will be lost.
-  - You are about to drop the column `terms` on the `quotes` table. All the data in the column will be lost.
-  - You are about to alter the column `subtotal` on the `quotes` table. The data in that column could be lost. The data in that column will be cast from `Decimal(65,30)` to `Decimal(10,2)`.
-  - You are about to alter the column `discount` on the `quotes` table. The data in that column could be lost. The data in that column will be cast from `Decimal(65,30)` to `Decimal(10,2)`.
-  - You are about to alter the column `total` on the `quotes` table. The data in that column could be lost. The data in that column will be cast from `Decimal(65,30)` to `Decimal(10,2)`.
-  - You are about to drop the column `basePrice` on the `services` table. All the data in the column will be lost.
-  - You are about to drop the column `category` on the `services` table. All the data in the column will be lost.
-  - The `role` column on the `users` table would be dropped and recreated. This will lead to data loss if there is data in the column.
-  - You are about to drop the column `hourlyRate` on the `venues` table. All the data in the column will be lost.
-  - You are about to drop the column `location` on the `venues` table. All the data in the column will be lost.
-  - You are about to drop the `agent_tools` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `content_embeddings` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `conversation_analytics` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `conversation_messages` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `conversations` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `event_products` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `event_services` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `quote_items` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `sessions` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `verificationtokens` table. If the table is not empty, all the data it contains will be lost.
-  - A unique constraint covering the columns `[userId]` on the table `clients` will be added. If there are existing duplicate values, this will fail.
-  - A unique constraint covering the columns `[email,tenantId]` on the table `clients` will be added. If there are existing duplicate values, this will fail.
-  - A unique constraint covering the columns `[quoteNumber]` on the table `quotes` will be added. If there are existing duplicate values, this will fail.
-  - A unique constraint covering the columns `[publicToken]` on the table `quotes` will be added. If there are existing duplicate values, this will fail.
-  - A unique constraint covering the columns `[eventId]` on the table `quotes` will be added. If there are existing duplicate values, this will fail.
-  - Added the required column `tenantId` to the `clients` table without a default value. This is not possible if the table is not empty.
-  - Made the column `email` on table `clients` required. This step will fail if there are existing NULL values in that column.
-  - Added the required column `tenantId` to the `events` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `price` to the `products` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `tenantId` to the `products` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `quoteNumber` to the `quotes` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `tenantId` to the `quotes` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `price` to the `services` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `tenantId` to the `services` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `tenantId` to the `users` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `tenantId` to the `venues` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `type` to the `venues` table without a default value. This is not possible if the table is not empty.
-
-*/
 -- CreateEnum
 CREATE TYPE "LegacyUserRole" AS ENUM ('SUPER_ADMIN', 'TENANT_ADMIN', 'MANAGER', 'USER', 'CLIENT_EXTERNAL');
+
+-- CreateEnum
+CREATE TYPE "ClientType" AS ENUM ('GENERAL', 'COLABORADOR', 'EXTERNO');
 
 -- CreateEnum
 CREATE TYPE "RoleType" AS ENUM ('SUPER_ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SALES', 'COORDINATOR', 'FINANCE', 'USER', 'CLIENT_EXTERNAL');
@@ -70,6 +14,12 @@ CREATE TYPE "PermissionAction" AS ENUM ('CREATE', 'READ', 'UPDATE', 'DELETE', 'A
 CREATE TYPE "PermissionResource" AS ENUM ('EVENTS', 'CLIENTS', 'QUOTES', 'USERS', 'ROLES', 'REPORTS', 'VENUES', 'PRODUCTS', 'SERVICES', 'PACKAGES', 'CONFIGURATIONS');
 
 -- CreateEnum
+CREATE TYPE "EventStatus" AS ENUM ('RESERVED', 'QUOTED', 'CONFIRMED', 'CANCELLED');
+
+-- CreateEnum
+CREATE TYPE "QuoteStatus" AS ENUM ('DRAFT', 'PENDING_MANAGER', 'REJECTED_BY_MANAGER', 'APPROVED_BY_MANAGER', 'SENT_TO_CLIENT', 'CLIENT_REQUESTED_CHANGES', 'ACCEPTED_BY_CLIENT', 'EXPIRED', 'CANCELLED');
+
+-- CreateEnum
 CREATE TYPE "PriceType" AS ENUM ('GENERAL', 'FRIENDS', 'CORPORATE', 'VIP', 'CUSTOM');
 
 -- CreateEnum
@@ -77,6 +27,9 @@ CREATE TYPE "PackageType" AS ENUM ('BASICO', 'VIP', 'GOLD', 'DIAMANTE');
 
 -- CreateEnum
 CREATE TYPE "SupplierType" AS ENUM ('PRODUCT', 'SERVICE');
+
+-- CreateEnum
+CREATE TYPE "ItemType" AS ENUM ('CONSUMO', 'VENTA');
 
 -- CreateEnum
 CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'APPROVED', 'AUTHORIZED', 'IN_PROCESS', 'IN_MEDIATION', 'REJECTED', 'CANCELLED', 'REFUNDED', 'CHARGED_BACK');
@@ -88,231 +41,16 @@ CREATE TYPE "CommentType" AS ENUM ('INTERNAL_MANAGER', 'CLIENT_FEEDBACK', 'SYSTE
 CREATE TYPE "TemplateType" AS ENUM ('QUOTE', 'CONTRACT', 'INVOICE', 'EMAIL', 'PROPOSAL');
 
 -- CreateEnum
+CREATE TYPE "EmailCategory" AS ENUM ('REGISTRATION', 'PASSWORD_RESET', 'ACTIVATION_REMINDER', 'QUOTE_SEND', 'QUOTE_ACCEPTED', 'EVENT_CONFIRMATION', 'EVENT_REMINDER', 'MARKETING', 'TEST', 'GENERAL');
+
+-- CreateEnum
+CREATE TYPE "EmailTemplateType" AS ENUM ('GLOBAL', 'TENANT_BASE', 'BUSINESS_BASE', 'CUSTOM', 'INHERITED');
+
+-- CreateEnum
 CREATE TYPE "VenueType" AS ENUM ('VENUE', 'ROOM');
 
 -- CreateEnum
 CREATE TYPE "ProductType" AS ENUM ('PRODUCT', 'SERVICE', 'PACKAGE');
-
--- AlterEnum
-BEGIN;
-CREATE TYPE "ClientType_new" AS ENUM ('GENERAL', 'COLABORADOR', 'EXTERNO');
-ALTER TABLE "clients" ALTER COLUMN "clientType" DROP DEFAULT;
-ALTER TABLE "clients" ALTER COLUMN "type" TYPE "ClientType_new" USING ("type"::text::"ClientType_new");
-ALTER TYPE "ClientType" RENAME TO "ClientType_old";
-ALTER TYPE "ClientType_new" RENAME TO "ClientType";
-DROP TYPE "ClientType_old";
-COMMIT;
-
--- AlterEnum
-BEGIN;
-CREATE TYPE "EventStatus_new" AS ENUM ('RESERVED', 'QUOTED', 'CONFIRMED', 'CANCELLED');
-ALTER TABLE "events" ALTER COLUMN "status" DROP DEFAULT;
-ALTER TABLE "events" ALTER COLUMN "status" TYPE "EventStatus_new" USING ("status"::text::"EventStatus_new");
-ALTER TYPE "EventStatus" RENAME TO "EventStatus_old";
-ALTER TYPE "EventStatus_new" RENAME TO "EventStatus";
-DROP TYPE "EventStatus_old";
-ALTER TABLE "events" ALTER COLUMN "status" SET DEFAULT 'RESERVED';
-COMMIT;
-
--- AlterEnum
-BEGIN;
-CREATE TYPE "ItemType_new" AS ENUM ('CONSUMO', 'VENTA');
-ALTER TABLE "products" ALTER COLUMN "itemType" TYPE "ItemType_new" USING ("itemType"::text::"ItemType_new");
-ALTER TABLE "services" ALTER COLUMN "itemType" TYPE "ItemType_new" USING ("itemType"::text::"ItemType_new");
-ALTER TYPE "ItemType" RENAME TO "ItemType_old";
-ALTER TYPE "ItemType_new" RENAME TO "ItemType";
-DROP TYPE "ItemType_old";
-COMMIT;
-
--- AlterEnum
-BEGIN;
-CREATE TYPE "QuoteStatus_new" AS ENUM ('DRAFT', 'PENDING_MANAGER', 'REJECTED_BY_MANAGER', 'APPROVED_BY_MANAGER', 'SENT_TO_CLIENT', 'CLIENT_REQUESTED_CHANGES', 'ACCEPTED_BY_CLIENT', 'EXPIRED', 'CANCELLED');
-ALTER TABLE "quotes" ALTER COLUMN "status" DROP DEFAULT;
-ALTER TABLE "quotes" ALTER COLUMN "status" TYPE "QuoteStatus_new" USING ("status"::text::"QuoteStatus_new");
-ALTER TYPE "QuoteStatus" RENAME TO "QuoteStatus_old";
-ALTER TYPE "QuoteStatus_new" RENAME TO "QuoteStatus";
-DROP TYPE "QuoteStatus_old";
-ALTER TABLE "quotes" ALTER COLUMN "status" SET DEFAULT 'DRAFT';
-COMMIT;
-
--- DropForeignKey
-ALTER TABLE "clients" DROP CONSTRAINT "clients_createdById_fkey";
-
--- DropForeignKey
-ALTER TABLE "conversation_analytics" DROP CONSTRAINT "conversation_analytics_conversationId_fkey";
-
--- DropForeignKey
-ALTER TABLE "conversation_messages" DROP CONSTRAINT "conversation_messages_conversationId_fkey";
-
--- DropForeignKey
-ALTER TABLE "conversations" DROP CONSTRAINT "conversations_userId_fkey";
-
--- DropForeignKey
-ALTER TABLE "event_products" DROP CONSTRAINT "event_products_eventId_fkey";
-
--- DropForeignKey
-ALTER TABLE "event_products" DROP CONSTRAINT "event_products_productId_fkey";
-
--- DropForeignKey
-ALTER TABLE "event_services" DROP CONSTRAINT "event_services_eventId_fkey";
-
--- DropForeignKey
-ALTER TABLE "event_services" DROP CONSTRAINT "event_services_serviceId_fkey";
-
--- DropForeignKey
-ALTER TABLE "events" DROP CONSTRAINT "events_clientId_fkey";
-
--- DropForeignKey
-ALTER TABLE "events" DROP CONSTRAINT "events_createdById_fkey";
-
--- DropForeignKey
-ALTER TABLE "events" DROP CONSTRAINT "events_venueId_fkey";
-
--- DropForeignKey
-ALTER TABLE "quote_items" DROP CONSTRAINT "quote_items_productId_fkey";
-
--- DropForeignKey
-ALTER TABLE "quote_items" DROP CONSTRAINT "quote_items_quoteId_fkey";
-
--- DropForeignKey
-ALTER TABLE "quote_items" DROP CONSTRAINT "quote_items_serviceId_fkey";
-
--- DropForeignKey
-ALTER TABLE "quote_items" DROP CONSTRAINT "quote_items_venueId_fkey";
-
--- DropForeignKey
-ALTER TABLE "quotes" DROP CONSTRAINT "quotes_clientId_fkey";
-
--- DropForeignKey
-ALTER TABLE "quotes" DROP CONSTRAINT "quotes_createdById_fkey";
-
--- DropForeignKey
-ALTER TABLE "sessions" DROP CONSTRAINT "sessions_userId_fkey";
-
--- DropIndex
-DROP INDEX "clients_email_key";
-
--- DropIndex
-DROP INDEX "quotes_number_key";
-
--- AlterTable
-ALTER TABLE "clients" DROP COLUMN "clientType",
-DROP COLUMN "company",
-DROP COLUMN "createdById",
-ADD COLUMN     "discountPercent" DECIMAL(5,2),
-ADD COLUMN     "eventCounter" INTEGER NOT NULL DEFAULT 0,
-ADD COLUMN     "freeEventsTarget" INTEGER,
-ADD COLUMN     "isActive" BOOLEAN NOT NULL DEFAULT true,
-ADD COLUMN     "priceListId" TEXT,
-ADD COLUMN     "tenantId" TEXT NOT NULL,
-ADD COLUMN     "type" "ClientType" NOT NULL DEFAULT 'GENERAL',
-ADD COLUMN     "userId" TEXT,
-ALTER COLUMN "email" SET NOT NULL;
-
--- AlterTable
-ALTER TABLE "events" DROP COLUMN "confirmedGuests",
-DROP COLUMN "createdById",
-DROP COLUMN "description",
-DROP COLUMN "duration",
-DROP COLUMN "eventType",
-DROP COLUMN "guestCount",
-ADD COLUMN     "colorCode" TEXT,
-ADD COLUMN     "isFullVenue" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "masterEventId" TEXT,
-ADD COLUMN     "notes" TEXT,
-ADD COLUMN     "roomId" TEXT,
-ADD COLUMN     "tenantId" TEXT NOT NULL,
-ALTER COLUMN "status" SET DEFAULT 'RESERVED';
-
--- AlterTable
-ALTER TABLE "products" DROP COLUMN "basePrice",
-DROP COLUMN "category",
-ADD COLUMN     "cost" DECIMAL(10,2),
-ADD COLUMN     "itemType" "ItemType" NOT NULL DEFAULT 'VENTA',
-ADD COLUMN     "price" DECIMAL(10,2) NOT NULL,
-ADD COLUMN     "tenantId" TEXT NOT NULL,
-ALTER COLUMN "unit" SET DEFAULT 'pieza';
-
--- AlterTable
-ALTER TABLE "quotes" DROP COLUMN "createdById",
-DROP COLUMN "number",
-DROP COLUMN "tax",
-DROP COLUMN "terms",
-ADD COLUMN     "generatedContent" JSONB,
-ADD COLUMN     "pdfUrl" TEXT,
-ADD COLUMN     "previousVersionId" TEXT,
-ADD COLUMN     "publicToken" TEXT,
-ADD COLUMN     "quoteNumber" TEXT NOT NULL,
-ADD COLUMN     "respondedAt" TIMESTAMP(3),
-ADD COLUMN     "sentAt" TIMESTAMP(3),
-ADD COLUMN     "templateId" TEXT,
-ADD COLUMN     "tenantId" TEXT NOT NULL,
-ADD COLUMN     "version" INTEGER NOT NULL DEFAULT 1,
-ADD COLUMN     "viewedAt" TIMESTAMP(3),
-ALTER COLUMN "subtotal" DROP DEFAULT,
-ALTER COLUMN "subtotal" SET DATA TYPE DECIMAL(10,2),
-ALTER COLUMN "discount" SET DATA TYPE DECIMAL(10,2),
-ALTER COLUMN "total" DROP DEFAULT,
-ALTER COLUMN "total" SET DATA TYPE DECIMAL(10,2);
-
--- AlterTable
-ALTER TABLE "services" DROP COLUMN "basePrice",
-DROP COLUMN "category",
-ADD COLUMN     "itemType" "ItemType" NOT NULL DEFAULT 'VENTA',
-ADD COLUMN     "price" DECIMAL(10,2) NOT NULL,
-ADD COLUMN     "tenantId" TEXT NOT NULL,
-ALTER COLUMN "unit" SET DEFAULT 'servicio';
-
--- AlterTable
-ALTER TABLE "users" ADD COLUMN     "activationCode" TEXT,
-ADD COLUMN     "isActive" BOOLEAN NOT NULL DEFAULT true,
-ADD COLUMN     "isExternal" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "mustChangePassword" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "password" TEXT,
-ADD COLUMN     "tenantId" TEXT NOT NULL,
-DROP COLUMN "role",
-ADD COLUMN     "role" "LegacyUserRole" NOT NULL DEFAULT 'USER';
-
--- AlterTable
-ALTER TABLE "venues" DROP COLUMN "hourlyRate",
-DROP COLUMN "location",
-ADD COLUMN     "imagenes" TEXT[],
-ADD COLUMN     "tenantId" TEXT NOT NULL,
-ADD COLUMN     "type" "VenueType" NOT NULL,
-ALTER COLUMN "capacity" DROP NOT NULL;
-
--- DropTable
-DROP TABLE "agent_tools";
-
--- DropTable
-DROP TABLE "content_embeddings";
-
--- DropTable
-DROP TABLE "conversation_analytics";
-
--- DropTable
-DROP TABLE "conversation_messages";
-
--- DropTable
-DROP TABLE "conversations";
-
--- DropTable
-DROP TABLE "event_products";
-
--- DropTable
-DROP TABLE "event_services";
-
--- DropTable
-DROP TABLE "quote_items";
-
--- DropTable
-DROP TABLE "sessions";
-
--- DropTable
-DROP TABLE "verificationtokens";
-
--- DropEnum
-DROP TYPE "UserRole";
 
 -- CreateTable
 CREATE TABLE "business_identities" (
@@ -349,6 +87,44 @@ CREATE TABLE "locations" (
     "businessIdentityId" TEXT NOT NULL,
 
     CONSTRAINT "locations_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "users" (
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "password" TEXT,
+    "mustChangePassword" BOOLEAN NOT NULL DEFAULT false,
+    "name" TEXT,
+    "role" "LegacyUserRole" NOT NULL DEFAULT 'USER',
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "emailVerified" TIMESTAMP(3),
+    "image" TEXT,
+    "activationCode" TEXT,
+    "isExternal" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "tenantId" TEXT NOT NULL,
+
+    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "accounts" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "provider" TEXT NOT NULL,
+    "providerAccountId" TEXT NOT NULL,
+    "refresh_token" TEXT,
+    "access_token" TEXT,
+    "expires_at" INTEGER,
+    "token_type" TEXT,
+    "scope" TEXT,
+    "id_token" TEXT,
+    "session_state" TEXT,
+
+    CONSTRAINT "accounts_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -505,6 +281,22 @@ CREATE TABLE "package_upgrades" (
 );
 
 -- CreateTable
+CREATE TABLE "venues" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "type" "VenueType" NOT NULL,
+    "capacity" INTEGER,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "imagenes" TEXT[],
+    "tenantId" TEXT NOT NULL,
+
+    CONSTRAINT "venues_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "BotSession" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
@@ -528,22 +320,6 @@ CREATE TABLE "BotMessage" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "BotMessage_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "ai_embeddings" (
-    "id" TEXT NOT NULL,
-    "tenantId" TEXT NOT NULL,
-    "entityId" TEXT NOT NULL,
-    "entityType" TEXT NOT NULL,
-    "content" TEXT NOT NULL,
-    "embedding" vector NOT NULL,
-    "dimensions" INTEGER NOT NULL DEFAULT 768,
-    "metadata" JSONB,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "ai_embeddings_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -579,6 +355,28 @@ CREATE TABLE "supplier_services" (
 );
 
 -- CreateTable
+CREATE TABLE "clients" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "phone" TEXT,
+    "address" TEXT,
+    "type" "ClientType" NOT NULL DEFAULT 'GENERAL',
+    "discountPercent" DECIMAL(5,2),
+    "eventCounter" INTEGER NOT NULL DEFAULT 0,
+    "freeEventsTarget" INTEGER,
+    "notes" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "priceListId" TEXT,
+    "userId" TEXT,
+
+    CONSTRAINT "clients_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "client_credits" (
     "id" TEXT NOT NULL,
     "amount" DECIMAL(10,2) NOT NULL,
@@ -606,6 +404,39 @@ CREATE TABLE "loyalty_points" (
 );
 
 -- CreateTable
+CREATE TABLE "products" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "cost" DECIMAL(10,2),
+    "price" DECIMAL(10,2) NOT NULL,
+    "itemType" "ItemType" NOT NULL DEFAULT 'VENTA',
+    "unit" TEXT NOT NULL DEFAULT 'pieza',
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "tenantId" TEXT NOT NULL,
+
+    CONSTRAINT "products_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "services" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "price" DECIMAL(10,2) NOT NULL,
+    "itemType" "ItemType" NOT NULL DEFAULT 'VENTA',
+    "unit" TEXT NOT NULL DEFAULT 'servicio',
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "tenantId" TEXT NOT NULL,
+
+    CONSTRAINT "services_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "master_events" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -617,6 +448,55 @@ CREATE TABLE "master_events" (
     "tenantId" TEXT NOT NULL,
 
     CONSTRAINT "master_events_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "events" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "startDate" TIMESTAMP(3) NOT NULL,
+    "endDate" TIMESTAMP(3) NOT NULL,
+    "status" "EventStatus" NOT NULL DEFAULT 'RESERVED',
+    "notes" TEXT,
+    "isFullVenue" BOOLEAN NOT NULL DEFAULT false,
+    "colorCode" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "clientId" TEXT NOT NULL,
+    "roomId" TEXT,
+    "venueId" TEXT,
+    "masterEventId" TEXT,
+
+    CONSTRAINT "events_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "quotes" (
+    "id" TEXT NOT NULL,
+    "quoteNumber" TEXT NOT NULL,
+    "status" "QuoteStatus" NOT NULL DEFAULT 'DRAFT',
+    "subtotal" DECIMAL(10,2) NOT NULL,
+    "discount" DECIMAL(10,2) NOT NULL DEFAULT 0,
+    "total" DECIMAL(10,2) NOT NULL,
+    "validUntil" TIMESTAMP(3) NOT NULL,
+    "notes" TEXT,
+    "publicToken" TEXT,
+    "templateId" TEXT,
+    "generatedContent" JSONB,
+    "pdfUrl" TEXT,
+    "version" INTEGER NOT NULL DEFAULT 1,
+    "previousVersionId" TEXT,
+    "sentAt" TIMESTAMP(3),
+    "viewedAt" TIMESTAMP(3),
+    "respondedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "clientId" TEXT NOT NULL,
+    "eventId" TEXT,
+
+    CONSTRAINT "quotes_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -680,6 +560,31 @@ CREATE TABLE "quote_templates" (
     "businessIdentityId" TEXT NOT NULL,
 
     CONSTRAINT "quote_templates_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "email_templates" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "subject" TEXT NOT NULL,
+    "htmlContent" TEXT NOT NULL,
+    "textContent" TEXT,
+    "variables" JSONB,
+    "category" "EmailCategory" NOT NULL,
+    "isDefault" BOOLEAN NOT NULL DEFAULT false,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "parentTemplateId" TEXT,
+    "templateType" "EmailTemplateType" NOT NULL DEFAULT 'CUSTOM',
+    "isGlobal" BOOLEAN NOT NULL DEFAULT false,
+    "inheritanceLevel" INTEGER NOT NULL DEFAULT 0,
+    "metadata" JSONB,
+    "customizations" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "businessIdentityId" TEXT,
+
+    CONSTRAINT "email_templates_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -786,6 +691,12 @@ CREATE INDEX "business_identities_isActive_idx" ON "business_identities"("isActi
 CREATE INDEX "locations_businessIdentityId_idx" ON "locations"("businessIdentityId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "accounts_provider_providerAccountId_key" ON "accounts"("provider", "providerAccountId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "roles_name_key" ON "roles"("name");
 
 -- CreateIndex
@@ -858,16 +769,16 @@ CREATE INDEX "package_template_items_packageTemplateId_idx" ON "package_template
 CREATE INDEX "package_upgrades_packageTemplateId_idx" ON "package_upgrades"("packageTemplateId");
 
 -- CreateIndex
+CREATE INDEX "venues_tenantId_idx" ON "venues"("tenantId");
+
+-- CreateIndex
+CREATE INDEX "venues_isActive_idx" ON "venues"("isActive");
+
+-- CreateIndex
+CREATE INDEX "venues_type_idx" ON "venues"("type");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "BotSession_phone_tenantId_key" ON "BotSession"("phone", "tenantId");
-
--- CreateIndex
-CREATE INDEX "ai_embeddings_tenantId_idx" ON "ai_embeddings"("tenantId");
-
--- CreateIndex
-CREATE INDEX "ai_embeddings_entityType_idx" ON "ai_embeddings"("entityType");
-
--- CreateIndex
-CREATE UNIQUE INDEX "ai_embeddings_entityId_entityType_key" ON "ai_embeddings"("entityId", "entityType");
 
 -- CreateIndex
 CREATE INDEX "supplier_products_supplierId_idx" ON "supplier_products"("supplierId");
@@ -882,6 +793,21 @@ CREATE INDEX "supplier_services_supplierId_idx" ON "supplier_services"("supplier
 CREATE INDEX "supplier_services_serviceId_idx" ON "supplier_services"("serviceId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "clients_userId_key" ON "clients"("userId");
+
+-- CreateIndex
+CREATE INDEX "clients_tenantId_idx" ON "clients"("tenantId");
+
+-- CreateIndex
+CREATE INDEX "clients_type_idx" ON "clients"("type");
+
+-- CreateIndex
+CREATE INDEX "clients_isActive_idx" ON "clients"("isActive");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "clients_email_tenantId_key" ON "clients"("email", "tenantId");
+
+-- CreateIndex
 CREATE INDEX "client_credits_clientId_idx" ON "client_credits"("clientId");
 
 -- CreateIndex
@@ -894,10 +820,58 @@ CREATE INDEX "client_credits_type_idx" ON "client_credits"("type");
 CREATE INDEX "loyalty_points_clientId_idx" ON "loyalty_points"("clientId");
 
 -- CreateIndex
+CREATE INDEX "products_tenantId_idx" ON "products"("tenantId");
+
+-- CreateIndex
+CREATE INDEX "services_tenantId_idx" ON "services"("tenantId");
+
+-- CreateIndex
 CREATE INDEX "master_events_tenantId_idx" ON "master_events"("tenantId");
 
 -- CreateIndex
 CREATE INDEX "master_events_clientId_idx" ON "master_events"("clientId");
+
+-- CreateIndex
+CREATE INDEX "events_tenantId_idx" ON "events"("tenantId");
+
+-- CreateIndex
+CREATE INDEX "events_clientId_idx" ON "events"("clientId");
+
+-- CreateIndex
+CREATE INDEX "events_roomId_idx" ON "events"("roomId");
+
+-- CreateIndex
+CREATE INDEX "events_venueId_idx" ON "events"("venueId");
+
+-- CreateIndex
+CREATE INDEX "events_startDate_idx" ON "events"("startDate");
+
+-- CreateIndex
+CREATE INDEX "events_isFullVenue_idx" ON "events"("isFullVenue");
+
+-- CreateIndex
+CREATE INDEX "events_masterEventId_idx" ON "events"("masterEventId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "quotes_quoteNumber_key" ON "quotes"("quoteNumber");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "quotes_publicToken_key" ON "quotes"("publicToken");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "quotes_eventId_key" ON "quotes"("eventId");
+
+-- CreateIndex
+CREATE INDEX "quotes_tenantId_idx" ON "quotes"("tenantId");
+
+-- CreateIndex
+CREATE INDEX "quotes_clientId_idx" ON "quotes"("clientId");
+
+-- CreateIndex
+CREATE INDEX "quotes_status_idx" ON "quotes"("status");
+
+-- CreateIndex
+CREATE INDEX "quotes_templateId_idx" ON "quotes"("templateId");
 
 -- CreateIndex
 CREATE INDEX "packages_tenantId_idx" ON "packages"("tenantId");
@@ -919,6 +893,27 @@ CREATE INDEX "quote_templates_businessIdentityId_idx" ON "quote_templates"("busi
 
 -- CreateIndex
 CREATE INDEX "quote_templates_type_category_idx" ON "quote_templates"("type", "category");
+
+-- CreateIndex
+CREATE INDEX "email_templates_tenantId_idx" ON "email_templates"("tenantId");
+
+-- CreateIndex
+CREATE INDEX "email_templates_businessIdentityId_idx" ON "email_templates"("businessIdentityId");
+
+-- CreateIndex
+CREATE INDEX "email_templates_category_idx" ON "email_templates"("category");
+
+-- CreateIndex
+CREATE INDEX "email_templates_isDefault_category_idx" ON "email_templates"("isDefault", "category");
+
+-- CreateIndex
+CREATE INDEX "email_templates_parentTemplateId_idx" ON "email_templates"("parentTemplateId");
+
+-- CreateIndex
+CREATE INDEX "email_templates_templateType_isGlobal_idx" ON "email_templates"("templateType", "isGlobal");
+
+-- CreateIndex
+CREATE INDEX "email_templates_inheritanceLevel_idx" ON "email_templates"("inheritanceLevel");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "configurations_tenantId_key_key" ON "configurations"("tenantId", "key");
@@ -968,78 +963,6 @@ CREATE INDEX "payments_mercadoPagoPaymentId_idx" ON "payments"("mercadoPagoPayme
 -- CreateIndex
 CREATE INDEX "payments_status_idx" ON "payments"("status");
 
--- CreateIndex
-CREATE UNIQUE INDEX "clients_userId_key" ON "clients"("userId");
-
--- CreateIndex
-CREATE INDEX "clients_tenantId_idx" ON "clients"("tenantId");
-
--- CreateIndex
-CREATE INDEX "clients_type_idx" ON "clients"("type");
-
--- CreateIndex
-CREATE INDEX "clients_isActive_idx" ON "clients"("isActive");
-
--- CreateIndex
-CREATE UNIQUE INDEX "clients_email_tenantId_key" ON "clients"("email", "tenantId");
-
--- CreateIndex
-CREATE INDEX "events_tenantId_idx" ON "events"("tenantId");
-
--- CreateIndex
-CREATE INDEX "events_clientId_idx" ON "events"("clientId");
-
--- CreateIndex
-CREATE INDEX "events_roomId_idx" ON "events"("roomId");
-
--- CreateIndex
-CREATE INDEX "events_venueId_idx" ON "events"("venueId");
-
--- CreateIndex
-CREATE INDEX "events_startDate_idx" ON "events"("startDate");
-
--- CreateIndex
-CREATE INDEX "events_isFullVenue_idx" ON "events"("isFullVenue");
-
--- CreateIndex
-CREATE INDEX "events_masterEventId_idx" ON "events"("masterEventId");
-
--- CreateIndex
-CREATE INDEX "products_tenantId_idx" ON "products"("tenantId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "quotes_quoteNumber_key" ON "quotes"("quoteNumber");
-
--- CreateIndex
-CREATE UNIQUE INDEX "quotes_publicToken_key" ON "quotes"("publicToken");
-
--- CreateIndex
-CREATE UNIQUE INDEX "quotes_eventId_key" ON "quotes"("eventId");
-
--- CreateIndex
-CREATE INDEX "quotes_tenantId_idx" ON "quotes"("tenantId");
-
--- CreateIndex
-CREATE INDEX "quotes_clientId_idx" ON "quotes"("clientId");
-
--- CreateIndex
-CREATE INDEX "quotes_status_idx" ON "quotes"("status");
-
--- CreateIndex
-CREATE INDEX "quotes_templateId_idx" ON "quotes"("templateId");
-
--- CreateIndex
-CREATE INDEX "services_tenantId_idx" ON "services"("tenantId");
-
--- CreateIndex
-CREATE INDEX "venues_tenantId_idx" ON "venues"("tenantId");
-
--- CreateIndex
-CREATE INDEX "venues_isActive_idx" ON "venues"("isActive");
-
--- CreateIndex
-CREATE INDEX "venues_type_idx" ON "venues"("type");
-
 -- AddForeignKey
 ALTER TABLE "business_identities" ADD CONSTRAINT "business_identities_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -1048,6 +971,9 @@ ALTER TABLE "locations" ADD CONSTRAINT "locations_businessIdentityId_fkey" FOREI
 
 -- AddForeignKey
 ALTER TABLE "users" ADD CONSTRAINT "users_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "accounts" ADD CONSTRAINT "accounts_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "roles" ADD CONSTRAINT "roles_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -1105,9 +1031,6 @@ ALTER TABLE "package_upgrades" ADD CONSTRAINT "package_upgrades_packageTemplateI
 
 -- AddForeignKey
 ALTER TABLE "venues" ADD CONSTRAINT "venues_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "ai_embeddings" ADD CONSTRAINT "ai_embeddings_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "supplier_products" ADD CONSTRAINT "supplier_products_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "suppliers"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -1182,6 +1105,9 @@ ALTER TABLE "quotes" ADD CONSTRAINT "quotes_tenantId_fkey" FOREIGN KEY ("tenantI
 ALTER TABLE "quotes" ADD CONSTRAINT "quotes_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "clients"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "quotes" ADD CONSTRAINT "quotes_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "events"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "packages" ADD CONSTRAINT "packages_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -1210,6 +1136,15 @@ ALTER TABLE "quote_templates" ADD CONSTRAINT "quote_templates_tenantId_fkey" FOR
 
 -- AddForeignKey
 ALTER TABLE "quote_templates" ADD CONSTRAINT "quote_templates_businessIdentityId_fkey" FOREIGN KEY ("businessIdentityId") REFERENCES "business_identities"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "email_templates" ADD CONSTRAINT "email_templates_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "email_templates" ADD CONSTRAINT "email_templates_businessIdentityId_fkey" FOREIGN KEY ("businessIdentityId") REFERENCES "business_identities"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "email_templates" ADD CONSTRAINT "email_templates_parentTemplateId_fkey" FOREIGN KEY ("parentTemplateId") REFERENCES "email_templates"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "configurations" ADD CONSTRAINT "configurations_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE;

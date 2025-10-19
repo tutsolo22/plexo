@@ -110,7 +110,7 @@ export class CRMAgentService {
         },
         {
           role: 'model', 
-          parts: [{ text: 'Entendido. Soy EventBot, tu asistente del CRM Casona María V3.0. ¿En qué puedo ayudarte?' }]
+          parts: [{ text: 'Entendido. Soy EventBot, tu asistente de Plexo V3.0. ¿En qué puedo ayudarte?' }]
         }
       ];
 

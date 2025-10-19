@@ -84,7 +84,7 @@ export default function EventsPage() {
   
   // Filtros
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
@@ -97,7 +97,7 @@ export default function EventsPage() {
       })
 
       if (searchTerm) params.set('search', searchTerm)
-      if (statusFilter) params.set('status', statusFilter)
+      if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
 
       const response = await fetch(`/api/events?${params}`)
       const data = await response.json()
@@ -260,7 +260,7 @@ export default function EventsPage() {
                     <SelectValue placeholder="Filtrar por estado" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos los estados</SelectItem>
+                    <SelectItem value="all">Todos los estados</SelectItem>
                     <SelectItem value="RESERVED">Reservado</SelectItem>
                     <SelectItem value="QUOTED">Cotizado</SelectItem>
                     <SelectItem value="CONFIRMED">Confirmado</SelectItem>

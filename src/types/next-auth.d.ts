@@ -1,21 +1,32 @@
 import { DefaultSession } from "next-auth"
+import { LegacyUserRole } from "@prisma/client"
 
 declare module "next-auth" {
   interface Session {
     user: {
       id: string
-      role: string
+      role: LegacyUserRole
+      tenantId: string
+      tenantName: string
+      emailVerified: Date | null
     } & DefaultSession["user"]
   }
 
   interface User {
-    role: string
+    id: string
+    role: LegacyUserRole
+    tenantId: string
+    tenantName: string
+    emailVerified: Date | null
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    id: string
-    role: string
+    sub?: string
+    role?: LegacyUserRole
+    tenantId?: string
+    tenantName?: string
+    emailVerified?: Date | null
   }
 }

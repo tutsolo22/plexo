@@ -58,10 +58,9 @@ export class RoleManagementService {
       const role = await prisma.role.create({
         data: {
           name: input.name,
-          description: input.description,
+          description: input.description ?? null,
           type: input.type,
           tenantId: input.tenantId,
-          createdById: input.createdById,
           permissions: {
             create: input.permissions.map(p => ({
               action: p.action,
@@ -260,6 +259,7 @@ export class RoleManagementService {
           id: ur.role.id,
           name: ur.role.name,
           type: ur.role.type,
+          isPrimary: true, // TODO: Implementar lógica de rol primario
           assignedAt: ur.assignedAt,
           expiresAt: ur.expiresAt
         })),

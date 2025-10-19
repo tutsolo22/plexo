@@ -258,33 +258,5 @@ export const canEditQuotePrices = (
 
 /**
  * Tipos de TypeScript para sesión extendida
+ * Nota: Las declaraciones de módulo están en src/types/next-auth.d.ts
  */
-declare module 'next-auth' {
-  interface Session {
-    user: {
-      id: string
-      email?: string | null
-      name?: string | null
-      role: UserRole
-      tenantId: string
-      tenantName: string
-      emailVerified?: Date | null
-    }
-  }
-
-  interface User {
-    role: UserRole
-    tenantId: string
-    tenantName: string
-    emailVerified?: Date | null
-  }
-}
-
-declare module 'next-auth/jwt' {
-  interface JWT {
-    role: UserRole
-    tenantId: string
-    tenantName: string
-    emailVerified?: Date | null
-  }
-}

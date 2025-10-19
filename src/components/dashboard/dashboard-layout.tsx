@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import {
   Users,
   Calendar,
@@ -18,6 +19,8 @@ import {
   Layout,
   LucideIcon,
 } from 'lucide-react';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { PlexoLogo } from '@/components/plexo-branding';
 import { Button } from '@/components/ui/button';
 import { Breadcrumbs } from './breadcrumbs';
 import NotificationSystem from '@/components/notifications/NotificationSystem';
@@ -77,7 +80,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
         <nav className='fixed bottom-0 left-0 top-0 flex w-5/6 max-w-sm flex-col bg-white shadow-xl'>
           <div className='flex flex-shrink-0 items-center justify-between border-b px-4 py-4'>
-            <h2 className='text-lg font-semibold text-gray-900'>CRM Casona María</h2>
+            <PlexoLogo />
             <Button variant='ghost' size='sm' onClick={() => setSidebarOpen(false)}>
               <X className='h-5 w-5' />
             </Button>
@@ -119,7 +122,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <p className='truncate text-sm font-medium text-gray-900'>Usuario</p>
                 <p className='truncate text-xs text-gray-500'>usuario@email.com</p>
               </div>
-              <Button variant='ghost' size='sm'>
+              <Button 
+                variant='ghost' 
+                size='sm'
+                onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+                title="Cerrar sesión"
+              >
                 <LogOut className='h-4 w-4' />
               </Button>
             </div>
@@ -131,7 +139,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <div className='hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col'>
         <nav className='flex flex-grow flex-col overflow-y-auto border-r border-gray-200 bg-white pb-4 pt-5'>
           <div className='flex flex-shrink-0 items-center px-4'>
-            <h2 className='text-xl font-bold text-gray-900'>CRM Casona María</h2>
+            <PlexoLogo />
           </div>
 
           <div className='mt-8 flex flex-grow flex-col'>
@@ -166,7 +174,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 <p className='truncate text-sm font-medium text-gray-900'>Usuario</p>
                 <p className='truncate text-xs text-gray-500'>usuario@email.com</p>
               </div>
-              <Button variant='ghost' size='sm'>
+              <Button 
+                variant='ghost' 
+                size='sm'
+                onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+                title="Cerrar sesión"
+              >
                 <LogOut className='h-4 w-4' />
               </Button>
             </div>
@@ -193,6 +206,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
 
             <div className='ml-4 flex items-center gap-2 md:ml-6'>
+              {/* Toggle de tema */}
+              <ThemeToggle />
+              
               {/* Sistema de notificaciones */}
               <NotificationSystem />
               

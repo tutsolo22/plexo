@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PlexoBranding } from "@/components/plexo-branding";
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -26,41 +27,40 @@ export default function Home() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-plexo-light-bg to-plexo-light-bg-secondary dark:from-plexo-dark-bg dark:to-plexo-dark-bg-secondary">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-plexo-primary dark:border-plexo-dark-lavender"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-plexo-light-bg to-plexo-light-bg-secondary dark:from-plexo-dark-bg dark:to-plexo-dark-bg-secondary">
       <div className="max-w-md w-full space-y-8 p-8">
-        <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-primary rounded-full flex items-center justify-center mb-4">
-            <span className="text-2xl font-bold text-primary-foreground">CM</span>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900">Casona María</h1>
-          <p className="mt-2 text-gray-600">Sistema de Gestión de Eventos</p>
-        </div>
+        {/* Branding principal de Plexo */}
+        <PlexoBranding />
 
-        <Card>
+        <Card className="bg-white/80 dark:bg-plexo-dark-surface/80 backdrop-blur-sm border-plexo-light-border dark:border-plexo-dark-border">
           <CardHeader className="text-center">
-            <CardTitle>Bienvenido</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-plexo-primary dark:text-plexo-dark-lavender">Bienvenido</CardTitle>
+            <CardDescription className="text-plexo-secondary dark:text-plexo-dark-text-secondary">
               Inicia sesión para acceder a tu portal personalizado
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Link href="/auth/login" className="block">
-              <Button variant="outline" className="w-full" size="lg">
+              <Button 
+                variant="outline" 
+                className="w-full bg-plexo-primary hover:bg-plexo-primary/90 text-white border-plexo-primary dark:bg-plexo-dark-lavender dark:hover:bg-plexo-dark-lavender/90 dark:border-plexo-dark-lavender" 
+                size="lg"
+              >
                 Iniciar Sesión
               </Button>
             </Link>
           </CardContent>
         </Card>
 
-        <div className="text-center text-sm text-gray-500">
-          <p>© 2024 Casona María. Todos los derechos reservados.</p>
+        <div className="text-center text-sm text-plexo-secondary dark:text-plexo-dark-text-secondary opacity-70">
+          <p>© 2024 Plexo - MATS Hexalux. Todos los derechos reservados.</p>
         </div>
       </div>
     </div>

@@ -1,12 +1,13 @@
 /**
- * CRM Casona María V2.0 - Tipos Básicos
+ * Plexo V3.0 - Tipos Básicos
+ * Tu centro de operaciones para eventos inolvidables
  * 
  * Definiciones de tipos fundamentales para el sistema
  * Documentación completa para manuales técnicos
  * 
- * @author Manuel Antonio Tut Solorzano
- * @version 2.0.0
- * @date 2025-10-07
+ * @author Manuel Antonio Tut Solorzano - MATS Hexalux
+ * @version 3.0.0
+ * @date 2025-10-18
  */
 
 // ===============================

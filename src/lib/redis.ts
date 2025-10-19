@@ -8,13 +8,19 @@
  */
 
 import { createClient, RedisClientType } from 'redis';
+import { Redis } from '@upstash/redis';
 
-// Configuración de Redis
+// Configuración de Redis Local
 const REDIS_URL = process.env['REDIS_URL'] || 'redis://localhost:6380';
 const REDIS_PASSWORD = process.env['REDIS_PASSWORD'];
 
-// Cliente Redis global
+// Configuración de Upstash Redis
+const UPSTASH_REDIS_REST_URL = process.env['UPSTASH_REDIS_REST_URL'];
+const UPSTASH_REDIS_REST_TOKEN = process.env['UPSTASH_REDIS_REST_TOKEN'];
+
+// Clientes Redis globales
 let redisClient: RedisClientType | null = null;
+let upstashClient: Redis | null = null;
 
 /**
  * Crear y configurar cliente Redis
@@ -77,6 +83,141 @@ export async function closeRedisClient(): Promise<void> {
   if (redisClient && redisClient.isOpen) {
     await redisClient.quit();
     redisClient = null;
+  }
+}
+
+/**
+ * Crear y configurar cliente Upstash Redis
+ */
+export function createUpstashClient(): Redis | null {
+  if (upstashClient) {
+    return upstashClient;
+  }
+
+  if (UPSTASH_REDIS_REST_URL && UPSTASH_REDIS_REST_TOKEN) {
+    try {
+      upstashClient = new Redis({
+        url: UPSTASH_REDIS_REST_URL,
+        token: UPSTASH_REDIS_REST_TOKEN,
+      });
+      console.log('✅ Upstash Redis configurado correctamente');
+      return upstashClient;
+    } catch (error) {
+      console.error('Error configurando Upstash Redis:', error);
+      return null;
+    }
+  } else {
+    console.warn('⚠️ Variables de Upstash Redis no configuradas');
+    return null;
+  }
+}
+
+/**
+ * Obtener cliente Redis preferido (Upstash primero, luego local)
+ */
+export function getPreferredRedisClient(): Redis | RedisClientType | null {
+  // Priorizar Upstash Redis si está configurado
+  const upstash = createUpstashClient();
+  if (upstash) {
+    console.log('🚀 Usando Upstash Redis');
+    return upstash;
+  }
+
+  // Fallback a Redis local
+  console.log('🔄 Usando Redis local como fallback');
+  return null; // Será manejado por getRedisClient() cuando sea necesario
+}
+
+/**
+ * Función helper para operaciones de cache que soporta ambos tipos de Redis
+ */
+export async function cacheGet(key: string): Promise<any> {
+  try {
+    const upstash = createUpstashClient();
+    if (upstash) {
+      const result = await upstash.get(key);
+      return result;
+    }
+
+    // Fallback a Redis local
+    const localClient = await getRedisClient();
+    const result = await localClient.get(key);
+    return result ? JSON.parse(result) : null;
+  } catch (error) {
+    console.error('Error al obtener del cache:', error);
+    return null;
+  }
+}
+
+export async function cacheSet(key: string, value: any, ttl?: number): Promise<boolean> {
+  try {
+    const upstash = createUpstashClient();
+    if (upstash) {
+      if (ttl) {
+        await upstash.setex(key, ttl, JSON.stringify(value));
+      } else {
+        await upstash.set(key, JSON.stringify(value));
+      }
+      return true;
+    }
+
+    // Fallback a Redis local
+    const localClient = await getRedisClient();
+    if (ttl) {
+      await localClient.setEx(key, ttl, JSON.stringify(value));
+    } else {
+      await localClient.set(key, JSON.stringify(value));
+    }
+    return true;
+  } catch (error) {
+    console.error('Error al guardar en cache:', error);
+    return false;
+  }
+}
+
+export async function cacheDel(key: string): Promise<boolean> {
+  try {
+    const upstash = createUpstashClient();
+    if (upstash) {
+      await upstash.del(key);
+      return true;
+    }
+
+    // Fallback a Redis local
+    const localClient = await getRedisClient();
+    await localClient.del(key);
+    return true;
+  } catch (error) {
+    console.error('Error al eliminar del cache:', error);
+    return false;
+  }
+}
+
+/**
+ * Función para verificar la conectividad de Upstash Redis
+ */
+export async function testUpstashConnection() {
+  try {
+    const client = createUpstashClient();
+    if (!client) {
+      return { 
+        connected: false, 
+        error: 'Cliente Upstash Redis no configurado' 
+      };
+    }
+    
+    await client.ping();
+    return { 
+      connected: true, 
+      message: 'Conexión a Upstash Redis exitosa',
+      service: 'Upstash'
+    };
+  } catch (error) {
+    return { 
+      connected: false, 
+      error: `Error de conexión Upstash: ${error}`,
+      service: 'Upstash'
+    };
   }
 }
 

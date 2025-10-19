@@ -67,9 +67,9 @@ export async function POST(
       } : undefined,
       // Agregar packages, business info, etc. según tu estructura
       business: {
-        name: 'Casona María',
+        name: 'Plexo',
         phone: '+502 1234-5678',
-        email: 'info@casonamaria.com',
+        email: 'info@plexo.app',
         address: 'Ciudad de Guatemala, Guatemala',
       },
       validUntil: quote.validUntil || new Date(),
