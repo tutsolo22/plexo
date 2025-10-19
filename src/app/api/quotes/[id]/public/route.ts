@@ -1,8 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { QuoteStatus } from '@prisma/client'
 
 interface RouteParams {
   params: { id: string }
+}
+
+interface QuoteWithRelations {
+  id: string
+  quoteNumber: string
+  total: any
+  status: QuoteStatus
+  event?: {
+    title: string
+    startDate: Date
+    endDate: Date
+    client?: {
+      id: string
+      name: string
+      email: string
+      phone: string
+    }
+    venue?: {
+      name: string
+    }
+    room?: {
+      name: string
+      venue: {
+        name: string
+      }
+    }
+  }
+  client?: {
+    id: string
+    name: string
+    email: string
+    phone: string
+  }
+  tenant: {
+    businessIdentities: Array<{
+      id: string
+      name: string
+      email: string
+      phone: string
+      address: string
+    }>
+  }
 }
 
 /**
@@ -40,8 +83,7 @@ export async function GET(
             },
             venue: {
               select: {
-                name: true,
-                address: true
+                name: true
               }
             },
             room: {
@@ -49,8 +91,7 @@ export async function GET(
                 name: true,
                 venue: {
                   select: {
-                    name: true,
-                    address: true
+                    name: true
                   }
                 }
               }
@@ -80,7 +121,7 @@ export async function GET(
           }
         }
       }
-    })
+    }) as QuoteWithRelations | null
 
     if (!quote) {
       return NextResponse.json(
@@ -90,7 +131,7 @@ export async function GET(
     }
 
     // Verificar que la cotización esté aceptada
-    if (quote.status !== 'ACCEPTED') {
+    if (quote.status !== 'ACCEPTED_BY_CLIENT') {
       return NextResponse.json(
         { success: false, error: 'Cotización no aceptada' },
         { status: 400 }
@@ -109,14 +150,8 @@ export async function GET(
     let eventLocation = ''
     if (quote.event?.venue) {
       eventLocation = quote.event.venue.name
-      if (quote.event.venue.address) {
-        eventLocation += ` - ${quote.event.venue.address}`
-      }
     } else if (quote.event?.room?.venue) {
       eventLocation = `${quote.event.room.venue.name} - ${quote.event.room.name}`
-      if (quote.event.room.venue.address) {
-        eventLocation += ` - ${quote.event.room.venue.address}`
-      }
     }
 
     const responseData = {
