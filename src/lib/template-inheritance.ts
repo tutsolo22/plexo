@@ -1,20 +1,20 @@
-import { PrismaClient, EmailTemplate, EmailCategory } from '@prisma/client'
+import { PrismaClient, EmailTemplate, EmailCategory } from '@prisma/client';
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 export interface TemplateInheritanceOptions {
-  tenantId: string
-  businessIdentityId?: string
-  category: EmailCategory
-  createIfNotFound?: boolean
+  tenantId: string;
+  businessIdentityId?: string;
+  category: EmailCategory;
+  createIfNotFound?: boolean;
 }
 
 export interface TemplateCustomization {
-  subject?: string
-  htmlContent?: string
-  textContent?: string
-  variables?: any
-  metadata?: any
+  subject?: string;
+  htmlContent?: string;
+  textContent?: string;
+  variables?: any;
+  metadata?: any;
 }
 
 /**
@@ -24,8 +24,10 @@ export interface TemplateCustomization {
  * 3. Template base del Tenant
  * 4. Template global del sistema
  */
-export async function findBestTemplate(options: TemplateInheritanceOptions): Promise<EmailTemplate | null> {
-  const { tenantId, businessIdentityId, category } = options
+export async function findBestTemplate(
+  options: TemplateInheritanceOptions
+): Promise<EmailTemplate | null> {
+  const { tenantId, businessIdentityId, category } = options;
 
   // 1. Buscar template específico del Business Identity (si se proporciona)
   if (businessIdentityId) {
@@ -35,19 +37,16 @@ export async function findBestTemplate(options: TemplateInheritanceOptions): Pro
         businessIdentityId,
         category,
         isActive: true,
-        templateType: { in: ['CUSTOM', 'INHERITED'] }
+        templateType: { in: ['CUSTOM', 'INHERITED'] },
       },
       include: {
-        parentTemplate: true
+        parentTemplate: true,
       },
-      orderBy: [
-        { isDefault: 'desc' },
-        { updatedAt: 'desc' }
-      ]
-    })
+      orderBy: [{ isDefault: 'desc' }, { updatedAt: 'desc' }],
+    });
 
     if (businessTemplate) {
-      return businessTemplate
+      return businessTemplate;
     }
 
     // 1.5. Buscar template base del Business Identity
@@ -57,15 +56,15 @@ export async function findBestTemplate(options: TemplateInheritanceOptions): Pro
         businessIdentityId,
         category,
         isActive: true,
-        templateType: 'BUSINESS_BASE'
+        templateType: 'BUSINESS_BASE',
       },
       include: {
-        parentTemplate: true
-      }
-    })
+        parentTemplate: true,
+      },
+    });
 
     if (businessBaseTemplate) {
-      return businessBaseTemplate
+      return businessBaseTemplate;
     }
   }
 
@@ -76,15 +75,15 @@ export async function findBestTemplate(options: TemplateInheritanceOptions): Pro
       businessIdentityId: null,
       category,
       isActive: true,
-      templateType: 'TENANT_BASE'
+      templateType: 'TENANT_BASE',
     },
     include: {
-      parentTemplate: true
-    }
-  })
+      parentTemplate: true,
+    },
+  });
 
   if (tenantTemplate) {
-    return tenantTemplate
+    return tenantTemplate;
   }
 
   // 3. Buscar template global del sistema
@@ -93,30 +92,32 @@ export async function findBestTemplate(options: TemplateInheritanceOptions): Pro
       category,
       isActive: true,
       templateType: 'GLOBAL',
-      isGlobal: true
+      isGlobal: true,
     },
     include: {
-      parentTemplate: true
-    }
-  })
+      parentTemplate: true,
+    },
+  });
 
-  return globalTemplate
+  return globalTemplate;
 }
 
 /**
  * Resuelve un template aplicando las personalizaciones de la herencia
  */
-export async function resolveTemplate(template: EmailTemplate & { parentTemplate?: EmailTemplate | null }): Promise<EmailTemplate> {
+export async function resolveTemplate(
+  template: EmailTemplate & { parentTemplate?: EmailTemplate | null }
+): Promise<EmailTemplate> {
   // Si no tiene padre, devolver tal como está
   if (!template.parentTemplateId || !template.parentTemplate) {
-    return template
+    return template;
   }
 
   // Resolver el template padre recursivamente
-  const resolvedParent = await resolveTemplate(template.parentTemplate)
+  const resolvedParent = await resolveTemplate(template.parentTemplate);
 
   // Aplicar personalizaciones del template hijo sobre el padre
-  const customizations = template.customizations as TemplateCustomization | null
+  const customizations = template.customizations as TemplateCustomization | null;
 
   return {
     ...template,
@@ -125,11 +126,11 @@ export async function resolveTemplate(template: EmailTemplate & { parentTemplate
     textContent: customizations?.textContent || resolvedParent.textContent,
     variables: customizations?.variables || resolvedParent.variables,
     metadata: {
-      ...(resolvedParent.metadata as any || {}),
+      ...((resolvedParent.metadata as any) || {}),
       ...(customizations?.metadata || {}),
-      ...(template.metadata as any || {})
-    }
-  }
+      ...((template.metadata as any) || {}),
+    },
+  };
 }
 
 /**
@@ -139,19 +140,19 @@ export async function createInheritedTemplate(
   parentTemplateId: string,
   customizations: TemplateCustomization,
   options: {
-    name: string
-    tenantId: string
-    businessIdentityId?: string
-    isDefault?: boolean
+    name: string;
+    tenantId: string;
+    businessIdentityId?: string;
+    isDefault?: boolean;
   }
 ): Promise<EmailTemplate> {
   // Obtener el template padre
   const parentTemplate = await prisma.emailTemplate.findUnique({
-    where: { id: parentTemplateId }
-  })
+    where: { id: parentTemplateId },
+  });
 
   if (!parentTemplate) {
-    throw new Error('Template padre no encontrado')
+    throw new Error('Template padre no encontrado');
   }
 
   // Crear el template heredado
@@ -169,14 +170,14 @@ export async function createInheritedTemplate(
       parentTemplateId: parentTemplateId,
       customizations: customizations as any,
       tenantId: options.tenantId,
-      businessIdentityId: options.businessIdentityId
+      businessIdentityId: options.businessIdentityId ?? null,
     },
     include: {
-      parentTemplate: true
-    }
-  })
+      parentTemplate: true,
+    },
+  });
 
-  return inheritedTemplate
+  return inheritedTemplate;
 }
 
 /**
@@ -187,60 +188,60 @@ export async function updateTemplateCustomizations(
   customizations: TemplateCustomization
 ): Promise<EmailTemplate> {
   const template = await prisma.emailTemplate.findUnique({
-    where: { id: templateId }
-  })
+    where: { id: templateId },
+  });
 
   if (!template) {
-    throw new Error('Template no encontrado')
+    throw new Error('Template no encontrado');
   }
 
   if (template.templateType !== 'INHERITED') {
-    throw new Error('Solo se pueden actualizar personalizaciones en templates heredados')
+    throw new Error('Solo se pueden actualizar personalizaciones en templates heredados');
   }
 
-  const existingCustomizations = (template.customizations as TemplateCustomization) || {}
+  const existingCustomizations = (template.customizations as TemplateCustomization) || {};
   const mergedCustomizations = {
     ...existingCustomizations,
-    ...customizations
-  }
+    ...customizations,
+  };
 
   return await prisma.emailTemplate.update({
     where: { id: templateId },
     data: {
       customizations: mergedCustomizations,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     },
     include: {
-      parentTemplate: true
-    }
-  })
+      parentTemplate: true,
+    },
+  });
 }
 
 /**
  * Obtiene la jerarquía completa de un template
  */
 export async function getTemplateHierarchy(templateId: string): Promise<EmailTemplate[]> {
-  const hierarchy: EmailTemplate[] = []
-  
+  const hierarchy: EmailTemplate[] = [];
+
   let currentTemplate = await prisma.emailTemplate.findUnique({
     where: { id: templateId },
-    include: { parentTemplate: true }
-  })
+    include: { parentTemplate: true },
+  });
 
   while (currentTemplate) {
-    hierarchy.push(currentTemplate)
-    
+    hierarchy.push(currentTemplate);
+
     if (currentTemplate.parentTemplateId && currentTemplate.parentTemplate) {
       currentTemplate = await prisma.emailTemplate.findUnique({
         where: { id: currentTemplate.parentTemplateId },
-        include: { parentTemplate: true }
-      })
+        include: { parentTemplate: true },
+      });
     } else {
-      break
+      break;
     }
   }
 
-  return hierarchy
+  return hierarchy;
 }
 
 /**
@@ -251,11 +252,11 @@ export async function createBaseTenantTemplates(tenantId: string): Promise<Email
     where: {
       templateType: 'GLOBAL',
       isGlobal: true,
-      isActive: true
-    }
-  })
+      isActive: true,
+    },
+  });
 
-  const tenantTemplates: EmailTemplate[] = []
+  const tenantTemplates: EmailTemplate[] = [];
 
   for (const globalTemplate of globalTemplates) {
     const tenantTemplate = await prisma.emailTemplate.create({
@@ -270,32 +271,32 @@ export async function createBaseTenantTemplates(tenantId: string): Promise<Email
         templateType: 'TENANT_BASE',
         inheritanceLevel: 1,
         parentTemplateId: globalTemplate.id,
-        tenantId: tenantId
-      }
-    })
+        tenantId: tenantId,
+      },
+    });
 
-    tenantTemplates.push(tenantTemplate)
+    tenantTemplates.push(tenantTemplate);
   }
 
-  return tenantTemplates
+  return tenantTemplates;
 }
 
 /**
  * Crea templates base para una nueva business identity
  */
 export async function createBaseBusinessTemplates(
-  tenantId: string, 
+  tenantId: string,
   businessIdentityId: string
 ): Promise<EmailTemplate[]> {
   const tenantTemplates = await prisma.emailTemplate.findMany({
     where: {
       tenantId,
       templateType: 'TENANT_BASE',
-      isActive: true
-    }
-  })
+      isActive: true,
+    },
+  });
 
-  const businessTemplates: EmailTemplate[] = []
+  const businessTemplates: EmailTemplate[] = [];
 
   for (const tenantTemplate of tenantTemplates) {
     const businessTemplate = await prisma.emailTemplate.create({
@@ -311,12 +312,12 @@ export async function createBaseBusinessTemplates(
         inheritanceLevel: 2,
         parentTemplateId: tenantTemplate.id,
         tenantId: tenantId,
-        businessIdentityId: businessIdentityId
-      }
-    })
+        businessIdentityId: businessIdentityId,
+      },
+    });
 
-    businessTemplates.push(businessTemplate)
+    businessTemplates.push(businessTemplate);
   }
 
-  return businessTemplates
+  return businessTemplates;
 }
