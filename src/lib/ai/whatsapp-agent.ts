@@ -115,7 +115,7 @@ export class WhatsAppAgentService {
   ): Promise<WhatsAppResponse> {
     try {
       // 1. Obtener o crear conversación
-      let conversation = await this.getOrCreateConversation(message.from, tenantId);
+      const conversation = await this.getOrCreateConversation(message.from, tenantId);
       
       // 2. Guardar mensaje entrante
       await this.saveMessage(conversation.id, 'user', message.body, {

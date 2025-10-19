@@ -7,7 +7,7 @@ import { ApiResponses } from '@/lib/api/responses';
 export async function GET(req: NextRequest) {
   try {
     // Intentar importar los agentes para ver si hay errores
-    let importStatus = {
+    const importStatus = {
       agentCoordinator: 'not_tested',
       whatsappAgent: 'not_tested',
       crmAgent: 'not_tested'

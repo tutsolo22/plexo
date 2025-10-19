@@ -78,7 +78,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden re-indexar
-    const userRoleType = session.user.role.roleId as $Enums.RoleType;
+    const userRoleType = session.user.role as $Enums.RoleType;
     if (
       userRoleType !== $Enums.RoleType.SUPER_ADMIN &&
       userRoleType !== $Enums.RoleType.TENANT_ADMIN
@@ -156,7 +156,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Solo roles administrativos pueden ver estadísticas
-    const userRoleType = session.user.role.roleId as $Enums.RoleType;
+    const userRoleType = session.user.role as $Enums.RoleType;
     if (
       userRoleType !== $Enums.RoleType.SUPER_ADMIN &&
       userRoleType !== $Enums.RoleType.TENANT_ADMIN &&

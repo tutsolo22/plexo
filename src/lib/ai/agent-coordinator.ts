@@ -61,7 +61,7 @@ export class AgentCoordinatorService {
     try {
       // 1. Obtener o crear contexto de coordinación
       const coordinationKey = `${message.from}_${tenantId}`;
-      let coordination = this.getOrCreateCoordination(coordinationKey, message.from, tenantId);
+      const coordination = this.getOrCreateCoordination(coordinationKey, message.from, tenantId);
 
       // 2. Decidir qué agente debe manejar el mensaje
       const agentDecision = await this.decideAgent(message, coordination);

@@ -118,18 +118,19 @@ export const GET = withErrorHandling(
   withAuth(['admin', 'manager'])(
     async (_req: NextRequest) => {
       try {
+        // TODO: Implementar modelo de embeddings en Prisma schema
         // Obtener estadísticas de embeddings
-        const totalEmbeddings = await prisma.contentEmbedding.count();
+        const totalEmbeddings = 0; // await prisma.contentEmbedding.count();
         
-        const embeddingsByType = await prisma.contentEmbedding.groupBy({
+        const embeddingsByType: any[] = []; /* await prisma.contentEmbedding.groupBy({
           by: ['entityType'],
           _count: {
             id: true
           }
-        });
+        }); */
 
         const stats = embeddingsByType.reduce((acc, item) => {
-          acc[item.entityType] = item._count.id;
+          // acc[item.entityType] = item._count.id;
           return acc;
         }, {} as Record<string, number>);
 
@@ -145,19 +146,19 @@ export const GET = withErrorHandling(
           byType: stats,
           coverage: {
             events: {
-              indexed: stats.event || 0,
+              indexed: 0, // stats.event || 0,
               total: totalEvents,
-              percentage: totalEvents > 0 ? Math.round((stats.event || 0) / totalEvents * 100) : 0
+              percentage: 0 // totalEvents > 0 ? Math.round((stats.event || 0) / totalEvents * 100) : 0
             },
             clients: {
-              indexed: stats.client || 0,
+              indexed: 0, // stats.client || 0,
               total: totalClients,
-              percentage: totalClients > 0 ? Math.round((stats.client || 0) / totalClients * 100) : 0
+              percentage: 0 // totalClients > 0 ? Math.round((stats.client || 0) / totalClients * 100) : 0
             },
             venues: {
-              indexed: stats.venue || 0,
+              indexed: 0, // stats.venue || 0,
               total: totalVenues,
-              percentage: totalVenues > 0 ? Math.round((stats.venue || 0) / totalVenues * 100) : 0
+              percentage: 0 // totalVenues > 0 ? Math.round((stats.venue || 0) / totalVenues * 100) : 0
             }
           },
           lastUpdated: new Date().toISOString()

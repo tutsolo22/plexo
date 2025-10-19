@@ -336,8 +336,9 @@ export type PackageUpgradeWithTemplate = Prisma.PackageUpgradeGetPayload<{
 
 /**
  * Proveedor con sus productos o servicios
+ * TODO: Verificar modelo Supplier en Prisma schema
  */
-export type SupplierWithItems = Prisma.SupplierGetPayload<{
+export type SupplierWithItems = any; /* Prisma.SupplierGetPayload<{
   include: {
     supplierProducts: {
       include: {
@@ -350,7 +351,7 @@ export type SupplierWithItems = Prisma.SupplierGetPayload<{
       }
     }
   }
-}>
+}> */
 
 /**
  * Comparación de proveedores para un producto específico

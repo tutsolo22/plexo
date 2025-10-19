@@ -245,7 +245,7 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      let subtotal = 0
+      const subtotal = 0
 
       // Procesar paquetes si existen
       // NOTA: Funcionalidad desactivada temporalmente - problemas con schema de Package

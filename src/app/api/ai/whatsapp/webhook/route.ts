@@ -80,7 +80,7 @@ async function whatsappWebhookHandler(req: NextRequest) {
     }
 
     // Intentar parsear como webhook oficial de WhatsApp
-    let messages: any[] = [];
+    const messages: any[] = [];
     let tenantId = 'default'; // Se puede obtener del phone_number_id mapeado a tenant
 
     try {

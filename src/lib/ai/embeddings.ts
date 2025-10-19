@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 
 // Configuración del cliente OpenAI
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env['OPENAI_API_KEY'],
 });
 
 export interface EmbeddingResult {
@@ -21,7 +21,7 @@ export interface SearchResult {
 export class EmbeddingService {
   private model: string;
 
-  constructor(model = process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small') {
+  constructor(model = process.env['OPENAI_EMBEDDING_MODEL'] || 'text-embedding-3-small') {
     this.model = model;
   }
 
@@ -37,7 +37,7 @@ export class EmbeddingService {
       });
 
       return {
-        embedding: response.data[0].embedding,
+        embedding: response.data[0]?.embedding || [],
         tokens: response.usage.total_tokens,
       };
     } catch (error) {

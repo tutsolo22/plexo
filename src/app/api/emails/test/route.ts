@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Compilar plantilla
-    const htmlContent = renderEmailTemplate(template, templateData);
+    const htmlContent = renderEmailTemplate(template, templateData as any);
 
     // Crear instancia temporal del servicio con configuración personalizada
     const testEmailService = emailService;

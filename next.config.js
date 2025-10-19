@@ -3,6 +3,14 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client'],
   },
+  eslint: {
+    // Solo durante el build de producción, ignorar warnings
+    ignoreDuringBuilds: false,
+  },
+  typescript: {
+    // Solo durante el build de producción, ignorar errores de TypeScript no críticos
+    ignoreBuildErrors: false,
+  },
   images: {
     domains: ['localhost'],
     formats: ['image/avif', 'image/webp'],

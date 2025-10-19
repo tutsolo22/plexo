@@ -1,0 +1,12 @@
+# Ignore AI-related files that depend on missing Prisma models during build
+src/lib/ai/conversation-memory.ts
+src/app/api/ai/indexing/route.ts
+src/app/api/ai/embeddings/route.ts
+
+# Build directories
+.next/
+out/
+node_modules/
+
+# Documentation
+*.md

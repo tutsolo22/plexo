@@ -93,7 +93,7 @@ export async function POST(
     }
 
     // Verificar cliente destino
-    let targetClientId = validatedData.clientId || originalQuote.clientId;
+    const targetClientId = validatedData.clientId || originalQuote.clientId;
     if (validatedData.clientId && validatedData.clientId !== originalQuote.clientId) {
       const targetClient = await prisma.client.findUnique({
         where: { id: validatedData.clientId },
