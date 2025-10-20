@@ -1,12 +1,10 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { prisma } from '@/lib/prisma';
 import { crmAgentService } from './crm-agent';
-import { ConversationMemoryService } from './conversation-memory';
-import { SYSTEM_PROMPTS, RESPONSE_TEMPLATES } from './prompt-templates';
+import { RESPONSE_TEMPLATES } from './prompt-templates';
 
 // Inicializar Gemini AI
-const genAI = new GoogleGenerativeAI(process.env["GOOGLE_AI_API_KEY"] || '');
-const conversationMemory = new ConversationMemoryService();
+const genAI = new GoogleGenerativeAI(process.env['GOOGLE_AI_API_KEY'] || '');
 
 // ===============================
 // TIPOS E INTERFACES
@@ -34,12 +32,14 @@ export interface WhatsAppConversation {
 
 export interface ConversationContext {
   currentIntent?: string;
-  userData?: {
-    name?: string;
-    email?: string | undefined;
-    clientId?: string;
-    isExistingClient?: boolean;
-  } | undefined;
+  userData?:
+    | {
+        name?: string;
+        email?: string | undefined;
+        clientId?: string;
+        isExistingClient?: boolean;
+      }
+    | undefined;
   conversationState: ConversationState;
   sessionData: Record<string, any>;
   escalationLevel: 'low' | 'medium' | 'high';
@@ -95,14 +95,14 @@ export class WhatsAppAgentService {
   private conversationTimeout = 30 * 60 * 1000; // 30 minutos
 
   constructor() {
-    this.model = genAI.getGenerativeModel({ 
+    this.model = genAI.getGenerativeModel({
       model: 'gemini-1.5-flash',
       generationConfig: {
         temperature: 0.8,
         topK: 40,
         topP: 0.9,
         maxOutputTokens: 1024,
-      }
+      },
     });
   }
 
@@ -116,19 +116,16 @@ export class WhatsAppAgentService {
     try {
       // 1. Obtener o crear conversación
       const conversation = await this.getOrCreateConversation(message.from, tenantId);
-      
+
       // 2. Guardar mensaje entrante
       await this.saveMessage(conversation.id, 'user', message.body, {
         messageId: message.id,
         messageType: message.type,
-        mediaUrl: message.mediaUrl
+        mediaUrl: message.mediaUrl,
       });
 
       // 3. Analizar intención del mensaje
-      const intentAnalysis = await this.analyzeIntent(
-        message.body, 
-        conversation.context
-      );
+      const intentAnalysis = await this.analyzeIntent(message.body, conversation.context);
 
       // 4. Actualizar contexto de conversación
       conversation.context = await this.updateConversationContext(
@@ -139,12 +136,7 @@ export class WhatsAppAgentService {
 
       // 5. Decidir si escalar al CRMAgent
       if (this.shouldEscalateToAgent(intentAnalysis, conversation.context)) {
-        return await this.escalateToAgent(
-          message.body,
-          conversation,
-          tenantId,
-          intentAnalysis
-        );
+        return await this.escalateToAgent(message.body, conversation, tenantId, intentAnalysis);
       }
 
       // 6. Generar respuesta contextual
@@ -160,16 +152,15 @@ export class WhatsAppAgentService {
 
       return {
         ...response,
-        conversationId: conversation.id
+        conversationId: conversation.id,
       };
-
     } catch (error) {
       console.error('Error procesando mensaje de WhatsApp:', error);
       return {
         message: RESPONSE_TEMPLATES.ERROR,
         messageType: 'text',
         shouldEscalate: false,
-        conversationId: ''
+        conversationId: '',
       };
     }
   }
@@ -229,7 +220,7 @@ RESPONDE EN FORMATO JSON:
     try {
       const result = await this.model.generateContent(intentPrompt);
       const response = result.response.text();
-      
+
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const analysis = JSON.parse(jsonMatch[0]);
@@ -240,7 +231,7 @@ RESPONDE EN FORMATO JSON:
           requiredInfo: analysis.requiredInfo || [],
           suggestedResponse: analysis.suggestedResponse || '',
           needsEscalation: analysis.needsEscalation || false,
-          escalationReason: analysis.escalationReason
+          escalationReason: analysis.escalationReason,
         };
       }
     } catch (error) {
@@ -253,8 +244,9 @@ RESPONDE EN FORMATO JSON:
       confidence: 30,
       entities: [],
       requiredInfo: [],
-      suggestedResponse: 'Entiendo que tienes una consulta. ¿Podrías ser más específico sobre lo que necesitas?',
-      needsEscalation: false
+      suggestedResponse:
+        'Entiendo que tienes una consulta. ¿Podrías ser más específico sobre lo que necesitas?',
+      needsEscalation: false,
     };
   }
 
@@ -270,9 +262,9 @@ RESPONDE EN FORMATO JSON:
       const existingConversation = await prisma.botMessage.findFirst({
         where: {
           phone,
-          tenantId
+          tenantId,
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
       });
 
       if (existingConversation) {
@@ -285,7 +277,7 @@ RESPONDE EN FORMATO JSON:
             tenantId,
             status: 'active',
             context: await this.loadConversationContext(phone, tenantId),
-            lastActivity: existingConversation.createdAt
+            lastActivity: existingConversation.createdAt,
           };
         }
       }
@@ -300,17 +292,16 @@ RESPONDE EN FORMATO JSON:
           conversationState: {
             phase: 'greeting',
             retryCount: 0,
-            lastIntentConfidence: 0
+            lastIntentConfidence: 0,
           },
           sessionData: {},
-          escalationLevel: 'low'
+          escalationLevel: 'low',
         },
-        lastActivity: new Date()
+        lastActivity: new Date(),
       };
 
       await this.saveConversationContext(newConversation);
       return newConversation;
-
     } catch (error) {
       console.error('Error obteniendo/creando conversación:', error);
       throw new Error('Failed to get or create conversation');
@@ -329,46 +320,47 @@ RESPONDE EN FORMATO JSON:
       const recentMessages = await prisma.botMessage.findMany({
         where: {
           phone,
-          tenantId
+          tenantId,
         },
         orderBy: { createdAt: 'desc' },
-        take: 10
+        take: 10,
       });
 
       // Buscar cliente existente por teléfono
       const existingClient = await prisma.client.findFirst({
         where: {
           tenantId,
-          phone: { contains: phone.replace(/\D/g, '') } // Solo números
-        }
+          phone: { contains: phone.replace(/\D/g, '') }, // Solo números
+        },
       });
 
       return {
         conversationState: {
           phase: recentMessages.length > 0 ? 'processing_request' : 'greeting',
           retryCount: 0,
-          lastIntentConfidence: 70
+          lastIntentConfidence: 70,
         },
-        userData: existingClient ? {
-          name: existingClient.name,
-          email: existingClient.email || undefined,
-          clientId: existingClient.id,
-          isExistingClient: true
-        } : undefined,
+        userData: existingClient
+          ? {
+              name: existingClient.name,
+              email: existingClient.email || undefined,
+              clientId: existingClient.id,
+              isExistingClient: true,
+            }
+          : undefined,
         sessionData: {},
-        escalationLevel: 'low'
+        escalationLevel: 'low',
       };
-
     } catch (error) {
       console.error('Error cargando contexto:', error);
       return {
         conversationState: {
           phase: 'greeting',
           retryCount: 0,
-          lastIntentConfidence: 0
+          lastIntentConfidence: 0,
         },
         sessionData: {},
-        escalationLevel: 'low'
+        escalationLevel: 'low',
       };
     }
   }
@@ -379,7 +371,7 @@ RESPONDE EN FORMATO JSON:
   private async updateConversationContext(
     context: ConversationContext,
     intentAnalysis: IntentAnalysis,
-    userMessage: string
+    _userMessage: string
   ): Promise<ConversationContext> {
     // Actualizar intención actual
     context.currentIntent = intentAnalysis.intent;
@@ -388,7 +380,7 @@ RESPONDE EN FORMATO JSON:
     // Extraer y actualizar datos del usuario de las entidades
     intentAnalysis.entities.forEach(entity => {
       if (!context.userData) context.userData = {};
-      
+
       switch (entity.type) {
         case 'name':
           context.userData.name = entity.value;
@@ -412,10 +404,7 @@ RESPONDE EN FORMATO JSON:
     });
 
     // Actualizar fase de conversación
-    context.conversationState = this.calculateNextPhase(
-      context.conversationState,
-      intentAnalysis
-    );
+    context.conversationState = this.calculateNextPhase(context.conversationState, intentAnalysis);
 
     // Actualizar nivel de escalación
     if (intentAnalysis.needsEscalation || intentAnalysis.confidence < 40) {
@@ -433,23 +422,23 @@ RESPONDE EN FORMATO JSON:
     intentAnalysis: IntentAnalysis
   ): ConversationState {
     const newState = { ...currentState };
-    
+
     switch (intentAnalysis.intent) {
       case 'saludo':
         newState.phase = 'greeting';
         break;
-        
+
       case 'solicitar_cotizacion':
         newState.phase = 'gathering_info';
         newState.expectedInput = 'event_details';
         break;
-        
+
       case 'consulta_evento':
       case 'consulta_servicios':
       case 'consulta_disponibilidad':
         newState.phase = 'processing_request';
         break;
-        
+
       default:
         if (intentAnalysis.needsEscalation) {
           newState.phase = 'escalated';
@@ -478,11 +467,11 @@ RESPONDE EN FORMATO JSON:
     // Escalamiento por intenciones complejas
     const complexIntents = [
       'solicitar_cotizacion',
-      'modificar_evento', 
+      'modificar_evento',
       'cancelar_evento',
-      'consulta_disponibilidad'
+      'consulta_disponibilidad',
     ];
-    
+
     if (complexIntents.includes(intentAnalysis.intent)) {
       return true;
     }
@@ -512,7 +501,7 @@ RESPONDE EN FORMATO JSON:
     try {
       // Preparar contexto para el CRMAgent
       const crmContext = this.prepareCRMContext(conversation.context, message);
-      
+
       // Llamar al CRMAgent
       const crmResponse = await crmAgentService.processMessage(
         message,
@@ -530,18 +519,19 @@ RESPONDE EN FORMATO JSON:
         message: crmResponse.message,
         messageType: 'text',
         shouldEscalate: true,
-        escalationReason: intentAnalysis.escalationReason || 'Consulta compleja que requiere agente especializado',
-        conversationId: conversation.id
+        escalationReason:
+          intentAnalysis.escalationReason || 'Consulta compleja que requiere agente especializado',
+        conversationId: conversation.id,
       };
-
     } catch (error) {
       console.error('Error escalando a CRMAgent:', error);
       return {
-        message: 'Entiendo que necesitas ayuda especializada. Un momento mientras conecto con nuestro sistema de gestión...',
+        message:
+          'Entiendo que necesitas ayuda especializada. Un momento mientras conecto con nuestro sistema de gestión...',
         messageType: 'text',
         shouldEscalate: true,
         escalationReason: 'Error en escalamiento',
-        conversationId: conversation.id
+        conversationId: conversation.id,
       };
     }
   }
@@ -549,39 +539,44 @@ RESPONDE EN FORMATO JSON:
   /**
    * Prepara el contexto para el CRMAgent
    */
-  private prepareCRMContext(
-    whatsappContext: ConversationContext,
-    currentMessage: string
-  ): any[] {
+  private prepareCRMContext(whatsappContext: ConversationContext, _currentMessage: string): any[] {
     const context = [];
-    
+
     // Agregar información del usuario si está disponible
     if (whatsappContext.userData?.name) {
       context.push({
         role: 'user',
-        parts: [{ text: `Mi nombre es ${whatsappContext.userData.name}` }]
+        parts: [{ text: `Mi nombre es ${whatsappContext.userData.name}` }],
       });
     }
 
     // Agregar información de sesión relevante
     if (whatsappContext.sessionData['eventType']) {
       context.push({
-        role: 'user', 
-        parts: [{ text: `Estoy interesado en un evento de tipo: ${whatsappContext.sessionData['eventType']}` }]
+        role: 'user',
+        parts: [
+          {
+            text: `Estoy interesado en un evento de tipo: ${whatsappContext.sessionData['eventType']}`,
+          },
+        ],
       });
     }
 
     if (whatsappContext.sessionData['guestCount']) {
       context.push({
         role: 'user',
-        parts: [{ text: `Para aproximadamente ${whatsappContext.sessionData['guestCount']} personas` }]
+        parts: [
+          { text: `Para aproximadamente ${whatsappContext.sessionData['guestCount']} personas` },
+        ],
       });
     }
 
     if (whatsappContext.sessionData['budget']) {
       context.push({
         role: 'user',
-        parts: [{ text: `Mi presupuesto aproximado es de $${whatsappContext.sessionData['budget']}` }]
+        parts: [
+          { text: `Mi presupuesto aproximado es de $${whatsappContext.sessionData['budget']}` },
+        ],
       });
     }
 
@@ -636,7 +631,7 @@ RESPONDE EN FORMATO JSON:
     try {
       const result = await this.model.generateContent(responsePrompt);
       const response = result.response.text();
-      
+
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const aiResponse = JSON.parse(jsonMatch[0]);
@@ -646,7 +641,7 @@ RESPONDE EN FORMATO JSON:
           actions: aiResponse.actions || [],
           shouldEscalate: false,
           conversationId: '',
-          nextExpectedInput: aiResponse.nextExpectedInput
+          nextExpectedInput: aiResponse.nextExpectedInput,
         };
       }
     } catch (error) {
@@ -655,10 +650,11 @@ RESPONDE EN FORMATO JSON:
 
     // Respuesta de fallback
     return {
-      message: intentAnalysis.suggestedResponse || 'Gracias por tu mensaje. ¿En qué puedo ayudarte hoy?',
+      message:
+        intentAnalysis.suggestedResponse || 'Gracias por tu mensaje. ¿En qué puedo ayudarte hoy?',
       messageType: 'text',
       shouldEscalate: false,
-      conversationId: ''
+      conversationId: '',
     };
   }
 
@@ -669,7 +665,7 @@ RESPONDE EN FORMATO JSON:
     conversationId: string,
     role: 'user' | 'assistant',
     content: string,
-    metadata?: Record<string, any>
+    _metadata?: Record<string, any>
   ): Promise<void> {
     try {
       // Extraer información del conversationId
@@ -687,8 +683,8 @@ RESPONDE EN FORMATO JSON:
           tenantId,
           phone,
           direction: role === 'user' ? 'in' : 'out',
-          text: content
-        }
+          text: content,
+        },
       });
     } catch (error) {
       console.error('Error guardando mensaje:', error);
@@ -720,8 +716,8 @@ RESPONDE EN FORMATO JSON:
           tenantId,
           phone,
           direction: 'out',
-          text: `[SYSTEM] Context updated: ${JSON.stringify(context.conversationState)}`
-        }
+          text: `[SYSTEM] Context updated: ${JSON.stringify(context.conversationState)}`,
+        },
       });
     } catch (error) {
       console.error('Error actualizando estado de conversación:', error);
@@ -731,9 +727,7 @@ RESPONDE EN FORMATO JSON:
   /**
    * Guarda el contexto completo de la conversación
    */
-  private async saveConversationContext(
-    conversation: WhatsAppConversation
-  ): Promise<void> {
+  private async saveConversationContext(conversation: WhatsAppConversation): Promise<void> {
     try {
       // Implementación simplificada usando BotMessage
       await prisma.botMessage.create({
@@ -741,8 +735,8 @@ RESPONDE EN FORMATO JSON:
           tenantId: conversation.tenantId,
           phone: conversation.phone,
           direction: 'out',
-          text: `[SYSTEM] Conversation started: ${JSON.stringify(conversation.context)}`
-        }
+          text: `[SYSTEM] Conversation started: ${JSON.stringify(conversation.context)}`,
+        },
       });
     } catch (error) {
       console.error('Error guardando contexto de conversación:', error);
@@ -761,10 +755,10 @@ RESPONDE EN FORMATO JSON:
       const messages = await prisma.botMessage.findMany({
         where: {
           phone,
-          tenantId
+          tenantId,
         },
         orderBy: { createdAt: 'desc' },
-        take: limit
+        take: limit,
       });
 
       return messages.reverse().map(msg => ({
@@ -773,9 +767,8 @@ RESPONDE EN FORMATO JSON:
         to: msg.direction === 'in' ? 'assistant' : phone,
         body: msg.text || '',
         timestamp: msg.createdAt,
-        type: 'text'
+        type: 'text',
       }));
-
     } catch (error) {
       console.error('Error obteniendo historial:', error);
       return [];
@@ -785,10 +778,7 @@ RESPONDE EN FORMATO JSON:
   /**
    * Marca una conversación como cerrada
    */
-  async closeConversation(
-    conversationId: string,
-    reason = 'completed'
-  ): Promise<void> {
+  async closeConversation(conversationId: string, reason = 'completed'): Promise<void> {
     try {
       const parts = conversationId.split('_');
       const phone = parts[1];
@@ -804,8 +794,8 @@ RESPONDE EN FORMATO JSON:
           tenantId,
           phone,
           direction: 'out',
-          text: `[SYSTEM] Conversation closed: ${reason}`
-        }
+          text: `[SYSTEM] Conversation closed: ${reason}`,
+        },
       });
     } catch (error) {
       console.error('Error cerrando conversación:', error);

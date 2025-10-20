@@ -33,7 +33,7 @@ async function crmChatHandler(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { message, conversationId, sessionId, userId, platform, userPhone } =
+    const { message, conversationId, sessionId, platform, userPhone } =
       crmChatRequestSchema.parse(body);
 
     // Usar sessionId como conversationId si no se proporciona conversationId
@@ -127,15 +127,11 @@ async function getCrmConversationHandler(req: NextRequest) {
       return ApiResponses.badRequest('conversationId es requerido');
     }
 
-    const messages = await conversationMemoryService.getConversationContext(
-      conversationId,
-      limit
-    );
+    const messages = await conversationMemoryService.getConversationContext(conversationId, limit);
 
     // Filtrar solo mensajes de CRM agent
-    const crmMessages = messages.filter(msg => 
-      msg.metadata?.agent === 'crm-agent-v2' || 
-      !msg.metadata?.agent // Mensajes de usuario
+    const crmMessages = messages.filter(
+      msg => msg.metadata?.agent === 'crm-agent-v2' || !msg.metadata?.agent // Mensajes de usuario
     );
 
     return ApiResponses.success({
@@ -191,9 +187,7 @@ async function deleteCrmConversationHandler(req: NextRequest) {
 }
 
 // POST - Enviar mensaje al CRM Agent específicamente
-export const POST = withErrorHandling(
-  withValidation(crmChatRequestSchema)(crmChatHandler)
-);
+export const POST = withErrorHandling(withValidation(crmChatRequestSchema)(crmChatHandler));
 
 // GET - Obtener historial de conversación CRM
 export const GET = withErrorHandling(getCrmConversationHandler);

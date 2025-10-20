@@ -1,5 +1,5 @@
 // Tipos compartidos para el sistema de IA
-import { Client, Event, Quote, Product, EventStatus, QuoteStatus, ClientType } from '@prisma/client';
+import { EventStatus, QuoteStatus, ClientType } from '@prisma/client';
 
 // ===============================
 // TIPOS PRINCIPALES
@@ -163,8 +163,16 @@ export interface EventSuggestion {
 // ===============================
 
 export interface WhatsAppIntentClassification {
-  intent: 'greeting' | 'event_inquiry' | 'quote_request' | 'availability_check' | 
-          'service_info' | 'modify_event' | 'cancel_event' | 'general_question' | 'goodbye';
+  intent:
+    | 'greeting'
+    | 'event_inquiry'
+    | 'quote_request'
+    | 'availability_check'
+    | 'service_info'
+    | 'modify_event'
+    | 'cancel_event'
+    | 'general_question'
+    | 'goodbye';
   confidence: number;
   entities: WhatsAppEntity[];
   needsCRMAgent: boolean;

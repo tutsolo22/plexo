@@ -8,14 +8,7 @@
     "email": "soporteapps@hexalux.mx",
     "company": "MATS Hexalux"
   },
-  "keywords": [
-    "gestión de eventos",
-    "reservas",
-    "cotizaciones",
-    "calendario",
-    "next.js",
-    "typescript"
-  ],
+  "keywords": ["gestión de eventos", "reservas", "cotizaciones", "calendario", "next.js", "typescript"],
   "scripts": {
     "dev": "next dev --port 3200",
     "build": "next build",
@@ -56,7 +49,7 @@
     "@fullcalendar/timegrid": "^6.1.19",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.3.2",
-    "@prisma/client": "^5.6.0",
+    "@prisma/client": "^6.17.1",
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-alert-dialog": "^1.0.5",
     "@radix-ui/react-avatar": "^1.0.4",
@@ -153,7 +146,7 @@
     "postcss": "^8.4.31",
     "prettier": "^3.0.3",
     "prettier-plugin-tailwindcss": "^0.5.7",
-    "prisma": "^5.6.0",
+    "prisma": "^6.17.1",
     "standard-version": "^9.5.0",
     "tailwindcss": "^3.4.0",
     "ts-jest": "^29.4.5",
@@ -164,13 +157,8 @@
     "seed": "tsx prisma/seed.ts"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,css,md}": [
-      "prettier --write"
-    ]
+    "*.{js,jsx,ts,tsx}": ["eslint --fix", "prettier --write"],
+    "*.{json,css,md}": ["prettier --write"]
   },
   "engines": {
     "node": ">=18.0.0",

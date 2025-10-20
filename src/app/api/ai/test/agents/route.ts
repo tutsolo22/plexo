@@ -10,13 +10,9 @@ const testAgentSchema = z.object({
   tenantId: z.string().default('test-tenant'),
   from: z.string().default('test-user'),
   platform: z.enum(['web', 'whatsapp']).default('whatsapp'),
-  testScenario: z.enum([
-    'simple-greeting',
-    'crm-query',
-    'complex-request',
-    'escalation',
-    'whatsapp-specific'
-  ]).optional()
+  testScenario: z
+    .enum(['simple-greeting', 'crm-query', 'complex-request', 'escalation', 'whatsapp-specific'])
+    .optional(),
 });
 
 /**
@@ -28,8 +24,8 @@ async function testAgentsHandler(req: NextRequest) {
     const body = await req.json();
     const { message, tenantId, from, platform, testScenario } = testAgentSchema.parse(body);
 
-    console.log(`[TEST] Probando agentes con escenario: ${testScenario || 'manual'}`);
-    
+    // [TEST] Probando agentes con escenario
+
     // Preparar mensaje de prueba
     const testMessage = {
       id: `test_${Date.now()}`,
@@ -38,7 +34,7 @@ async function testAgentsHandler(req: NextRequest) {
       body: message,
       timestamp: new Date(),
       type: 'text' as const,
-      platform
+      platform,
     };
 
     // Usar mensajes predeterminados según el escenario
@@ -52,13 +48,16 @@ async function testAgentsHandler(req: NextRequest) {
           testMessage.platform = 'web';
           break;
         case 'complex-request':
-          testMessage.body = 'Necesito crear una cotización para el evento de bodas de María García el próximo mes, incluye decoración y catering para 150 personas';
+          testMessage.body =
+            'Necesito crear una cotización para el evento de bodas de María García el próximo mes, incluye decoración y catering para 150 personas';
           break;
         case 'escalation':
-          testMessage.body = 'Tengo un problema urgente con mi facturación, necesito hablar con un humano ahora mismo';
+          testMessage.body =
+            'Tengo un problema urgente con mi facturación, necesito hablar con un humano ahora mismo';
           break;
         case 'whatsapp-specific':
-          testMessage.body = 'Hola, me llegó este mensaje por WhatsApp y quiero saber el estado de mi evento';
+          testMessage.body =
+            'Hola, me llegó este mensaje por WhatsApp y quiero saber el estado de mi evento';
           testMessage.platform = 'whatsapp';
           break;
         default:
@@ -68,10 +67,10 @@ async function testAgentsHandler(req: NextRequest) {
     }
 
     const startTime = Date.now();
-    
+
     // Procesar con el coordinador de agentes
     const response = await agentCoordinator.processMessage(testMessage, tenantId);
-    
+
     const endTime = Date.now();
     const totalTime = endTime - startTime;
 
@@ -82,7 +81,7 @@ async function testAgentsHandler(req: NextRequest) {
         message: testMessage.body,
         platform: testMessage.platform,
         tenantId,
-        from
+        from,
       },
       response: {
         message: response.response.message,
@@ -90,20 +89,19 @@ async function testAgentsHandler(req: NextRequest) {
         escalated: response.escalated,
         confidence: 'confidence' in response.response ? response.response.confidence : null,
         intent: 'intent' in response.response ? response.response.intent : null,
-        results: 'results' in response.response ? response.response.results : null
+        results: 'results' in response.response ? response.response.results : null,
       },
       performance: {
         totalProcessingTime: totalTime,
         agentProcessingTime: response.metadata.processingTime,
-        coordinatorOverhead: totalTime - response.metadata.processingTime
+        coordinatorOverhead: totalTime - response.metadata.processingTime,
       },
       metadata: {
         timestamp: new Date().toISOString(),
         testMode: true,
-        success: true
-      }
+        success: true,
+      },
     });
-
   } catch (error) {
     console.error('Error en test de agentes:', error);
     return ApiResponses.internalError(
@@ -116,28 +114,27 @@ async function testAgentsHandler(req: NextRequest) {
  * Obtener estadísticas de los agentes
  * GET /api/ai/test/agents
  */
-async function getAgentStatsHandler(req: NextRequest) {
+async function getAgentStatsHandler(_req: NextRequest) {
   try {
     return ApiResponses.success({
       agents: {
         coordinator: 'active',
         crm: 'active',
-        whatsapp: 'active'
+        whatsapp: 'active',
       },
       system: {
         uptime: process.uptime(),
         memory: process.memoryUsage(),
-        nodeVersion: process.version
+        nodeVersion: process.version,
       },
       endpoints: {
         chat: '/api/ai/chat',
         whatsappWebhook: '/api/ai/whatsapp/webhook',
         crmChat: '/api/ai/crm/chat',
-        testAgents: '/api/ai/test/agents'
+        testAgents: '/api/ai/test/agents',
       },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     console.error('Error obteniendo estadísticas:', error);
     return ApiResponses.internalError('Error obteniendo estadísticas');
@@ -148,16 +145,15 @@ async function getAgentStatsHandler(req: NextRequest) {
  * Resetear estadísticas de los agentes
  * DELETE /api/ai/test/agents
  */
-async function resetAgentStatsHandler(req: NextRequest) {
+async function resetAgentStatsHandler(_req: NextRequest) {
   try {
     // El coordinador no tiene método reset, pero podemos simular el reinicio
-    console.log('Estadísticas reseteadas (simulado)');
-    
+    // Estadísticas reseteadas (simulado)
+
     return ApiResponses.success({
       message: 'Estadísticas reseteadas correctamente',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     console.error('Error reseteando estadísticas:', error);
     return ApiResponses.internalError('Error reseteando estadísticas');

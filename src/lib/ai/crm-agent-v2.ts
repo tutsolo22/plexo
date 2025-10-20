@@ -45,37 +45,40 @@ export class CRMAgentService {
   private model: any;
 
   constructor() {
-    this.model = genAI.getGenerativeModel({ 
+    this.model = genAI.getGenerativeModel({
       model: 'gemini-1.5-flash',
       generationConfig: {
         temperature: 0.7,
         topK: 40,
         topP: 0.8,
         maxOutputTokens: 2048,
-      }
+      },
     });
   }
 
   /**
    * Procesa consultas CRM usando IA y búsqueda semántica
    */
-  async processQuery(query: string, context: {
-    tenantId: string;
-    businessIdentityId?: string;
-    userRole: string;
-  }) {
+  async processQuery(
+    query: string,
+    context: {
+      tenantId: string;
+      businessIdentityId?: string;
+      userRole: string;
+    }
+  ) {
     try {
       // Analizar intent de la consulta
       const queryIntent = await this.analyzeQueryIntent(query);
-      
+
       // Ejecutar búsqueda según el intent
       let searchResults = null;
-      
+
       if (queryIntent.type === 'searchEvents' || query.toLowerCase().includes('evento')) {
         const eventParams: SearchEventsParams = {
           query: queryIntent.params.query || query,
           tenantId: context.tenantId,
-          limit: 10
+          limit: 10,
         };
         if (context.businessIdentityId) {
           eventParams.businessIdentityId = context.businessIdentityId;
@@ -85,7 +88,7 @@ export class CRMAgentService {
         const clientParams: SearchClientsParams = {
           query: queryIntent.params.query || query,
           tenantId: context.tenantId,
-          limit: 10
+          limit: 10,
         };
         if (context.businessIdentityId) {
           clientParams.businessIdentityId = context.businessIdentityId;
@@ -95,7 +98,7 @@ export class CRMAgentService {
         const quoteParams: SearchQuotesParams = {
           query: queryIntent.params.query || query,
           tenantId: context.tenantId,
-          limit: 10
+          limit: 10,
         };
         if (context.businessIdentityId) {
           quoteParams.businessIdentityId = context.businessIdentityId;
@@ -108,15 +111,14 @@ export class CRMAgentService {
 
       // Generar respuesta usando IA
       const response = await this.generateResponse(query, searchResults, context);
-      
+
       return {
         query,
         intent: queryIntent,
         results: searchResults,
         response,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
-
     } catch (error) {
       console.error('Error procesando consulta CRM:', error);
       return {
@@ -124,7 +126,7 @@ export class CRMAgentService {
         intent: { type: 'error', confidence: 0 },
         results: null,
         response: 'Lo siento, hubo un error procesando tu consulta. Intenta de nuevo.',
-        timestamp: new Date()
+        timestamp: new Date(),
       };
     }
   }
@@ -157,20 +159,20 @@ Guías:
 
       const result = await this.model.generateContent(prompt);
       const response = result.response.text().trim();
-      
+
       // Limpiar la respuesta para obtener solo el JSON
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);
       }
-      
+
       throw new Error('No se pudo parsear la respuesta');
     } catch (error) {
       console.error('Error analizando intent:', error);
       return {
         type: 'general',
         params: { query },
-        confidence: 0.5
+        confidence: 0.5,
       };
     }
   }
@@ -187,14 +189,17 @@ Guías:
             type: 'event',
             limit: params.limit || 10,
             tenantId: params.tenantId,
-            includeEntity: true
+            includeEntity: true,
           };
-          
+
           if (params.businessIdentityId) {
             searchOptions.businessIdentityId = params.businessIdentityId;
           }
 
-          const vectorResults = await crmEmbeddingService.searchSimilar(params.query, searchOptions);
+          const vectorResults = await crmEmbeddingService.searchSimilar(
+            params.query,
+            searchOptions
+          );
 
           if (vectorResults.length > 0) {
             return {
@@ -206,8 +211,8 @@ Guías:
                 startDate: (result.entity as any).startDate,
                 status: (result.entity as any).status,
                 similarity: result.similarity,
-                description: (result.entity as any).description
-              }))
+                description: (result.entity as any).description,
+              })),
             };
           }
         } catch (vectorError) {
@@ -217,18 +222,18 @@ Guías:
 
       // Búsqueda tradicional como fallback
       const whereClause: any = {};
-      
+
       if (params.query) {
         whereClause.OR = [
           { title: { contains: params.query, mode: 'insensitive' } },
-          { description: { contains: params.query, mode: 'insensitive' } }
+          { description: { contains: params.query, mode: 'insensitive' } },
         ];
       }
 
       const events = await prisma.event.findMany({
         where: whereClause,
         orderBy: { startDate: 'desc' },
-        take: params.limit || 10
+        take: params.limit || 10,
       });
 
       return {
@@ -241,16 +246,15 @@ Guías:
           endDate: event.endDate,
           status: event.status,
           description: event.notes || '',
-          guestCount: 0 // Campo no disponible en el schema actual
-        }))
+          guestCount: 0, // Campo no disponible en el schema actual
+        })),
       };
-
     } catch (error) {
       console.error('Error en búsqueda de eventos:', error);
       return {
         total: 0,
         searchType: 'error',
-        events: []
+        events: [],
       };
     }
   }
@@ -267,14 +271,17 @@ Guías:
             type: 'client',
             limit: params.limit || 10,
             tenantId: params.tenantId,
-            includeEntity: true
+            includeEntity: true,
           };
-          
+
           if (params.businessIdentityId) {
             searchOptions.businessIdentityId = params.businessIdentityId;
           }
 
-          const vectorResults = await crmEmbeddingService.searchSimilar(params.query, searchOptions);
+          const vectorResults = await crmEmbeddingService.searchSimilar(
+            params.query,
+            searchOptions
+          );
 
           if (vectorResults.length > 0) {
             return {
@@ -285,8 +292,8 @@ Guías:
                 name: (result.entity as any).name,
                 email: (result.entity as any).email,
                 phone: (result.entity as any).phone,
-                similarity: result.similarity
-              }))
+                similarity: result.similarity,
+              })),
             };
           }
         } catch (vectorError) {
@@ -296,19 +303,19 @@ Guías:
 
       // Búsqueda tradicional
       const whereClause: any = {};
-      
+
       if (params.query) {
         whereClause.OR = [
           { name: { contains: params.query, mode: 'insensitive' } },
           { email: { contains: params.query, mode: 'insensitive' } },
-          { company: { contains: params.query, mode: 'insensitive' } }
+          { company: { contains: params.query, mode: 'insensitive' } },
         ];
       }
 
       const clients = await prisma.client.findMany({
         where: whereClause,
         orderBy: { createdAt: 'desc' },
-        take: params.limit || 10
+        take: params.limit || 10,
       });
 
       return {
@@ -320,16 +327,15 @@ Guías:
           email: client.email,
           phone: client.phone,
           company: '', // Campo no disponible en el schema actual
-          type: client.type
-        }))
+          type: client.type,
+        })),
       };
-
     } catch (error) {
       console.error('Error en búsqueda de clientes:', error);
       return {
         total: 0,
         searchType: 'error',
-        clients: []
+        clients: [],
       };
     }
   }
@@ -346,14 +352,17 @@ Guías:
             type: 'quote',
             limit: params.limit || 10,
             tenantId: params.tenantId,
-            includeEntity: true
+            includeEntity: true,
           };
-          
+
           if (params.businessIdentityId) {
             searchOptions.businessIdentityId = params.businessIdentityId;
           }
 
-          const vectorResults = await crmEmbeddingService.searchSimilar(params.query, searchOptions);
+          const vectorResults = await crmEmbeddingService.searchSimilar(
+            params.query,
+            searchOptions
+          );
 
           if (vectorResults.length > 0) {
             return {
@@ -364,8 +373,8 @@ Guías:
                 number: (result.entity as any).number || (result.entity as any).quoteNumber,
                 status: (result.entity as any).status,
                 total: Number((result.entity as any).total || 0),
-                similarity: result.similarity
-              }))
+                similarity: result.similarity,
+              })),
             };
           }
         } catch (vectorError) {
@@ -375,11 +384,11 @@ Guías:
 
       // Búsqueda tradicional
       const whereClause: any = {};
-      
+
       if (params.query) {
         whereClause.OR = [
           { number: { contains: params.query, mode: 'insensitive' } },
-          { notes: { contains: params.query, mode: 'insensitive' } }
+          { notes: { contains: params.query, mode: 'insensitive' } },
         ];
       }
 
@@ -387,11 +396,11 @@ Guías:
         where: whereClause,
         include: {
           client: {
-            select: { name: true, email: true }
-          }
+            select: { name: true, email: true },
+          },
         },
         orderBy: { createdAt: 'desc' },
-        take: params.limit || 10
+        take: params.limit || 10,
       });
 
       return {
@@ -403,21 +412,22 @@ Guías:
           status: quote.status,
           total: Number(quote.total),
           subtotal: Number(quote.subtotal),
-          client: quote.client ? {
-            name: quote.client.name,
-            email: quote.client.email
-          } : null,
+          client: quote.client
+            ? {
+                name: quote.client.name,
+                email: quote.client.email,
+              }
+            : null,
           validUntil: quote.validUntil,
-          createdAt: quote.createdAt
-        }))
+          createdAt: quote.createdAt,
+        })),
       };
-
     } catch (error) {
       console.error('Error en búsqueda de cotizaciones:', error);
       return {
         total: 0,
         searchType: 'error',
-        quotes: []
+        quotes: [],
       };
     }
   }
@@ -432,7 +442,7 @@ Guías:
         limit: 15,
         tenantId: context.tenantId,
         businessIdentityId: context.businessIdentityId,
-        includeEntity: true
+        includeEntity: true,
       });
 
       // Separar resultados por tipo
@@ -440,13 +450,13 @@ Guías:
         events: [],
         clients: [],
         quotes: [],
-        products: []
+        products: [],
       };
 
       results.forEach(result => {
         const resultData = {
           id: result.entity.id,
-          similarity: result.similarity
+          similarity: result.similarity,
         };
 
         // Intentar determinar el tipo de entidad por las propiedades
@@ -455,19 +465,19 @@ Guías:
             ...resultData,
             title: (result.entity as any).title,
             startDate: (result.entity as any).startDate,
-            status: (result.entity as any).status
+            status: (result.entity as any).status,
           });
         } else if ((result.entity as any).name && (result.entity as any).email) {
           groupedResults.clients.push({
             ...resultData,
             name: (result.entity as any).name,
-            email: (result.entity as any).email
+            email: (result.entity as any).email,
           });
         } else if ((result.entity as any).number || (result.entity as any).quoteNumber) {
           groupedResults.quotes.push({
             ...resultData,
             number: (result.entity as any).number || (result.entity as any).quoteNumber,
-            status: (result.entity as any).status
+            status: (result.entity as any).status,
           });
         }
       });
@@ -475,9 +485,8 @@ Guías:
       return {
         total: results.length,
         searchType: 'semantic-general',
-        ...groupedResults
+        ...groupedResults,
       };
-
     } catch (error) {
       console.error('Error en búsqueda general:', error);
       return {
@@ -486,7 +495,7 @@ Guías:
         events: [],
         clients: [],
         quotes: [],
-        products: []
+        products: [],
       };
     }
   }
@@ -494,7 +503,7 @@ Guías:
   /**
    * Genera respuesta usando IA basada en los resultados
    */
-  private async generateResponse(query: string, results: any, context: any) {
+  private async generateResponse(query: string, results: any, _context: any) {
     if (!results || results.total === 0) {
       return this.generateEmptyResponse(query);
     }
@@ -519,7 +528,6 @@ Respuesta:
 
       const result = await this.model.generateContent(prompt);
       return result.response.text();
-
     } catch (error) {
       console.error('Error generando respuesta:', error);
       return this.generateFallbackResponse(results);

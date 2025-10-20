@@ -8,7 +8,7 @@ import { z } from 'zod';
 const apiTestSchema = z.object({
   provider: z.enum(['google', 'openai', 'both']).default('both'),
   customKey: z.string().optional(), // Para probar una key específica
-  testMessage: z.string().default('Hola, este es un test de conexión')
+  testMessage: z.string().default('Hola, este es un test de conexión'),
 });
 
 interface ProviderTestResult {
@@ -56,14 +56,13 @@ async function testProvidersHandler(req: NextRequest) {
         success: successCount,
         errors: errorCount,
         notConfigured: notConfiguredCount,
-        allWorking: errorCount === 0 && notConfiguredCount === 0
+        allWorking: errorCount === 0 && notConfiguredCount === 0,
       },
       testMessage,
       results,
       timestamp: new Date().toISOString(),
-      note: "Las API keys se muestran parcialmente por seguridad"
+      note: 'Las API keys se muestran parcialmente por seguridad',
     });
-
   } catch (error) {
     console.error('Error en test de proveedores:', error);
     return ApiResponses.internalError(
@@ -75,16 +74,16 @@ async function testProvidersHandler(req: NextRequest) {
 /**
  * Obtener información de configuración de proveedores sin hacer requests
  */
-async function getProvidersInfoHandler(req: NextRequest) {
+async function getProvidersInfoHandler(_req: NextRequest) {
   try {
     const googleConfigured = !!process.env['GOOGLE_API_KEY'];
     const openaiConfigured = !!process.env['OPENAI_API_KEY'];
 
-    const googleKeyPreview = googleConfigured 
+    const googleKeyPreview = googleConfigured
       ? `${process.env['GOOGLE_API_KEY']?.substring(0, 8)}...${process.env['GOOGLE_API_KEY']?.slice(-4)}`
       : 'No configurada';
 
-    const openaiKeyPreview = openaiConfigured 
+    const openaiKeyPreview = openaiConfigured
       ? `${process.env['OPENAI_API_KEY']?.substring(0, 8)}...${process.env['OPENAI_API_KEY']?.slice(-4)}`
       : 'No configurada';
 
@@ -96,7 +95,7 @@ async function getProvidersInfoHandler(req: NextRequest) {
           keyPreview: googleKeyPreview,
           envVar: 'GOOGLE_API_KEY',
           models: ['gemini-1.5-flash', 'gemini-1.5-pro'],
-          status: googleConfigured ? 'configured' : 'missing'
+          status: googleConfigured ? 'configured' : 'missing',
         },
         openai: {
           name: 'OpenAI GPT',
@@ -104,19 +103,18 @@ async function getProvidersInfoHandler(req: NextRequest) {
           keyPreview: openaiKeyPreview,
           envVar: 'OPENAI_API_KEY',
           models: ['gpt-3.5-turbo', 'gpt-4', 'text-embedding-3-small'],
-          status: openaiConfigured ? 'configured' : 'missing'
-        }
+          status: openaiConfigured ? 'configured' : 'missing',
+        },
       },
       summary: {
         totalProviders: 2,
         configured: [googleConfigured, openaiConfigured].filter(Boolean).length,
         missing: [googleConfigured, openaiConfigured].filter(x => !x).length,
-        allConfigured: googleConfigured && openaiConfigured
+        allConfigured: googleConfigured && openaiConfigured,
       },
       recommendations: getConfigurationRecommendations(googleConfigured, openaiConfigured),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     console.error('Error obteniendo info de proveedores:', error);
     return ApiResponses.internalError('Error obteniendo información de proveedores');
@@ -129,25 +127,27 @@ async function getProvidersInfoHandler(req: NextRequest) {
 async function testGoogleAI(customKey?: string, testMessage?: string): Promise<ProviderTestResult> {
   const startTime = Date.now();
   const apiKey = customKey || process.env['GOOGLE_API_KEY'];
-  
+
   if (!apiKey) {
     return {
       provider: 'Google Gemini',
       status: 'not_configured',
       configured: false,
       keyVisible: 'No configurada',
-      error: 'GOOGLE_API_KEY no está configurada en las variables de entorno'
+      error: 'GOOGLE_API_KEY no está configurada en las variables de entorno',
     };
   }
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'models/gemini-1.5-flash' });
-    
-    const result = await model.generateContent(testMessage || 'Responde solo con "OK" si recibes este mensaje');
+
+    const result = await model.generateContent(
+      testMessage || 'Responde solo con "OK" si recibes este mensaje'
+    );
     const response = result.response;
     const text = response.text();
-    
+
     const responseTime = Date.now() - startTime;
 
     return {
@@ -160,13 +160,12 @@ async function testGoogleAI(customKey?: string, testMessage?: string): Promise<P
       details: {
         model: 'gemini-1.5-flash',
         tokensUsed: 'No disponible en Gemini',
-        finishReason: response.candidates?.[0]?.finishReason || 'unknown'
-      }
+        finishReason: response.candidates?.[0]?.finishReason || 'unknown',
+      },
     };
-
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    
+
     return {
       provider: 'Google Gemini',
       status: 'error',
@@ -176,8 +175,8 @@ async function testGoogleAI(customKey?: string, testMessage?: string): Promise<P
       responseTime,
       details: {
         errorType: error.constructor.name,
-        statusCode: error.status || 'unknown'
-      }
+        statusCode: error.status || 'unknown',
+      },
     };
   }
 }
@@ -188,31 +187,31 @@ async function testGoogleAI(customKey?: string, testMessage?: string): Promise<P
 async function testOpenAI(customKey?: string, testMessage?: string): Promise<ProviderTestResult> {
   const startTime = Date.now();
   const apiKey = customKey || process.env['OPENAI_API_KEY'];
-  
+
   if (!apiKey) {
     return {
       provider: 'OpenAI GPT',
       status: 'not_configured',
       configured: false,
       keyVisible: 'No configurada',
-      error: 'OPENAI_API_KEY no está configurada en las variables de entorno'
+      error: 'OPENAI_API_KEY no está configurada en las variables de entorno',
     };
   }
 
   try {
     const openai = new OpenAI({
-      apiKey: apiKey
+      apiKey: apiKey,
     });
-    
+
     const completion = await openai.chat.completions.create({
       messages: [
         {
           role: 'user',
-          content: testMessage || 'Responde solo con "OK" si recibes este mensaje'
-        }
+          content: testMessage || 'Responde solo con "OK" si recibes este mensaje',
+        },
       ],
       model: 'gpt-3.5-turbo',
-      max_tokens: 50
+      max_tokens: 50,
     });
 
     const responseTime = Date.now() - startTime;
@@ -228,13 +227,12 @@ async function testOpenAI(customKey?: string, testMessage?: string): Promise<Pro
       details: {
         model: completion.model,
         tokensUsed: completion.usage?.total_tokens || 0,
-        finishReason: completion.choices[0]?.finish_reason || 'unknown'
-      }
+        finishReason: completion.choices[0]?.finish_reason || 'unknown',
+      },
     };
-
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    
+
     return {
       provider: 'OpenAI GPT',
       status: 'error',
@@ -244,8 +242,8 @@ async function testOpenAI(customKey?: string, testMessage?: string): Promise<Pro
       responseTime,
       details: {
         errorType: error.constructor.name,
-        statusCode: error.status || 'unknown'
-      }
+        statusCode: error.status || 'unknown',
+      },
     };
   }
 }
@@ -253,30 +251,33 @@ async function testOpenAI(customKey?: string, testMessage?: string): Promise<Pro
 /**
  * Generar recomendaciones de configuración
  */
-function getConfigurationRecommendations(googleConfigured: boolean, openaiConfigured: boolean): string[] {
+function getConfigurationRecommendations(
+  googleConfigured: boolean,
+  openaiConfigured: boolean
+): string[] {
   const recommendations: string[] = [];
 
   if (!googleConfigured) {
     recommendations.push(
-      "Configura GOOGLE_API_KEY: Obtén una clave en https://aistudio.google.com/"
+      'Configura GOOGLE_API_KEY: Obtén una clave en https://aistudio.google.com/'
     );
   }
 
   if (!openaiConfigured) {
     recommendations.push(
-      "Configura OPENAI_API_KEY: Obtén una clave en https://platform.openai.com/api-keys"
+      'Configura OPENAI_API_KEY: Obtén una clave en https://platform.openai.com/api-keys'
     );
   }
 
   if (!googleConfigured && !openaiConfigured) {
     recommendations.push(
-      "Se recomienda configurar al menos un proveedor para que funcionen los agentes de IA"
+      'Se recomienda configurar al menos un proveedor para que funcionen los agentes de IA'
     );
   }
 
   if (googleConfigured && openaiConfigured) {
     recommendations.push(
-      "¡Excelente! Tienes ambos proveedores configurados para máxima redundancia"
+      '¡Excelente! Tienes ambos proveedores configurados para máxima redundancia'
     );
   }
 

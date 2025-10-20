@@ -1,90 +1,101 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
-import { z } from 'zod'
-import { UserRole, QuoteStatus } from '@prisma/client'
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { z } from 'zod';
+import { QuoteStatus } from '@prisma/client';
 
 // Schema de validación para crear cotización
 const createQuoteSchema = z.object({
   clientId: z.string().min(1, 'El cliente es requerido'),
   eventId: z.string().optional(),
-  validUntil: z.string().transform((str) => new Date(str)).optional(),
+  validUntil: z
+    .string()
+    .transform(str => new Date(str))
+    .optional(),
   notes: z.string().optional(),
   terms: z.string().optional(),
   businessIdentityId: z.string().min(1, 'La identidad de negocio es requerida'),
-  packages: z.array(z.object({
-    packageTemplateId: z.string(),
-    quantity: z.number().min(1),
-    customPrice: z.number().optional()
-  })).optional(),
-  items: z.array(z.object({
-    productId: z.string().optional(),
-    serviceId: z.string().optional(),
-    quantity: z.number().min(1),
-    unitPrice: z.number().min(0),
-    description: z.string().optional()
-  })).optional()
-})
+  packages: z
+    .array(
+      z.object({
+        packageTemplateId: z.string(),
+        quantity: z.number().min(1),
+        customPrice: z.number().optional(),
+      })
+    )
+    .optional(),
+  items: z
+    .array(
+      z.object({
+        productId: z.string().optional(),
+        serviceId: z.string().optional(),
+        quantity: z.number().min(1),
+        unitPrice: z.number().min(0),
+        description: z.string().optional(),
+      })
+    )
+    .optional(),
+});
 
 // Función para generar número de cotización
 async function generateQuoteNumber(tenantId: string): Promise<string> {
-  const year = new Date().getFullYear()
-  const prefix = `QUO-${year}-`
-  
+  const year = new Date().getFullYear();
+  const prefix = `QUO-${year}-`;
+
   const lastQuote = await prisma.quote.findFirst({
     where: {
       tenantId,
-      quoteNumber: { startsWith: prefix }
+      quoteNumber: { startsWith: prefix },
     },
-    orderBy: { quoteNumber: 'desc' }
-  })
-  
-  let nextNumber = 1
+    orderBy: { quoteNumber: 'desc' },
+  });
+
+  let nextNumber = 1;
   if (lastQuote) {
-    const lastNumber = parseInt(lastQuote.quoteNumber.split('-')[2] || '0') || 0
-    nextNumber = lastNumber + 1
+    const lastNumber = parseInt(lastQuote.quoteNumber.split('-')[2] || '0') || 0;
+    nextNumber = lastNumber + 1;
   }
-  
-  return `${prefix}${nextNumber.toString().padStart(3, '0')}`
+
+  return `${prefix}${nextNumber.toString().padStart(3, '0')}`;
 }
 
 // GET /api/quotes - Listar cotizaciones
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth()
+    const session = await auth();
     if (!session?.user) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
-    const search = searchParams.get('search') || ''
-    const status = searchParams.get('status')
-    const clientId = searchParams.get('clientId')
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const search = searchParams.get('search') || '';
+    const status = searchParams.get('status');
+    const clientId = searchParams.get('clientId');
 
-    const skip = (page - 1) * limit
+    const skip = (page - 1) * limit;
 
     // Construir filtros
     const where: Record<string, unknown> = {
-      tenantId: session.user.tenantId
-    }
+      tenantId: session.user.tenantId,
+    };
 
     if (search) {
-      where["OR"] = [
+      where['OR'] = [
         { quoteNumber: { contains: search, mode: 'insensitive' } },
         { notes: { contains: search, mode: 'insensitive' } },
-        { client: { name: { contains: search, mode: 'insensitive' } } }
-      ]
+        { client: { name: { contains: search, mode: 'insensitive' } } },
+      ];
     }
 
-    if (status) where["status"] = status
-    if (clientId) where["clientId"] = clientId
+    if (status) where['status'] = status;
+    if (clientId) where['clientId'] = clientId;
 
     // CLIENT_EXTERNAL solo puede ver sus propias cotizaciones
-    const userRole = (session.user as any).role
+    const userRole = (session.user as any).role;
     if (userRole === 'CLIENT_EXTERNAL') {
-      where["client"] = { userId: session.user.id }
+      where['client'] = { userId: session.user.id };
     }
 
     const [quotes, total] = await Promise.all([
@@ -94,7 +105,7 @@ export async function GET(request: NextRequest) {
         take: limit,
         include: {
           client: {
-            select: { id: true, name: true, email: true, phone: true, type: true }
+            select: { id: true, name: true, email: true, phone: true, type: true },
           },
           event: {
             include: {
@@ -103,13 +114,13 @@ export async function GET(request: NextRequest) {
                   location: {
                     include: {
                       businessIdentity: {
-                        select: { id: true, name: true }
-                      }
-                    }
-                  }
-                }
-              }
-            }
+                        select: { id: true, name: true },
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
           packages: {
             include: {
@@ -117,21 +128,21 @@ export async function GET(request: NextRequest) {
               packageItems: {
                 include: {
                   product: true,
-                  service: true
-                }
-              }
-            }
+                  service: true,
+                },
+              },
+            },
           },
           _count: {
             select: {
-              comments: true
-            }
-          }
+              comments: true,
+            },
+          },
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
       }),
-      prisma.quote.count({ where })
-    ])
+      prisma.quote.count({ where }),
+    ]);
 
     return NextResponse.json({
       success: true,
@@ -140,67 +151,63 @@ export async function GET(request: NextRequest) {
         page,
         limit,
         total,
-        pages: Math.ceil(total / limit)
-      }
-    })
-
+        pages: Math.ceil(total / limit),
+      },
+    });
   } catch (error) {
-    console.error('Error al obtener cotizaciones:', error)
+    console.error('Error al obtener cotizaciones:', error);
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },
       { status: 500 }
-    )
+    );
   }
 }
 
 // POST /api/quotes - Crear cotización
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
+    const session = await auth();
     if (!session?.user) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
     // Solo ciertos roles pueden crear cotizaciones
-    const userRole = (session.user as any).role
+    const userRole = (session.user as any).role;
     if (!['SUPER_ADMIN', 'TENANT_ADMIN', 'MANAGER', 'USER'].includes(userRole)) {
-      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
 
-    const body = await request.json()
-    const validatedData = createQuoteSchema.parse(body)
+    const body = await request.json();
+    const validatedData = createQuoteSchema.parse(body);
 
     // Verificar que el cliente existe
     const client = await prisma.client.findFirst({
       where: {
         id: validatedData.clientId,
-        tenantId: session.user.tenantId
+        tenantId: session.user.tenantId,
       },
       include: {
-        priceList: true
-      }
-    })
+        priceList: true,
+      },
+    });
 
     if (!client) {
-      return NextResponse.json(
-        { success: false, error: 'Cliente no encontrado' },
-        { status: 404 }
-      )
+      return NextResponse.json({ success: false, error: 'Cliente no encontrado' }, { status: 404 });
     }
 
     // Verificar la identidad de negocio
     const businessIdentity = await prisma.businessIdentity.findFirst({
       where: {
         id: validatedData.businessIdentityId,
-        tenantId: session.user.tenantId
-      }
-    })
+        tenantId: session.user.tenantId,
+      },
+    });
 
     if (!businessIdentity) {
       return NextResponse.json(
         { success: false, error: 'Identidad de negocio no encontrada' },
         { status: 404 }
-      )
+      );
     }
 
     // Verificar evento si se proporciona
@@ -209,27 +216,27 @@ export async function POST(request: NextRequest) {
         where: {
           id: validatedData.eventId,
           tenantId: session.user.tenantId,
-          clientId: validatedData.clientId
-        }
-      })
+          clientId: validatedData.clientId,
+        },
+      });
 
       if (!event) {
         return NextResponse.json(
           { success: false, error: 'Evento no encontrado o no pertenece al cliente' },
           { status: 404 }
-        )
+        );
       }
     }
 
     // Generar número de cotización
-    const quoteNumber = await generateQuoteNumber(session.user.tenantId)
+    const quoteNumber = await generateQuoteNumber(session.user.tenantId);
 
     // Calcular fecha de validez por defecto (30 días)
-    const defaultValidUntil = new Date()
-    defaultValidUntil.setDate(defaultValidUntil.getDate() + 30)
+    const defaultValidUntil = new Date();
+    defaultValidUntil.setDate(defaultValidUntil.getDate() + 30);
 
     // Crear cotización con transacción
-    const quote = await prisma.$transaction(async (tx) => {
+    const quote = await prisma.$transaction(async tx => {
       // Crear la cotización
       const newQuote = await tx.quote.create({
         data: {
@@ -241,11 +248,11 @@ export async function POST(request: NextRequest) {
           ...(validatedData.notes ? { notes: validatedData.notes } : {}),
           status: QuoteStatus.DRAFT,
           subtotal: 0, // Se calculará después con los paquetes
-          total: 0     // Se calculará después con los paquetes
-        }
-      })
+          total: 0, // Se calculará después con los paquetes
+        },
+      });
 
-      const subtotal = 0
+      const subtotal = 0;
 
       // Procesar paquetes si existen
       // NOTA: Funcionalidad desactivada temporalmente - problemas con schema de Package
@@ -332,11 +339,11 @@ export async function POST(request: NextRequest) {
         where: { id: newQuote.id },
         data: {
           subtotal,
-          total: subtotal // Sin impuestos por ahora
+          total: subtotal, // Sin impuestos por ahora
         },
         include: {
           client: {
-            select: { id: true, name: true, email: true, phone: true, type: true }
+            select: { id: true, name: true, email: true, phone: true, type: true },
           },
           event: {
             include: {
@@ -344,12 +351,12 @@ export async function POST(request: NextRequest) {
                 include: {
                   location: {
                     include: {
-                      businessIdentity: true
-                    }
-                  }
-                }
-              }
-            }
+                      businessIdentity: true,
+                    },
+                  },
+                },
+              },
+            },
           },
           packages: {
             include: {
@@ -357,35 +364,37 @@ export async function POST(request: NextRequest) {
               packageItems: {
                 include: {
                   product: true,
-                  service: true
-                }
-              }
-            }
-          }
-        }
-      })
+                  service: true,
+                },
+              },
+            },
+          },
+        },
+      });
 
-      return updatedQuote
-    })
+      return updatedQuote;
+    });
 
-    return NextResponse.json({
-      success: true,
-      data: quote,
-      message: 'Cotización creada exitosamente'
-    }, { status: 201 })
-
+    return NextResponse.json(
+      {
+        success: true,
+        data: quote,
+        message: 'Cotización creada exitosamente',
+      },
+      { status: 201 }
+    );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { success: false, error: 'Datos inválidos', details: error.errors },
         { status: 400 }
-      )
+      );
     }
 
-    console.error('Error al crear cotización:', error)
+    console.error('Error al crear cotización:', error);
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },
       { status: 500 }
-    )
+    );
   }
 }

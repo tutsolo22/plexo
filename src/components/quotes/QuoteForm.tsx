@@ -6,21 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { 
-  FileText, 
-  Save, 
-  Send, 
-  User, 
-  Calendar, 
-  DollarSign, 
+import {
+  FileText,
+  Save,
+  Send,
+  User,
+  DollarSign,
   Package,
   Plus,
   Trash2,
-  Eye,
   AlertCircle,
   CheckCircle,
-  Loader2
+  Loader2,
 } from 'lucide-react';
 
 interface Client {
@@ -117,7 +114,7 @@ export default function QuoteForm({
   // Cargar datos iniciales
   useEffect(() => {
     loadInitialData();
-    
+
     // Configurar fecha de validez por defecto (30 días)
     const defaultValidUntil = new Date();
     defaultValidUntil.setDate(defaultValidUntil.getDate() + 30);
@@ -297,9 +294,9 @@ export default function QuoteForm({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Cargando formulario...</span>
+      <div className='flex items-center justify-center py-12'>
+        <Loader2 className='h-8 w-8 animate-spin' />
+        <span className='ml-2'>Cargando formulario...</span>
       </div>
     );
   }
@@ -307,32 +304,33 @@ export default function QuoteForm({
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <FileText className="h-6 w-6 text-blue-600" />
-          <h2 className="text-2xl font-bold text-gray-900">
+      <div className='flex items-center justify-between'>
+        <div className='flex items-center gap-3'>
+          <FileText className='h-6 w-6 text-blue-600' />
+          <h2 className='text-2xl font-bold text-gray-900'>
             {quoteId ? 'Editar Cotización' : 'Nueva Cotización'}
           </h2>
         </div>
-        <div className="flex items-center gap-2">
+        <div className='flex items-center gap-2'>
           {onCancel && (
-            <Button onClick={onCancel} variant="outline">
+            <Button onClick={onCancel} variant='outline'>
               Cancelar
             </Button>
           )}
-          <Button
-            onClick={() => handleSubmit('DRAFT')}
-            disabled={saving}
-            variant="outline"
-          >
-            {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+          <Button onClick={() => handleSubmit('DRAFT')} disabled={saving} variant='outline'>
+            {saving ? (
+              <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+            ) : (
+              <Save className='mr-2 h-4 w-4' />
+            )}
             Guardar Borrador
           </Button>
-          <Button
-            onClick={() => handleSubmit('PENDING_MANAGER')}
-            disabled={saving}
-          >
-            {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+          <Button onClick={() => handleSubmit('PENDING_MANAGER')} disabled={saving}>
+            {saving ? (
+              <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+            ) : (
+              <Send className='mr-2 h-4 w-4' />
+            )}
             Enviar para Aprobación
           </Button>
         </div>
@@ -340,15 +338,15 @@ export default function QuoteForm({
 
       {/* Alertas */}
       {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
+        <Alert variant='destructive'>
+          <AlertCircle className='h-4 w-4' />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
       {success && (
         <Alert>
-          <CheckCircle className="h-4 w-4" />
+          <CheckCircle className='h-4 w-4' />
           <AlertDescription>{success}</AlertDescription>
         </Alert>
       )}
@@ -356,23 +354,23 @@ export default function QuoteForm({
       {/* Información Básica */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
+          <CardTitle className='flex items-center gap-2'>
+            <User className='h-5 w-5' />
             Información Básica
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="client">Cliente *</Label>
+        <CardContent className='space-y-4'>
+          <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+            <div className='space-y-2'>
+              <Label htmlFor='client'>Cliente *</Label>
               <select
-                id="client"
-                className="w-full p-2 border border-gray-300 rounded-md"
+                id='client'
+                className='w-full rounded-md border border-gray-300 p-2'
                 value={formData.clientId}
-                onChange={(e) => handleInputChange('clientId', e.target.value)}
+                onChange={e => handleInputChange('clientId', e.target.value)}
               >
-                <option value="">Seleccionar cliente...</option>
-                {clients.map((client) => (
+                <option value=''>Seleccionar cliente...</option>
+                {clients.map(client => (
                   <option key={client.id} value={client.id}>
                     {client.name} - {client.email}
                   </option>
@@ -380,17 +378,17 @@ export default function QuoteForm({
               </select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="event">Evento (Opcional)</Label>
+            <div className='space-y-2'>
+              <Label htmlFor='event'>Evento (Opcional)</Label>
               <select
-                id="event"
-                className="w-full p-2 border border-gray-300 rounded-md"
+                id='event'
+                className='w-full rounded-md border border-gray-300 p-2'
                 value={formData.eventId}
-                onChange={(e) => handleInputChange('eventId', e.target.value)}
+                onChange={e => handleInputChange('eventId', e.target.value)}
                 disabled={!formData.clientId}
               >
-                <option value="">Sin evento asociado...</option>
-                {events.map((event) => (
+                <option value=''>Sin evento asociado...</option>
+                {events.map(event => (
                   <option key={event.id} value={event.id}>
                     {event.title} - {new Date(event.date).toLocaleDateString()}
                   </option>
@@ -398,16 +396,16 @@ export default function QuoteForm({
               </select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="template">Template (Opcional)</Label>
+            <div className='space-y-2'>
+              <Label htmlFor='template'>Template (Opcional)</Label>
               <select
-                id="template"
-                className="w-full p-2 border border-gray-300 rounded-md"
+                id='template'
+                className='w-full rounded-md border border-gray-300 p-2'
                 value={formData.templateId}
-                onChange={(e) => handleInputChange('templateId', e.target.value)}
+                onChange={e => handleInputChange('templateId', e.target.value)}
               >
-                <option value="">Sin template...</option>
-                {templates.map((template) => (
+                <option value=''>Sin template...</option>
+                {templates.map(template => (
                   <option key={template.id} value={template.id}>
                     {template.name} ({template.category})
                   </option>
@@ -415,26 +413,26 @@ export default function QuoteForm({
               </select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="validUntil">Válida hasta *</Label>
+            <div className='space-y-2'>
+              <Label htmlFor='validUntil'>Válida hasta *</Label>
               <Input
-                id="validUntil"
-                type="date"
+                id='validUntil'
+                type='date'
                 value={formData.validUntil}
-                onChange={(e) => handleInputChange('validUntil', e.target.value)}
+                onChange={e => handleInputChange('validUntil', e.target.value)}
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notas</Label>
+          <div className='space-y-2'>
+            <Label htmlFor='notes'>Notas</Label>
             <textarea
-              id="notes"
-              className="w-full p-2 border border-gray-300 rounded-md"
+              id='notes'
+              className='w-full rounded-md border border-gray-300 p-2'
               rows={3}
               value={formData.notes}
-              onChange={(e) => handleInputChange('notes', e.target.value)}
-              placeholder="Notas adicionales sobre la cotización..."
+              onChange={e => handleInputChange('notes', e.target.value)}
+              placeholder='Notas adicionales sobre la cotización...'
             />
           </div>
         </CardContent>
@@ -443,70 +441,68 @@ export default function QuoteForm({
       {/* Paquetes */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
+          <div className='flex items-center justify-between'>
+            <CardTitle className='flex items-center gap-2'>
+              <Package className='h-5 w-5' />
               Paquetes ({formData.packages.length})
             </CardTitle>
-            <Button
-              onClick={() => setShowPackageForm(true)}
-              size="sm"
-            >
-              <Plus className="h-4 w-4 mr-2" />
+            <Button onClick={() => setShowPackageForm(true)} size='sm'>
+              <Plus className='mr-2 h-4 w-4' />
               Agregar Paquete
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className='space-y-4'>
           {/* Formulario de nuevo paquete */}
           {showPackageForm && (
-            <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-              <h4 className="font-medium mb-3">Nuevo Paquete</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="packageName">Nombre del Paquete *</Label>
+            <div className='rounded-lg border border-gray-200 bg-gray-50 p-4'>
+              <h4 className='mb-3 font-medium'>Nuevo Paquete</h4>
+              <div className='grid grid-cols-1 gap-4 md:grid-cols-3'>
+                <div className='space-y-2'>
+                  <Label htmlFor='packageName'>Nombre del Paquete *</Label>
                   <Input
-                    id="packageName"
+                    id='packageName'
                     value={newPackage.name}
-                    onChange={(e) => setNewPackage(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Ej: Paquete Básico"
+                    onChange={e => setNewPackage(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder='Ej: Paquete Básico'
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="packageSubtotal">Subtotal *</Label>
+                <div className='space-y-2'>
+                  <Label htmlFor='packageSubtotal'>Subtotal *</Label>
                   <Input
-                    id="packageSubtotal"
-                    type="number"
-                    step="0.01"
+                    id='packageSubtotal'
+                    type='number'
+                    step='0.01'
                     value={newPackage.subtotal}
-                    onChange={(e) => setNewPackage(prev => ({ ...prev, subtotal: parseFloat(e.target.value) || 0 }))}
+                    onChange={e =>
+                      setNewPackage(prev => ({
+                        ...prev,
+                        subtotal: parseFloat(e.target.value) || 0,
+                      }))
+                    }
                   />
                 </div>
-                <div className="space-y-2">
+                <div className='space-y-2'>
                   <Label>Acciones</Label>
-                  <div className="flex gap-2">
-                    <Button onClick={addPackage} size="sm">
+                  <div className='flex gap-2'>
+                    <Button onClick={addPackage} size='sm'>
                       Agregar
                     </Button>
-                    <Button
-                      onClick={() => setShowPackageForm(false)}
-                      variant="outline"
-                      size="sm"
-                    >
+                    <Button onClick={() => setShowPackageForm(false)} variant='outline' size='sm'>
                       Cancelar
                     </Button>
                   </div>
                 </div>
               </div>
-              <div className="mt-3 space-y-2">
-                <Label htmlFor="packageDescription">Descripción</Label>
+              <div className='mt-3 space-y-2'>
+                <Label htmlFor='packageDescription'>Descripción</Label>
                 <textarea
-                  id="packageDescription"
-                  className="w-full p-2 border border-gray-300 rounded-md"
+                  id='packageDescription'
+                  className='w-full rounded-md border border-gray-300 p-2'
                   rows={2}
                   value={newPackage.description}
-                  onChange={(e) => setNewPackage(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Descripción del paquete..."
+                  onChange={e => setNewPackage(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder='Descripción del paquete...'
                 />
               </div>
             </div>
@@ -514,35 +510,31 @@ export default function QuoteForm({
 
           {/* Lista de paquetes */}
           {formData.packages.length > 0 ? (
-            <div className="space-y-3">
-              {formData.packages.map((pkg) => (
-                <div key={pkg.id} className="p-4 border border-gray-200 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium">{pkg.name}</h4>
+            <div className='space-y-3'>
+              {formData.packages.map(pkg => (
+                <div key={pkg.id} className='rounded-lg border border-gray-200 p-4'>
+                  <div className='flex items-center justify-between'>
+                    <div className='flex-1'>
+                      <h4 className='font-medium'>{pkg.name}</h4>
                       {pkg.description && (
-                        <p className="text-sm text-gray-600 mt-1">{pkg.description}</p>
+                        <p className='mt-1 text-sm text-gray-600'>{pkg.description}</p>
                       )}
-                      <p className="text-lg font-bold text-blue-600 mt-2">
+                      <p className='mt-2 text-lg font-bold text-blue-600'>
                         {formatCurrency(pkg.subtotal)}
                       </p>
                     </div>
-                    <Button
-                      onClick={() => removePackage(pkg.id)}
-                      variant="outline"
-                      size="sm"
-                    >
-                      <Trash2 className="h-4 w-4" />
+                    <Button onClick={() => removePackage(pkg.id)} variant='outline' size='sm'>
+                      <Trash2 className='h-4 w-4' />
                     </Button>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500">
-              <Package className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <div className='py-8 text-center text-gray-500'>
+              <Package className='mx-auto mb-3 h-12 w-12 opacity-50' />
               <p>No hay paquetes agregados</p>
-              <p className="text-sm">Haz clic en "Agregar Paquete" para comenzar</p>
+              <p className='text-sm'>Haz clic en &quot;Agregar Paquete&quot; para comenzar</p>
             </div>
           )}
         </CardContent>
@@ -551,45 +543,39 @@ export default function QuoteForm({
       {/* Resumen Financiero */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5" />
+          <CardTitle className='flex items-center gap-2'>
+            <DollarSign className='h-5 w-5' />
             Resumen Financiero
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="subtotal">Subtotal</Label>
-              <div className="text-2xl font-bold text-gray-900">
+        <CardContent className='space-y-4'>
+          <div className='grid grid-cols-1 gap-4 md:grid-cols-3'>
+            <div className='space-y-2'>
+              <Label htmlFor='subtotal'>Subtotal</Label>
+              <div className='text-2xl font-bold text-gray-900'>
                 {formatCurrency(formData.subtotal)}
               </div>
-              <p className="text-sm text-gray-600">
-                Calculado automáticamente
-              </p>
+              <p className='text-sm text-gray-600'>Calculado automáticamente</p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="discount">Descuento</Label>
+            <div className='space-y-2'>
+              <Label htmlFor='discount'>Descuento</Label>
               <Input
-                id="discount"
-                type="number"
-                step="0.01"
+                id='discount'
+                type='number'
+                step='0.01'
                 value={formData.discount}
-                onChange={(e) => handleInputChange('discount', parseFloat(e.target.value) || 0)}
+                onChange={e => handleInputChange('discount', parseFloat(e.target.value) || 0)}
               />
-              <p className="text-sm text-gray-600">
-                Descuento a aplicar
-              </p>
+              <p className='text-sm text-gray-600'>Descuento a aplicar</p>
             </div>
 
-            <div className="space-y-2">
+            <div className='space-y-2'>
               <Label>Total</Label>
-              <div className="text-3xl font-bold text-green-600">
+              <div className='text-3xl font-bold text-green-600'>
                 {formatCurrency(formData.total)}
               </div>
-              <p className="text-sm text-gray-600">
-                Total final de la cotización
-              </p>
+              <p className='text-sm text-gray-600'>Total final de la cotización</p>
             </div>
           </div>
         </CardContent>

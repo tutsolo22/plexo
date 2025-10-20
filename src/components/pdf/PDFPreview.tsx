@@ -1,22 +1,20 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Eye, 
-  Download, 
-  RefreshCw, 
-  Loader2, 
-  FileText, 
+import {
+  Download,
+  RefreshCw,
+  Loader2,
+  FileText,
   ExternalLink,
   ZoomIn,
   ZoomOut,
-  RotateCw,
   Maximize2,
-  AlertCircle
+  AlertCircle,
 } from 'lucide-react';
 
 interface PDFPreviewProps {
@@ -96,17 +94,15 @@ export default function PDFPreview({
   if (!pdfUrl) {
     return (
       <Card className={className}>
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <FileText className="h-16 w-16 text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No hay PDF disponible
-          </h3>
-          <p className="text-gray-500 text-center mb-4">
+        <CardContent className='flex flex-col items-center justify-center py-12'>
+          <FileText className='mb-4 h-16 w-16 text-gray-400' />
+          <h3 className='mb-2 text-lg font-medium text-gray-900'>No hay PDF disponible</h3>
+          <p className='mb-4 text-center text-gray-500'>
             Genera un PDF para ver la vista previa aquí
           </p>
           {onRegenerate && (
-            <Button onClick={onRegenerate} variant="outline">
-              <RefreshCw className="h-4 w-4 mr-2" />
+            <Button onClick={onRegenerate} variant='outline'>
+              <RefreshCw className='mr-2 h-4 w-4' />
               Generar PDF
             </Button>
           )}
@@ -120,44 +116,40 @@ export default function PDFPreview({
       {/* Header con información del PDF */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-blue-600" />
+          <div className='flex items-center justify-between'>
+            <CardTitle className='flex items-center gap-2'>
+              <FileText className='h-5 w-5 text-blue-600' />
               Vista Previa del PDF
             </CardTitle>
-            <div className="flex items-center gap-2">
+            <div className='flex items-center gap-2'>
               {metadata && (
                 <>
-                  <Badge variant="secondary">
+                  <Badge variant='secondary'>
                     {metadata.pages} página{metadata.pages !== 1 ? 's' : ''}
                   </Badge>
-                  <Badge variant="outline">
-                    {formatFileSize(metadata.size)}
-                  </Badge>
+                  <Badge variant='outline'>{formatFileSize(metadata.size)}</Badge>
                 </>
               )}
             </div>
           </div>
           {metadata?.generatedAt && (
-            <p className="text-sm text-gray-500">
-              Generado el {formatDate(metadata.generatedAt)}
-            </p>
+            <p className='text-sm text-gray-500'>Generado el {formatDate(metadata.generatedAt)}</p>
           )}
         </CardHeader>
 
         <CardContent>
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={downloadPDF} size="sm">
-              <Download className="h-4 w-4 mr-2" />
+          <div className='flex flex-wrap gap-2'>
+            <Button onClick={downloadPDF} size='sm'>
+              <Download className='mr-2 h-4 w-4' />
               Descargar
             </Button>
-            <Button onClick={openInNewTab} variant="outline" size="sm">
-              <ExternalLink className="h-4 w-4 mr-2" />
+            <Button onClick={openInNewTab} variant='outline' size='sm'>
+              <ExternalLink className='mr-2 h-4 w-4' />
               Abrir en nueva pestaña
             </Button>
             {onRegenerate && (
-              <Button onClick={onRegenerate} variant="outline" size="sm">
-                <RefreshCw className="h-4 w-4 mr-2" />
+              <Button onClick={onRegenerate} variant='outline' size='sm'>
+                <RefreshCw className='mr-2 h-4 w-4' />
                 Regenerar
               </Button>
             )}
@@ -167,50 +159,38 @@ export default function PDFPreview({
 
       {/* Controles de visualización */}
       <Card>
-        <CardContent className="py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={zoomOut}
-                variant="outline"
-                size="sm"
-                disabled={zoom <= 50}
-              >
-                <ZoomOut className="h-4 w-4" />
+        <CardContent className='py-3'>
+          <div className='flex items-center justify-between'>
+            <div className='flex items-center gap-2'>
+              <Button onClick={zoomOut} variant='outline' size='sm' disabled={zoom <= 50}>
+                <ZoomOut className='h-4 w-4' />
               </Button>
-              <span className="text-sm font-medium min-w-[60px] text-center">
-                {zoom}%
-              </span>
-              <Button
-                onClick={zoomIn}
-                variant="outline"
-                size="sm"
-                disabled={zoom >= 200}
-              >
-                <ZoomIn className="h-4 w-4" />
+              <span className='min-w-[60px] text-center text-sm font-medium'>{zoom}%</span>
+              <Button onClick={zoomIn} variant='outline' size='sm' disabled={zoom >= 200}>
+                <ZoomIn className='h-4 w-4' />
               </Button>
-              <Button onClick={resetZoom} variant="ghost" size="sm">
+              <Button onClick={resetZoom} variant='ghost' size='sm'>
                 Ajustar
               </Button>
             </div>
 
             {metadata && metadata.pages > 1 && (
-              <div className="flex items-center gap-2">
+              <div className='flex items-center gap-2'>
                 <Button
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  variant="outline"
-                  size="sm"
+                  variant='outline'
+                  size='sm'
                   disabled={currentPage <= 1}
                 >
                   Anterior
                 </Button>
-                <span className="text-sm">
+                <span className='text-sm'>
                   Página {currentPage} de {metadata.pages}
                 </span>
                 <Button
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, metadata.pages))}
-                  variant="outline"
-                  size="sm"
+                  variant='outline'
+                  size='sm'
                   disabled={currentPage >= metadata.pages}
                 >
                   Siguiente
@@ -218,55 +198,51 @@ export default function PDFPreview({
               </div>
             )}
 
-            <Button
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              variant="outline"
-              size="sm"
-            >
-              <Maximize2 className="h-4 w-4" />
+            <Button onClick={() => setIsFullscreen(!isFullscreen)} variant='outline' size='sm'>
+              <Maximize2 className='h-4 w-4' />
             </Button>
           </div>
         </CardContent>
       </Card>
 
       {/* Visor de PDF */}
-      <Card className="overflow-hidden">
-        <CardContent className="p-0">
+      <Card className='overflow-hidden'>
+        <CardContent className='p-0'>
           {error ? (
-            <Alert variant="destructive" className="m-4">
-              <AlertCircle className="h-4 w-4" />
+            <Alert variant='destructive' className='m-4'>
+              <AlertCircle className='h-4 w-4' />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : (
-            <div 
+            <div
               className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-white' : ''}`}
               style={{ height: isFullscreen ? '100vh' : '600px' }}
             >
               {isLoading && (
-                <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                <div className='absolute inset-0 z-10 flex items-center justify-center bg-white bg-opacity-75'>
+                  <div className='flex items-center gap-2'>
+                    <Loader2 className='h-5 w-5 animate-spin' />
                     <span>Cargando PDF...</span>
                   </div>
                 </div>
               )}
-              
+
               <iframe
                 src={`${pdfUrl}#page=${currentPage}&zoom=${zoom}`}
-                className="w-full h-full border-0"
-                title="Vista previa del PDF"
+                className='h-full w-full border-0'
+                title='Vista previa del PDF'
                 onLoad={() => setIsLoading(false)}
                 onError={() => {
                   setIsLoading(false);
                   setError('Error cargando el PDF');
                 }}
               />
-              
+
               {isFullscreen && (
                 <Button
                   onClick={() => setIsFullscreen(false)}
-                  className="absolute top-4 right-4 z-20"
-                  variant="secondary"
+                  className='absolute right-4 top-4 z-20'
+                  variant='secondary'
                 >
                   Cerrar pantalla completa
                 </Button>
@@ -280,22 +256,22 @@ export default function PDFPreview({
       {templateData && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Información del Template</CardTitle>
+            <CardTitle className='text-lg'>Información del Template</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div className='grid grid-cols-1 gap-4 text-sm md:grid-cols-2'>
               <div>
-                <span className="font-medium">Nombre:</span> {templateData.name}
+                <span className='font-medium'>Nombre:</span> {templateData.name}
               </div>
               <div>
-                <span className="font-medium">Tipo:</span> {templateData.type}
+                <span className='font-medium'>Tipo:</span> {templateData.type}
               </div>
               <div>
-                <span className="font-medium">Categoría:</span> {templateData.category}
+                <span className='font-medium'>Categoría:</span> {templateData.category}
               </div>
               {templateData.description && (
-                <div className="md:col-span-2">
-                  <span className="font-medium">Descripción:</span> {templateData.description}
+                <div className='md:col-span-2'>
+                  <span className='font-medium'>Descripción:</span> {templateData.description}
                 </div>
               )}
             </div>
@@ -305,8 +281,8 @@ export default function PDFPreview({
 
       {/* Overlay para fullscreen */}
       {isFullscreen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+        <div
+          className='fixed inset-0 z-40 bg-black bg-opacity-50'
           onClick={() => setIsFullscreen(false)}
         />
       )}

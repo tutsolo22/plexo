@@ -30,16 +30,14 @@ export const authConfig: NextAuthConfig = {
 
         // Verificar contraseña con bcrypt
         const bcrypt = require('bcryptjs');
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password as string,
-          user.password
-        );
+        const isPasswordValid = await bcrypt.compare(credentials.password as string, user.password);
 
         if (!isPasswordValid) {
           return null;
         }
 
         // Retornar usuario sin la contraseña
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { password, ...userWithoutPassword } = user;
         return userWithoutPassword;
 
@@ -61,7 +59,7 @@ export const authConfig: NextAuthConfig = {
     async session({ session, token }) {
       if (token) {
         (session.user as any).id = token['id'] as string;
-        (session.user as any).role = (token['role'] as unknown) as string;
+        (session.user as any).role = token['role'] as unknown as string;
       }
       return session;
     },

@@ -1,20 +1,23 @@
 // lib/pdf-engines.ts
-import { PDFGenerationOptions, PDFGenerationResult, PDFEngine, PDFEngineConfig } from '../types/pdf';
+import {
+  PDFGenerationOptions,
+  PDFGenerationResult,
+  PDFEngine,
+  PDFEngineConfig,
+} from '../types/pdf';
 import * as Handlebars from 'handlebars';
 import { createElement } from 'react';
 
 // React-PDF Engine (Migrado a API moderna con createElement)
 export class ReactPDFEngine {
-  static async generate(options: PDFGenerationOptions, config: PDFEngineConfig): Promise<PDFGenerationResult> {
+  static async generate(
+    options: PDFGenerationOptions,
+    config: PDFEngineConfig
+  ): Promise<PDFGenerationResult> {
     try {
       const ReactPDF = await import('@react-pdf/renderer');
       const { Document, Page, Text, View, StyleSheet, pdf } = ReactPDF;
-      
-      // Procesar template con handlebars
-      const template = Handlebars.compile(options.template.htmlContent);
-      const processedData = this.prepareData(options.data);
-      const htmlContent = template(processedData);
-      
+
       // Configurar estilos modernos
       const styles = StyleSheet.create({
         page: {
@@ -67,7 +70,7 @@ export class ReactPDFEngine {
           paddingTop: 15,
           borderTopWidth: 2,
           borderTopColor: '#333',
-        }
+        },
       });
 
       // Crear elementos de tabla dinámicamente
@@ -75,12 +78,16 @@ export class ReactPDFEngine {
         if (!options.data.packages || options.data.packages.length === 0) {
           return [];
         }
-        
+
         return options.data.packages.map((pkg: any, index: number) =>
           createElement(View, { key: index, style: styles.tableRow }, [
             createElement(Text, { key: 'name', style: styles.tableCell }, pkg.name),
             createElement(Text, { key: 'desc', style: styles.tableCell }, pkg.description || ''),
-            createElement(Text, { key: 'price', style: styles.tableCell }, `$${pkg.subtotal.toFixed(2)}`)
+            createElement(
+              Text,
+              { key: 'price', style: styles.tableCell },
+              `$${pkg.subtotal.toFixed(2)}`
+            ),
           ])
         );
       };
@@ -90,73 +97,119 @@ export class ReactPDFEngine {
         if (!options.data.packages || options.data.packages.length === 0) {
           return null;
         }
-        
+
         return createElement(View, { style: styles.table }, [
           // Header
           createElement(View, { key: 'header', style: [styles.tableRow, styles.tableHeader] }, [
-            createElement(Text, { key: 'h1', style: [styles.tableCell, styles.subtitle] }, 'Paquete'),
-            createElement(Text, { key: 'h2', style: [styles.tableCell, styles.subtitle] }, 'Descripción'),
-            createElement(Text, { key: 'h3', style: [styles.tableCell, styles.subtitle] }, 'Precio')
+            createElement(
+              Text,
+              { key: 'h1', style: [styles.tableCell, styles.subtitle] },
+              'Paquete'
+            ),
+            createElement(
+              Text,
+              { key: 'h2', style: [styles.tableCell, styles.subtitle] },
+              'Descripción'
+            ),
+            createElement(
+              Text,
+              { key: 'h3', style: [styles.tableCell, styles.subtitle] },
+              'Precio'
+            ),
           ]),
           // Rows
-          ...createPackageRows()
+          ...createPackageRows(),
         ]);
       };
 
       // Crear componente PDF con createElement
       const createPDFDocument = () =>
         createElement(Document, {}, [
-          createElement(Page, { 
-            key: 'page1',
-            size: (config.metadata as any)?.pageSize || 'A4', 
-            style: styles.page 
-          }, [
-            createElement(View, { key: 'section', style: styles.section }, [
-              createElement(Text, { 
-                key: 'title', 
-                style: styles.title 
-              }, options.data.quoteNumber || 'Cotización'),
-              
-              createElement(Text, { 
-                key: 'client', 
-                style: styles.text 
-              }, `Cliente: ${options.data.client.name}`),
-              
-              createElement(Text, { 
-                key: 'email', 
-                style: styles.text 
-              }, `Email: ${options.data.client.email}`),
-              
-              createElement(Text, { 
-                key: 'date', 
-                style: styles.text 
-              }, `Fecha: ${new Date().toLocaleDateString()}`),
-              
-              // Evento condicional
-              ...(options.data.event ? [
-                createElement(Text, { 
-                  key: 'event', 
-                  style: styles.text 
-                }, `Evento: ${options.data.event.title}`)
-              ] : []),
-              
-              // Tabla de paquetes
-              createPackageTable(),
-              
-              createElement(View, { key: 'total', style: styles.totalSection }, [
-                createElement(Text, { 
-                  key: 'totalText', 
-                  style: styles.subtitle 
-                }, `Total: $${options.data.total?.toFixed(2) || '0.00'}`)
-              ])
-            ].filter(Boolean))
-          ])
+          createElement(
+            Page,
+            {
+              key: 'page1',
+              size: (config.metadata as any)?.pageSize || 'A4',
+              style: styles.page,
+            },
+            [
+              createElement(
+                View,
+                { key: 'section', style: styles.section },
+                [
+                  createElement(
+                    Text,
+                    {
+                      key: 'title',
+                      style: styles.title,
+                    },
+                    options.data.quoteNumber || 'Cotización'
+                  ),
+
+                  createElement(
+                    Text,
+                    {
+                      key: 'client',
+                      style: styles.text,
+                    },
+                    `Cliente: ${options.data.client.name}`
+                  ),
+
+                  createElement(
+                    Text,
+                    {
+                      key: 'email',
+                      style: styles.text,
+                    },
+                    `Email: ${options.data.client.email}`
+                  ),
+
+                  createElement(
+                    Text,
+                    {
+                      key: 'date',
+                      style: styles.text,
+                    },
+                    `Fecha: ${new Date().toLocaleDateString()}`
+                  ),
+
+                  // Evento condicional
+                  ...(options.data.event
+                    ? [
+                        createElement(
+                          Text,
+                          {
+                            key: 'event',
+                            style: styles.text,
+                          },
+                          `Evento: ${options.data.event.title}`
+                        ),
+                      ]
+                    : []),
+
+                  // Tabla de paquetes
+                  createPackageTable(),
+
+                  createElement(View, { key: 'total', style: styles.totalSection }, [
+                    createElement(
+                      Text,
+                      {
+                        key: 'totalText',
+                        style: styles.subtitle,
+                      },
+                      `Total: $${options.data.total?.toFixed(2) || '0.00'}`
+                    ),
+                  ]),
+                ].filter(Boolean)
+              ),
+            ]
+          ),
         ]);
 
       // Generar PDF usando la API moderna
       const pdfBlob = await pdf(createPDFDocument()).toBlob();
       const fileName = options.metadata?.fileName || `cotizacion-${Date.now()}.pdf`;
-      
+
       // Guardar archivo (implementar según configuración)
       const pdfUrl = await this.saveFile(pdfBlob, fileName);
 
@@ -190,24 +243,27 @@ export class ReactPDFEngine {
     };
   }
 
-  private static async saveFile(blob: Blob, fileName: string): Promise<string> {
+  private static async saveFile(blob: Blob, _fileName: string): Promise<string> {
     // Por ahora, crear URL temporal
     // En producción, implementar guardado en storage
     return URL.createObjectURL(blob);
   }
 }
 
-// Puppeteer Engine  
+// Puppeteer Engine
 export class PuppeteerEngine {
-  static async generate(options: PDFGenerationOptions, config: PDFEngineConfig): Promise<PDFGenerationResult> {
+  static async generate(
+    options: PDFGenerationOptions,
+    config: PDFEngineConfig
+  ): Promise<PDFGenerationResult> {
     try {
       const puppeteer = await import('puppeteer-core');
-      
+
       // Procesar template
       const template = Handlebars.compile(options.template.htmlContent);
       const processedData = ReactPDFEngine.prepareData(options.data);
       const htmlContent = template(processedData);
-      
+
       // CSS por defecto
       const defaultCSS = `
         body { 
@@ -256,11 +312,11 @@ export class PuppeteerEngine {
           background-color: #f8f9fa; 
         }
       `;
-      
+
       // Aplicar estilos del template si existen
       const templateStyles = options.template.styles ? JSON.stringify(options.template.styles) : '';
       const finalCSS = `${defaultCSS}\n${templateStyles}`;
-      
+
       const fullHTML = `
         <!DOCTYPE html>
         <html>
@@ -282,7 +338,7 @@ export class PuppeteerEngine {
 
       const page = await browser.newPage();
       await page.setContent(fullHTML, { waitUntil: 'networkidle0' });
-      
+
       const pdfBuffer = await page.pdf({
         format: (config.metadata as any)?.format || 'A4',
         margin: {
@@ -293,9 +349,9 @@ export class PuppeteerEngine {
         },
         displayHeaderFooter: true,
         headerTemplate: '<div></div>',
-        footerTemplate: options.metadata?.showPageNumbers ? 
-          '<div style="font-size: 10px; margin: 0 auto;">Página <span class="pageNumber"></span> de <span class="totalPages"></span></div>' : 
-          '<div></div>',
+        footerTemplate: options.metadata?.showPageNumbers
+          ? '<div style="font-size: 10px; margin: 0 auto;">Página <span class="pageNumber"></span> de <span class="totalPages"></span></div>'
+          : '<div></div>',
       });
 
       await browser.close();
@@ -326,17 +382,20 @@ export class PuppeteerEngine {
 
 // jsPDF Engine (más simple, para casos básicos)
 export class JSPDFEngine {
-  static async generate(options: PDFGenerationOptions, config: PDFEngineConfig): Promise<PDFGenerationResult> {
+  static async generate(
+    options: PDFGenerationOptions,
+    config: PDFEngineConfig
+  ): Promise<PDFGenerationResult> {
     try {
       const jsPDFModule = await import('jspdf');
       const jsPDF = (jsPDFModule as any).jsPDF || jsPDFModule;
       const html2canvas = await import('html2canvas');
-      
+
       // Crear contenido HTML
       const template = Handlebars.compile(options.template.htmlContent);
       const processedData = ReactPDFEngine.prepareData(options.data);
       const htmlContent = template(processedData);
-      
+
       // Crear elemento temporal
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = htmlContent;
@@ -344,46 +403,46 @@ export class JSPDFEngine {
       tempDiv.style.padding = '20px';
       tempDiv.style.fontFamily = 'Arial, sans-serif';
       document.body.appendChild(tempDiv);
-      
+
       // Convertir a canvas
       const canvas = await html2canvas.default(tempDiv, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
       });
-      
+
       // Limpiar elemento temporal
       document.body.removeChild(tempDiv);
-      
+
       // Crear PDF
       const pdf = new jsPDF({
         orientation: options.metadata?.orientation || 'portrait',
         unit: 'mm',
         format: (config.metadata as any)?.format || 'a4',
       });
-      
+
       const imgData = canvas.toDataURL('image/jpeg', 0.8);
       const imgWidth = 210; // A4 width in mm
       const pageHeight = 295; // A4 height in mm
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       let heightLeft = imgHeight;
-      
+
       let position = 0;
-      
+
       pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
-      
+
       while (heightLeft >= 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
         pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
       }
-      
+
       const fileName = options.metadata?.fileName || `cotizacion-${Date.now()}.pdf`;
       const pdfBlob = pdf.output('blob');
       const pdfUrl = URL.createObjectURL(pdfBlob);
-      
+
       return {
         success: true,
         pdfUrl,
@@ -418,9 +477,9 @@ export class PDFEngineFactory {
         return ReactPDFEngine;
     }
   }
-  
+
   static async generate(
-    options: PDFGenerationOptions, 
+    options: PDFGenerationOptions,
     config: PDFEngineConfig
   ): Promise<PDFGenerationResult> {
     const engine = this.getEngine(config.engine);

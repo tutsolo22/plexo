@@ -5,62 +5,69 @@
 // flexibles, incluyendo CRUD de roles, asignación de usuarios y permisos.
 // =========================================================================
 
-import { PrismaClient, Role, UserRole, Permission, RoleType, PermissionAction, PermissionResource } from '@prisma/client'
-import { prisma } from './prisma'
+import {
+  Role,
+  UserRole,
+  Permission,
+  RoleType,
+  PermissionAction,
+  PermissionResource,
+} from '@prisma/client';
+import { prisma } from './prisma';
 
 // =========================================================================
 // TIPOS E INTERFACES
 // =========================================================================
 
 export interface CreateRoleInput {
-  name: string
-  type: RoleType
-  description?: string
-  tenantId?: string
+  name: string;
+  type: RoleType;
+  description?: string;
+  tenantId?: string;
   permissions: {
-    action: PermissionAction
-    resource: PermissionResource
-    conditions?: Record<string, any>
-  }[]
+    action: PermissionAction;
+    resource: PermissionResource;
+    conditions?: Record<string, any>;
+  }[];
 }
 
 export interface UpdateRoleInput {
-  name?: string
-  description?: string
-  isActive?: boolean
+  name?: string;
+  description?: string;
+  isActive?: boolean;
   permissions?: {
-    action: PermissionAction
-    resource: PermissionResource
-    conditions?: Record<string, any>
-  }[]
+    action: PermissionAction;
+    resource: PermissionResource;
+    conditions?: Record<string, any>;
+  }[];
 }
 
 export interface AssignRoleInput {
-  userId: string
-  roleId: string
-  tenantId?: string
-  assignedBy?: string
-  expiresAt?: Date
+  userId: string;
+  roleId: string;
+  tenantId?: string;
+  assignedBy?: string;
+  expiresAt?: Date;
 }
 
 export interface RoleWithPermissions extends Role {
-  permissions: Permission[]
-  userRoles: UserRole[]
+  permissions: Permission[];
+  userRoles: UserRole[];
   _count: {
-    userRoles: number
-    permissions: number
-  }
+    userRoles: number;
+    permissions: number;
+  };
 }
 
 export interface UserWithRoles {
-  id: string
-  email: string
-  name: string | null
+  id: string;
+  email: string;
+  name: string | null;
   userRoles: (UserRole & {
     role: Role & {
-      permissions: Permission[]
-    }
-  })[]
+      permissions: Permission[];
+    };
+  })[];
 }
 
 // =========================================================================
@@ -68,7 +75,6 @@ export interface UserWithRoles {
 // =========================================================================
 
 export class RoleManagementService {
-  
   // ===================================================================
   // GESTIÓN DE ROLES - CRUD OPERATIONS
   // ===================================================================
@@ -78,7 +84,7 @@ export class RoleManagementService {
    */
   async createRole(input: CreateRoleInput): Promise<RoleWithPermissions> {
     try {
-      const role = await prisma.$transaction(async (tx) => {
+      const role = await prisma.$transaction(async tx => {
         // Crear el rol
         const newRole = await tx.role.create({
           data: {
@@ -87,7 +93,7 @@ export class RoleManagementService {
             ...(input.description && { description: input.description }),
             ...(input.tenantId && { tenantId: input.tenantId }),
           },
-        })
+        });
 
         // Crear los permisos asociados
         const permissions = await Promise.all(
@@ -101,19 +107,21 @@ export class RoleManagementService {
               },
             })
           )
-        )
+        );
 
         return {
           ...newRole,
           permissions,
-        }
-      })
+        };
+      });
 
       // Retornar el rol completo con todas las relaciones
-      return this.getRoleById(role.id)
+      return this.getRoleById(role.id);
     } catch (error) {
-      console.error('Error creando rol:', error)
-      throw new Error(`No se pudo crear el rol: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+      console.error('Error creando rol:', error);
+      throw new Error(
+        `No se pudo crear el rol: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      );
     }
   }
 
@@ -133,27 +141,29 @@ export class RoleManagementService {
                   id: true,
                   name: true,
                   email: true,
-                }
-              }
-            }
+                },
+              },
+            },
           },
           _count: {
             select: {
               userRoles: true,
               permissions: true,
-            }
-          }
+            },
+          },
         },
-      })
+      });
 
       if (!role) {
-        throw new Error('Rol no encontrado')
+        throw new Error('Rol no encontrado');
       }
 
-      return role as RoleWithPermissions
+      return role as RoleWithPermissions;
     } catch (error) {
-      console.error('Error obteniendo rol:', error)
-      throw new Error(`No se pudo obtener el rol: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+      console.error('Error obteniendo rol:', error);
+      throw new Error(
+        `No se pudo obtener el rol: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      );
     }
   }
 
@@ -161,29 +171,29 @@ export class RoleManagementService {
    * Listar todos los roles con filtros opcionales
    */
   async listRoles(filters?: {
-    tenantId?: string
-    type?: RoleType
-    isActive?: boolean
-    includeGlobal?: boolean
+    tenantId?: string;
+    type?: RoleType;
+    isActive?: boolean;
+    includeGlobal?: boolean;
   }): Promise<RoleWithPermissions[]> {
     try {
-      const where: any = {}
+      const where: any = {};
 
       if (filters?.tenantId) {
         where.OR = [
           { tenantId: filters.tenantId },
-          ...(filters.includeGlobal ? [{ tenantId: null }] : [])
-        ]
+          ...(filters.includeGlobal ? [{ tenantId: null }] : []),
+        ];
       } else if (filters?.includeGlobal === false) {
-        where.tenantId = { not: null }
+        where.tenantId = { not: null };
       }
 
       if (filters?.type) {
-        where.type = filters.type
+        where.type = filters.type;
       }
 
       if (filters?.isActive !== undefined) {
-        where.isActive = filters.isActive
+        where.isActive = filters.isActive;
       }
 
       const roles = await prisma.role.findMany({
@@ -195,19 +205,18 @@ export class RoleManagementService {
             select: {
               userRoles: true,
               permissions: true,
-            }
-          }
+            },
+          },
         },
-        orderBy: [
-          { type: 'asc' },
-          { name: 'asc' }
-        ]
-      })
+        orderBy: [{ type: 'asc' }, { name: 'asc' }],
+      });
 
-      return roles as RoleWithPermissions[]
+      return roles as RoleWithPermissions[];
     } catch (error) {
-      console.error('Error listando roles:', error)
-      throw new Error(`No se pudo obtener la lista de roles: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+      console.error('Error listando roles:', error);
+      throw new Error(
+        `No se pudo obtener la lista de roles: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      );
     }
   }
 
@@ -216,7 +225,7 @@ export class RoleManagementService {
    */
   async updateRole(roleId: string, input: UpdateRoleInput): Promise<RoleWithPermissions> {
     try {
-      const result = await prisma.$transaction(async (tx) => {
+      const result = await prisma.$transaction(async tx => {
         // Actualizar datos básicos del rol
         const updatedRole = await tx.role.update({
           where: { id: roleId },
@@ -226,14 +235,14 @@ export class RoleManagementService {
             ...(input.isActive !== undefined && { isActive: input.isActive }),
             updatedAt: new Date(),
           },
-        })
+        });
 
         // Si se proporcionan permisos, reemplazar todos
         if (input.permissions) {
           // Eliminar permisos existentes
           await tx.permission.deleteMany({
             where: { roleId },
-          })
+          });
 
           // Crear nuevos permisos
           await Promise.all(
@@ -247,16 +256,18 @@ export class RoleManagementService {
                 },
               })
             )
-          )
+          );
         }
 
-        return updatedRole
-      })
+        return updatedRole;
+      });
 
-      return this.getRoleById(result.id)
+      return this.getRoleById(result.id);
     } catch (error) {
-      console.error('Error actualizando rol:', error)
-      throw new Error(`No se pudo actualizar el rol: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+      console.error('Error actualizando rol:', error);
+      throw new Error(
+        `No se pudo actualizar el rol: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      );
     }
   }
 
@@ -265,17 +276,17 @@ export class RoleManagementService {
    */
   async deleteRole(roleId: string): Promise<void> {
     try {
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async tx => {
         // Verificar que el rol no tenga usuarios asignados activos
         const activeAssignments = await tx.userRole.count({
           where: {
             roleId,
             isActive: true,
           },
-        })
+        });
 
         if (activeAssignments > 0) {
-          throw new Error('No se puede eliminar un rol que tiene usuarios asignados activamente')
+          throw new Error('No se puede eliminar un rol que tiene usuarios asignados activamente');
         }
 
         // Soft delete del rol
@@ -285,17 +296,19 @@ export class RoleManagementService {
             isActive: false,
             updatedAt: new Date(),
           },
-        })
+        });
 
         // Desactivar todas las asignaciones de este rol
         await tx.userRole.updateMany({
           where: { roleId },
           data: { isActive: false },
-        })
-      })
+        });
+      });
     } catch (error) {
-      console.error('Error eliminando rol:', error)
-      throw new Error(`No se pudo eliminar el rol: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+      console.error('Error eliminando rol:', error);
+      throw new Error(
+        `No se pudo eliminar el rol: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      );
     }
   }
 
@@ -314,19 +327,19 @@ export class RoleManagementService {
           id: input.roleId,
           isActive: true,
         },
-      })
+      });
 
       if (!role) {
-        throw new Error('El rol especificado no existe o no está activo')
+        throw new Error('El rol especificado no existe o no está activo');
       }
 
       // Verificar que el usuario existe
       const user = await prisma.user.findUnique({
         where: { id: input.userId },
-      })
+      });
 
       if (!user) {
-        throw new Error('El usuario especificado no existe')
+        throw new Error('El usuario especificado no existe');
       }
 
       // Verificar si ya existe la asignación
@@ -337,10 +350,10 @@ export class RoleManagementService {
           ...(input.tenantId !== undefined && { tenantId: input.tenantId }),
           isActive: true,
         },
-      })
+      });
 
       if (existingAssignment) {
-        throw new Error('El usuario ya tiene asignado este rol')
+        throw new Error('El usuario ya tiene asignado este rol');
       }
 
       // Crear la asignación
@@ -359,15 +372,17 @@ export class RoleManagementService {
               id: true,
               name: true,
               email: true,
-            }
-          }
-        }
-      })
+            },
+          },
+        },
+      });
 
-      return userRole
+      return userRole;
     } catch (error) {
-      console.error('Error asignando rol:', error)
-      throw new Error(`No se pudo asignar el rol: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+      console.error('Error asignando rol:', error);
+      throw new Error(
+        `No se pudo asignar el rol: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      );
     }
   }
 
@@ -383,10 +398,10 @@ export class RoleManagementService {
           ...(tenantId !== undefined && { tenantId }),
           isActive: true,
         },
-      })
+      });
 
       if (!assignment) {
-        throw new Error('La asignación de rol no existe o ya está inactiva')
+        throw new Error('La asignación de rol no existe o ya está inactiva');
       }
 
       await prisma.userRole.update({
@@ -394,10 +409,12 @@ export class RoleManagementService {
         data: {
           isActive: false,
         },
-      })
+      });
     } catch (error) {
-      console.error('Error removiendo rol:', error)
-      throw new Error(`No se pudo remover el rol: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+      console.error('Error removiendo rol:', error);
+      throw new Error(
+        `No se pudo remover el rol: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      );
     }
   }
 
@@ -413,30 +430,29 @@ export class RoleManagementService {
             where: {
               isActive: true,
               ...(tenantId && { tenantId }),
-              OR: [
-                { expiresAt: null },
-                { expiresAt: { gt: new Date() } }
-              ]
+              OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
             },
             include: {
               role: {
                 include: {
                   permissions: true,
-                }
-              }
-            }
-          }
-        }
-      })
+                },
+              },
+            },
+          },
+        },
+      });
 
       if (!user) {
-        throw new Error('Usuario no encontrado')
+        throw new Error('Usuario no encontrado');
       }
 
-      return user as UserWithRoles
+      return user as UserWithRoles;
     } catch (error) {
-      console.error('Error obteniendo roles de usuario:', error)
-      throw new Error(`No se pudo obtener los roles del usuario: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+      console.error('Error obteniendo roles de usuario:', error);
+      throw new Error(
+        `No se pudo obtener los roles del usuario: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      );
     }
   }
 
@@ -448,29 +464,29 @@ export class RoleManagementService {
    * Verificar si un usuario tiene un permiso específico
    */
   async hasPermission(
-    userId: string, 
-    action: PermissionAction, 
+    userId: string,
+    action: PermissionAction,
     resource: PermissionResource,
     tenantId?: string
   ): Promise<boolean> {
     try {
-      const userWithRoles = await this.getUserRoles(userId, tenantId)
-      
+      const userWithRoles = await this.getUserRoles(userId, tenantId);
+
       // Verificar permisos en todos los roles activos del usuario
       for (const userRole of userWithRoles.userRoles) {
-        const hasPermission = userRole.role.permissions.some(permission => 
-          permission.action === action && permission.resource === resource
-        )
-        
+        const hasPermission = userRole.role.permissions.some(
+          permission => permission.action === action && permission.resource === resource
+        );
+
         if (hasPermission) {
-          return true
+          return true;
         }
       }
-      
-      return false
+
+      return false;
     } catch (error) {
-      console.error('Error verificando permiso:', error)
-      return false
+      console.error('Error verificando permiso:', error);
+      return false;
     }
   }
 
@@ -479,25 +495,27 @@ export class RoleManagementService {
    */
   async getUserPermissions(userId: string, tenantId?: string): Promise<Permission[]> {
     try {
-      const userWithRoles = await this.getUserRoles(userId, tenantId)
-      
-      const allPermissions: Permission[] = []
-      
+      const userWithRoles = await this.getUserRoles(userId, tenantId);
+
+      const allPermissions: Permission[] = [];
+
       for (const userRole of userWithRoles.userRoles) {
-        allPermissions.push(...userRole.role.permissions)
+        allPermissions.push(...userRole.role.permissions);
       }
-      
+
       // Remover duplicados basado en action + resource
-      const uniquePermissions = allPermissions.filter((permission, index, self) =>
-        index === self.findIndex(p => 
-          p.action === permission.action && p.resource === permission.resource
-        )
-      )
-      
-      return uniquePermissions
+      const uniquePermissions = allPermissions.filter(
+        (permission, index, self) =>
+          index ===
+          self.findIndex(p => p.action === permission.action && p.resource === permission.resource)
+      );
+
+      return uniquePermissions;
     } catch (error) {
-      console.error('Error obteniendo permisos de usuario:', error)
-      throw new Error(`No se pudo obtener los permisos del usuario: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+      console.error('Error obteniendo permisos de usuario:', error);
+      throw new Error(
+        `No se pudo obtener los permisos del usuario: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      );
     }
   }
 }
@@ -506,7 +524,7 @@ export class RoleManagementService {
 // INSTANCIA SINGLETON DEL SERVICIO
 // =========================================================================
 
-export const roleManagementService = new RoleManagementService()
+export const roleManagementService = new RoleManagementService();
 
 // =========================================================================
 // FUNCIONES DE UTILIDAD
@@ -516,10 +534,13 @@ export const roleManagementService = new RoleManagementService()
  * Obtener permisos por defecto para cada tipo de rol
  */
 export function getDefaultPermissions(roleType: RoleType): {
-  action: PermissionAction
-  resource: PermissionResource
+  action: PermissionAction;
+  resource: PermissionResource;
 }[] {
-  const permissionSets: Record<RoleType, { action: PermissionAction; resource: PermissionResource }[]> = {
+  const permissionSets: Record<
+    RoleType,
+    { action: PermissionAction; resource: PermissionResource }[]
+  > = {
     SUPER_ADMIN: [
       // Acceso completo a todo
       { action: 'CREATE', resource: 'USERS' },
@@ -632,7 +653,7 @@ export function getDefaultPermissions(roleType: RoleType): {
       { action: 'READ', resource: 'PRODUCTS' },
       { action: 'READ', resource: 'SERVICES' },
     ],
-  }
+  };
 
-  return permissionSets[roleType] || []
+  return permissionSets[roleType] || [];
 }

@@ -49,7 +49,6 @@ export interface UserWithRoles {
 }
 
 export class RoleManagementService {
-  
   /**
    * Crear un nuevo rol en el sistema
    */
@@ -65,36 +64,35 @@ export class RoleManagementService {
             create: input.permissions.map(p => ({
               action: p.action,
               resource: p.resource,
-              ...(p.conditions && { conditions: p.conditions })
-            }))
-          }
+              ...(p.conditions && { conditions: p.conditions }),
+            })),
+          },
         },
         include: {
-          permissions: true
-        }
+          permissions: true,
+        },
       });
 
       return {
         success: true,
         data: role,
-        message: `Rol "${input.name}" creado exitosamente`
+        message: `Rol "${input.name}" creado exitosamente`,
       };
-
     } catch (error: any) {
       console.error('Error creando rol:', error);
-      
+
       if (error.code === 'P2002') {
         return {
           success: false,
           error: `Ya existe un rol de tipo ${input.type} en este tenant`,
-          message: 'Error: Rol duplicado'
+          message: 'Error: Rol duplicado',
         };
       }
 
       return {
         success: false,
         error: error.message,
-        message: 'Error al crear el rol'
+        message: 'Error al crear el rol',
       };
     }
   }
@@ -107,14 +105,14 @@ export class RoleManagementService {
       // Verificar que el rol y usuario existen
       const [role, user] = await Promise.all([
         prisma.role.findUnique({ where: { id: input.roleId } }),
-        prisma.user.findUnique({ where: { id: input.userId } })
+        prisma.user.findUnique({ where: { id: input.userId } }),
       ]);
 
       if (!role || !user) {
         return {
           success: false,
           error: 'Rol o usuario no encontrado',
-          message: 'Error: Entidades no válidas'
+          message: 'Error: Entidades no válidas',
         };
       }
 
@@ -125,39 +123,38 @@ export class RoleManagementService {
           userId: input.userId,
           roleId: input.roleId,
           assignedBy: input.assignedById,
-          ...(input.expiresAt && { expiresAt: input.expiresAt })
+          ...(input.expiresAt && { expiresAt: input.expiresAt }),
         },
         include: {
           role: {
-            select: { name: true, type: true }
+            select: { name: true, type: true },
           },
           user: {
-            select: { name: true, email: true }
-          }
-        }
+            select: { name: true, email: true },
+          },
+        },
       });
 
       return {
         success: true,
         data: userRole,
-        message: `Rol "${role.name}" asignado a ${user.name || user.email}`
+        message: `Rol "${role.name}" asignado a ${user.name || user.email}`,
       };
-
     } catch (error: any) {
       console.error('Error asignando rol:', error);
-      
+
       if (error.code === 'P2002') {
         return {
           success: false,
           error: 'El usuario ya tiene este rol asignado',
-          message: 'Error: Rol duplicado'
+          message: 'Error: Rol duplicado',
         };
       }
 
       return {
         success: false,
         error: error.message,
-        message: 'Error al asignar el rol'
+        message: 'Error al asignar el rol',
       };
     }
   }
@@ -165,44 +162,43 @@ export class RoleManagementService {
   /**
    * Remover un rol de un usuario
    */
-  async removeRole(userId: string, roleId: string, removedById: string) {
+  async removeRole(userId: string, roleId: string, _removedById: string) {
     try {
       const userRole = await prisma.userRole.findFirst({
         where: {
           userId,
           roleId,
-          isActive: true
+          isActive: true,
         },
         include: {
           role: { select: { name: true } },
-          user: { select: { name: true, email: true } }
-        }
+          user: { select: { name: true, email: true } },
+        },
       });
 
       if (!userRole) {
         return {
           success: false,
           error: 'Asignación de rol no encontrada',
-          message: 'Error: Rol no asignado'
+          message: 'Error: Rol no asignado',
         };
       }
 
       await prisma.userRole.update({
         where: { id: userRole.id },
-        data: { isActive: false }
+        data: { isActive: false },
       });
 
       return {
         success: true,
-        message: `Rol "${userRole.role.name}" removido de ${userRole.user.name || userRole.user.email}`
+        message: `Rol "${userRole.role.name}" removido de ${userRole.user.name || userRole.user.email}`,
       };
-
     } catch (error: any) {
       console.error('Error removiendo rol:', error);
       return {
         success: false,
         error: error.message,
-        message: 'Error al remover el rol'
+        message: 'Error al remover el rol',
       };
     }
   }
@@ -216,36 +212,33 @@ export class RoleManagementService {
         where: { id: userId },
         include: {
           userRoles: {
-            where: { 
+            where: {
               isActive: true,
-              OR: [
-                { expiresAt: null },
-                { expiresAt: { gt: new Date() } }
-              ]
+              OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
             },
             include: {
               role: {
                 include: {
-                  permissions: true
-                }
-              }
-            }
-          }
-        }
+                  permissions: true,
+                },
+              },
+            },
+          },
+        },
       });
 
       if (!user) return null;
 
       // Consolidar permisos de todos los roles
       const allPermissions = new Map();
-      
+
       user.userRoles.forEach(userRole => {
         userRole.role.permissions.forEach(permission => {
           const key = `${permission.action}-${permission.resource}`;
           allPermissions.set(key, {
             action: permission.action,
             resource: permission.resource,
-            conditions: permission.conditions
+            conditions: permission.conditions,
           });
         });
       });
@@ -261,11 +254,10 @@ export class RoleManagementService {
           type: ur.role.type,
           isPrimary: true, // TODO: Implementar lógica de rol primario
           assignedAt: ur.assignedAt,
-          expiresAt: ur.expiresAt
+          expiresAt: ur.expiresAt,
         })),
-        permissions: Array.from(allPermissions.values())
+        permissions: Array.from(allPermissions.values()),
       };
-
     } catch (error) {
       console.error('Error obteniendo usuario con roles:', error);
       return null;
@@ -282,15 +274,12 @@ export class RoleManagementService {
   ): Promise<boolean> {
     try {
       const userWithRoles = await this.getUserWithRoles(userId);
-      
+
       if (!userWithRoles || !userWithRoles.isActive) {
         return false;
       }
 
-      return userWithRoles.permissions.some(
-        p => p.action === action && p.resource === resource
-      );
-
+      return userWithRoles.permissions.some(p => p.action === action && p.resource === resource);
     } catch (error) {
       console.error('Error verificando permiso:', error);
       return false;
@@ -303,30 +292,29 @@ export class RoleManagementService {
   async getTenantRoles(tenantId: string) {
     try {
       const roles = await prisma.role.findMany({
-        where: { 
+        where: {
           tenantId,
-          isActive: true
+          isActive: true,
         },
         include: {
           permissions: true,
           _count: {
-            select: { userRoles: true }
-          }
+            select: { userRoles: true },
+          },
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
       });
 
       return {
         success: true,
-        data: roles
+        data: roles,
       };
-
     } catch (error: any) {
       console.error('Error obteniendo roles del tenant:', error);
       return {
         success: false,
         error: error.message,
-        message: 'Error al obtener roles'
+        message: 'Error al obtener roles',
       };
     }
   }
@@ -341,9 +329,10 @@ export class RoleManagementService {
         type: RoleType.SUPER_ADMIN,
         permissions: Object.values(PermissionAction).flatMap(action =>
           Object.values(PermissionResource).map(resource => ({
-            action, resource
+            action,
+            resource,
           }))
-        )
+        ),
       },
       {
         name: 'Administrador de Tenant',
@@ -355,7 +344,7 @@ export class RoleManagementService {
           { action: PermissionAction.READ, resource: PermissionResource.REPORTS },
           { action: PermissionAction.CREATE, resource: PermissionResource.ROLES },
           { action: PermissionAction.UPDATE, resource: PermissionResource.ROLES },
-        ]
+        ],
       },
       {
         name: 'Gerente',
@@ -366,7 +355,7 @@ export class RoleManagementService {
           { action: PermissionAction.READ, resource: PermissionResource.REPORTS },
           { action: PermissionAction.CREATE, resource: PermissionResource.EVENTS },
           { action: PermissionAction.UPDATE, resource: PermissionResource.EVENTS },
-        ]
+        ],
       },
       {
         name: 'Ejecutivo de Ventas',
@@ -377,7 +366,7 @@ export class RoleManagementService {
           { action: PermissionAction.READ, resource: PermissionResource.CLIENTS },
           { action: PermissionAction.CREATE, resource: PermissionResource.CLIENTS },
           { action: PermissionAction.UPDATE, resource: PermissionResource.CLIENTS },
-        ]
+        ],
       },
       {
         name: 'Coordinador de Eventos',
@@ -387,12 +376,12 @@ export class RoleManagementService {
           { action: PermissionAction.UPDATE, resource: PermissionResource.EVENTS },
           { action: PermissionAction.READ, resource: PermissionResource.VENUES },
           { action: PermissionAction.UPDATE, resource: PermissionResource.VENUES },
-        ]
-      }
+        ],
+      },
     ];
 
     const results = [];
-    
+
     for (const roleData of systemRoles) {
       try {
         const result = await this.createRole({
@@ -400,7 +389,7 @@ export class RoleManagementService {
           type: roleData.type,
           tenantId,
           createdById: adminUserId,
-          permissions: roleData.permissions
+          permissions: roleData.permissions,
         });
         results.push(result);
       } catch (error) {
@@ -411,7 +400,7 @@ export class RoleManagementService {
     return {
       success: true,
       data: results,
-      message: `${results.filter(r => r.success).length} roles del sistema creados`
+      message: `${results.filter(r => r.success).length} roles del sistema creados`,
     };
   }
 }

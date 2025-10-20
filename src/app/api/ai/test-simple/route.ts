@@ -6,7 +6,7 @@ import { z } from 'zod';
 const testMessageSchema = z.object({
   message: z.string().min(1, 'El mensaje es requerido'),
   platform: z.enum(['web', 'whatsapp']).default('whatsapp'),
-  testMode: z.boolean().default(true)
+  testMode: z.boolean().default(true),
 });
 
 /**
@@ -16,7 +16,7 @@ const testMessageSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { message, platform, testMode } = testMessageSchema.parse(body);
+    const { message, platform } = testMessageSchema.parse(body);
 
     // Simular la lógica del coordinador sin usar Google AI
     let selectedAgent = 'whatsapp-agent';
@@ -25,12 +25,21 @@ export async function POST(req: NextRequest) {
 
     // Lógica simple de detección basada en palabras clave
     const messageLC = message.toLowerCase();
-    
-    if (messageLC.includes('cliente') || messageLC.includes('cotización') || messageLC.includes('evento') || messageLC.includes('búsqueda')) {
+
+    if (
+      messageLC.includes('cliente') ||
+      messageLC.includes('cotización') ||
+      messageLC.includes('evento') ||
+      messageLC.includes('búsqueda')
+    ) {
       selectedAgent = 'crm-agent';
       intent = 'business_query';
       response = `[SIMULADO - CRM Agent]: He entendido tu consulta sobre "${message}". En modo real, buscaría en la base de datos de clientes, eventos y cotizaciones para darte información específica.`;
-    } else if (messageLC.includes('hola') || messageLC.includes('ayuda') || messageLC.includes('información')) {
+    } else if (
+      messageLC.includes('hola') ||
+      messageLC.includes('ayuda') ||
+      messageLC.includes('información')
+    ) {
       selectedAgent = 'whatsapp-agent';
       intent = 'greeting_or_help';
       response = `[SIMULADO - WhatsApp Agent]: ¡Hola! He recibido tu mensaje: "${message}". En modo real, tendría una conversación más natural y podría escalarte con un humano si necesitas ayuda especializada.`;
@@ -47,26 +56,25 @@ export async function POST(req: NextRequest) {
         originalMessage: message,
         platform,
         testMode: true,
-        note: "Este es un test sin Google AI - las respuestas son simuladas"
+        note: 'Este es un test sin Google AI - las respuestas son simuladas',
       },
       response: {
         message: response,
         agent: selectedAgent,
         intent,
         confidence: 0.85,
-        escalated: false
+        escalated: false,
       },
       performance: {
         processingTime,
-        simulatedProcessing: true
+        simulatedProcessing: true,
       },
       configuration: {
         googleAiAvailable: !!process.env['GOOGLE_API_KEY'],
-        testModeActive: true
+        testModeActive: true,
       },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     console.error('Error en test simulado:', error);
     return ApiResponses.internalError(
@@ -75,28 +83,28 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     return ApiResponses.success({
-      message: "Endpoint de test simulado - Listo para recibir mensajes POST",
+      message: 'Endpoint de test simulado - Listo para recibir mensajes POST',
       availableTests: [
         "Mensaje con 'cliente' o 'cotización' → CRM Agent simulado",
         "Mensaje con 'hola' o 'ayuda' → WhatsApp Agent simulado",
-        "Otros mensajes → WhatsApp Agent general"
+        'Otros mensajes → WhatsApp Agent general',
       ],
       configuration: {
         googleAiRequired: false,
         googleAiConfigured: !!process.env['GOOGLE_API_KEY'],
-        status: "ready"
+        status: 'ready',
       },
       example: {
-        url: "POST /api/ai/test-simple",
+        url: 'POST /api/ai/test-simple',
         body: {
-          message: "Hola, necesito ayuda con mi evento",
-          platform: "whatsapp"
-        }
+          message: 'Hola, necesito ayuda con mi evento',
+          platform: 'whatsapp',
+        },
       },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     console.error('Error en GET test simulado:', error);

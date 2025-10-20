@@ -1,8 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
-import { z } from 'zod'
-import { UserRole } from '@prisma/client'
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { z } from 'zod';
 
 // Schema de validación para ubicaciones
 const createLocationSchema = z.object({
@@ -10,83 +9,82 @@ const createLocationSchema = z.object({
   address: z.string().optional(),
   description: z.string().optional(),
   isActive: z.boolean().default(true),
-  businessIdentityId: z.string().min(1, 'La identidad de negocio es requerida')
-})
+  businessIdentityId: z.string().min(1, 'La identidad de negocio es requerida'),
+});
 
 // GET /api/locations - Listar ubicaciones
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth()
+    const session = await auth();
     if (!session?.user) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url)
-    const businessIdentityId = searchParams.get('businessIdentityId')
-    const isActive = searchParams.get('isActive')
+    const { searchParams } = new URL(request.url);
+    const businessIdentityId = searchParams.get('businessIdentityId');
+    const isActive = searchParams.get('isActive');
 
     const where: Record<string, unknown> = {
       businessIdentity: {
-        tenantId: session.user.tenantId
-      }
-    }
+        tenantId: session.user.tenantId,
+      },
+    };
 
-    if (businessIdentityId) where['businessIdentityId'] = businessIdentityId
-    if (isActive !== null) where['isActive'] = isActive === 'true'
+    if (businessIdentityId) where['businessIdentityId'] = businessIdentityId;
+    if (isActive !== null) where['isActive'] = isActive === 'true';
 
     const locations = await prisma.location.findMany({
       where,
       include: {
         businessIdentity: {
-          select: { id: true, name: true }
+          select: { id: true, name: true },
         },
         rooms: {
           where: { isActive: true },
-          select: { 
-            id: true, 
-            name: true, 
- 
+          select: {
+            id: true,
+            name: true,
+
             color: true,
             _count: {
               select: {
                 events: {
                   where: {
-                    status: { in: ['RESERVED', 'QUOTED', 'CONFIRMED'] }
-                  }
-                }
-              }
-            }
-          }
+                    status: { in: ['RESERVED', 'QUOTED', 'CONFIRMED'] },
+                  },
+                },
+              },
+            },
+          },
         },
         _count: {
           select: {
-            rooms: true
-          }
-        }
+            rooms: true,
+          },
+        },
       },
-      orderBy: { name: 'asc' }
-    })
+      orderBy: { name: 'asc' },
+    });
 
     return NextResponse.json({
       success: true,
-      data: locations
-    })
-
+      data: locations,
+    });
   } catch (error) {
-    console.error('Error al obtener ubicaciones:', error)
+    console.error('Error al obtener ubicaciones:', error);
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },
       { status: 500 }
-    )
+    );
   }
 }
 
 // POST /api/locations - Crear ubicación
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
+    const session = await auth();
     if (!session?.user) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
     // Solo ciertos roles pueden crear ubicaciones
@@ -94,22 +92,22 @@ export async function POST(request: NextRequest) {
     //   return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     // }
 
-    const body = await request.json()
-    const validatedData = createLocationSchema.parse(body)
+    const body = await request.json();
+    const validatedData = createLocationSchema.parse(body);
 
     // Verificar que la identidad de negocio existe y pertenece al tenant
     const businessIdentity = await prisma.businessIdentity.findFirst({
       where: {
         id: validatedData.businessIdentityId,
-        tenantId: session.user.tenantId
-      }
-    })
+        tenantId: session.user.tenantId,
+      },
+    });
 
     if (!businessIdentity) {
       return NextResponse.json(
         { success: false, error: 'Identidad de negocio no encontrada' },
         { status: 404 }
-      )
+      );
     }
 
     const location = await prisma.location.create({
@@ -122,34 +120,36 @@ export async function POST(request: NextRequest) {
       },
       include: {
         businessIdentity: {
-          select: { id: true, name: true }
+          select: { id: true, name: true },
         },
         _count: {
           select: {
-            rooms: true
-          }
-        }
-      }
-    })
+            rooms: true,
+          },
+        },
+      },
+    });
 
-    return NextResponse.json({
-      success: true,
-      data: location,
-      message: 'Ubicación creada exitosamente'
-    }, { status: 201 })
-
+    return NextResponse.json(
+      {
+        success: true,
+        data: location,
+        message: 'Ubicación creada exitosamente',
+      },
+      { status: 201 }
+    );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { success: false, error: 'Datos inválidos', details: error.errors },
         { status: 400 }
-      )
+      );
     }
 
-    console.error('Error al crear ubicación:', error)
+    console.error('Error al crear ubicación:', error);
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },
       { status: 500 }
-    )
+    );
   }
 }

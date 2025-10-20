@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,27 +16,18 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { 
-  Eye, 
-  Save, 
-  Code, 
-  Type, 
-  Palette, 
-  Settings, 
-  Copy,
+import {
+  Eye,
+  Save,
+  Code,
+  Type,
+  Palette,
+  Settings,
   Plus,
   X,
   FileText,
@@ -44,12 +35,10 @@ import {
   FileCheck,
   Receipt,
   Briefcase,
-  AlertCircle,
-  Check,
-  Loader2
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { TemplateEditorData, TemplateFullData, TEMPLATE_TYPES, TEMPLATE_CATEGORIES } from '@/types/templates';
+import { TemplateEditorData, TemplateFullData, TEMPLATE_CATEGORIES } from '@/types/templates';
 
 // Definir tipos
 interface TemplateVariable {
@@ -87,7 +76,12 @@ const DEFAULT_STYLES = {
   marginRight: '40px',
 };
 
-export function TemplateEditor({ template, onSave, onCancel, isLoading = false }: TemplateEditorProps) {
+export function TemplateEditor({
+  template,
+  onSave,
+  onCancel,
+  isLoading = false,
+}: TemplateEditorProps) {
   // Estados principales
   const [formData, setFormData] = useState<TemplateEditorData>({
     name: '',
@@ -153,8 +147,8 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           data: {},
-          format: 'html'
-        })
+          format: 'html',
+        }),
       });
 
       if (response.ok) {
@@ -185,9 +179,9 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
   const handleInputChange = (field: keyof TemplateEditorData, value: any) => {
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
-    
+
     // Limpiar errores
     if (errors[field]) {
       setErrors(prev => {
@@ -203,8 +197,8 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
       ...prev,
       styles: {
         ...prev.styles,
-        [property]: value
-      }
+        [property]: value,
+      },
     }));
   };
 
@@ -214,10 +208,11 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const currentContent = formData.htmlContent;
-      const newContent = currentContent.substring(0, start) + variableKey + currentContent.substring(end);
-      
+      const newContent =
+        currentContent.substring(0, start) + variableKey + currentContent.substring(end);
+
       handleInputChange('htmlContent', newContent);
-      
+
       // Agregar a variables seleccionadas si no existe
       if (!selectedVariables.includes(variableKey)) {
         const newSelected = [...selectedVariables, variableKey];
@@ -232,7 +227,7 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
     if (!customVariables.includes(variableKey)) {
       const newCustom = [...customVariables, variableKey];
       setCustomVariables(newCustom);
-      
+
       const newSelected = [...selectedVariables, variableKey];
       setSelectedVariables(newSelected);
       handleInputChange('variables', newSelected);
@@ -243,7 +238,7 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
     const newSelected = selectedVariables.filter(v => v !== variableKey);
     setSelectedVariables(newSelected);
     handleInputChange('variables', newSelected);
-    
+
     if (customVariables.includes(variableKey)) {
       setCustomVariables(customVariables.filter(v => v !== variableKey));
     }
@@ -281,7 +276,7 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
 
   const insertTemplate = (templateType: string) => {
     let defaultTemplate = '';
-    
+
     switch (templateType) {
       case 'basic':
         defaultTemplate = `<!DOCTYPE html>
@@ -317,7 +312,7 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
 </body>
 </html>`;
         break;
-        
+
       case 'packages':
         defaultTemplate = `<!DOCTYPE html>
 <html>
@@ -350,7 +345,7 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
 </body>
 </html>`;
         break;
-        
+
       case 'professional':
         defaultTemplate = `<!DOCTYPE html>
 <html>
@@ -437,35 +432,33 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
 </html>`;
         break;
     }
-    
+
     handleInputChange('htmlContent', defaultTemplate);
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className='mx-auto max-w-7xl space-y-6 p-6'>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className='flex items-center justify-between'>
         <div>
-          <h1 className="text-2xl font-bold">
-            {template ? 'Editar Template' : 'Crear Template'}
-          </h1>
-          <p className="text-muted-foreground">
+          <h1 className='text-2xl font-bold'>{template ? 'Editar Template' : 'Crear Template'}</h1>
+          <p className='text-muted-foreground'>
             Crea y personaliza plantillas para cotizaciones y documentos
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={onCancel}>
+        <div className='flex gap-2'>
+          <Button variant='outline' onClick={onCancel}>
             Cancelar
           </Button>
           <Button onClick={handleSave} disabled={isLoading}>
             {isLoading ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
                 Guardando...
               </>
             ) : (
               <>
-                <Save className="h-4 w-4 mr-2" />
+                <Save className='mr-2 h-4 w-4' />
                 Guardar
               </>
             )}
@@ -473,61 +466,59 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className='grid grid-cols-1 gap-6 lg:grid-cols-4'>
         {/* Panel de configuración */}
-        <div className="lg:col-span-1">
+        <div className='lg:col-span-1'>
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
+              <CardTitle className='flex items-center gap-2'>
+                <Settings className='h-5 w-5' />
                 Configuración
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className='space-y-4'>
               {/* Información básica */}
-              <div className="space-y-3">
+              <div className='space-y-3'>
                 <div>
-                  <Label htmlFor="name">Nombre del Template *</Label>
+                  <Label htmlFor='name'>Nombre del Template *</Label>
                   <Input
-                    id="name"
+                    id='name'
                     value={formData['name']}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    placeholder="Ej: Cotización Eventos Sociales"
+                    onChange={e => handleInputChange('name', e.target.value)}
+                    placeholder='Ej: Cotización Eventos Sociales'
                     className={errors['name'] ? 'border-red-500' : ''}
                   />
-                  {errors['name'] && (
-                    <p className="text-sm text-red-500 mt-1">{errors['name']}</p>
-                  )}
+                  {errors['name'] && <p className='mt-1 text-sm text-red-500'>{errors['name']}</p>}
                 </div>
 
                 <div>
-                  <Label htmlFor="description">Descripción</Label>
+                  <Label htmlFor='description'>Descripción</Label>
                   <Textarea
-                    id="description"
+                    id='description'
                     value={formData.description}
-                    onChange={(e) => handleInputChange('description', e.target.value)}
-                    placeholder="Descripción del template..."
+                    onChange={e => handleInputChange('description', e.target.value)}
+                    placeholder='Descripción del template...'
                     rows={3}
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="type">Tipo de Template</Label>
-                  <Select 
-                    value={formData.type} 
-                    onValueChange={(value) => handleInputChange('type', value)}
+                  <Label htmlFor='type'>Tipo de Template</Label>
+                  <Select
+                    value={formData.type}
+                    onValueChange={value => handleInputChange('type', value)}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {TEMPLATE_TYPE_CONFIGS.map((type) => {
+                      {TEMPLATE_TYPE_CONFIGS.map(type => {
                         const Icon = type.icon;
                         return (
                           <SelectItem key={type.value} value={type.value}>
-                            <div className="flex items-center gap-2">
-                              <div className={`w-3 h-3 rounded-full ${type.color}`} />
-                              <Icon className="h-4 w-4" />
+                            <div className='flex items-center gap-2'>
+                              <div className={`h-3 w-3 rounded-full ${type.color}`} />
+                              <Icon className='h-4 w-4' />
                               {type.label}
                             </div>
                           </SelectItem>
@@ -538,16 +529,16 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
                 </div>
 
                 <div>
-                  <Label htmlFor="category">Categoría</Label>
-                  <Select 
+                  <Label htmlFor='category'>Categoría</Label>
+                  <Select
                     {...(formData.category ? { value: formData.category } : {})}
-                    onValueChange={(value) => handleInputChange('category', value)}
+                    onValueChange={value => handleInputChange('category', value)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar categoría" />
+                      <SelectValue placeholder='Seleccionar categoría' />
                     </SelectTrigger>
                     <SelectContent>
-                      {TEMPLATE_CATEGORIES.map((category) => (
+                      {TEMPLATE_CATEGORIES.map(category => (
                         <SelectItem key={category} value={category}>
                           {category.charAt(0).toUpperCase() + category.slice(1)}
                         </SelectItem>
@@ -556,58 +547,58 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
                   </Select>
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className='flex items-center space-x-2'>
                   <input
-                    type="checkbox"
-                    id="isDefault"
+                    type='checkbox'
+                    id='isDefault'
                     checked={formData.isDefault}
-                    onChange={(e) => handleInputChange('isDefault', e.target.checked)}
-                    className="rounded border-gray-300"
+                    onChange={e => handleInputChange('isDefault', e.target.checked)}
+                    className='rounded border-gray-300'
                   />
-                  <Label htmlFor="isDefault">Template por defecto</Label>
+                  <Label htmlFor='isDefault'>Template por defecto</Label>
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className='flex items-center space-x-2'>
                   <input
-                    type="checkbox"
-                    id="isActive"
+                    type='checkbox'
+                    id='isActive'
                     checked={formData.isActive}
-                    onChange={(e) => handleInputChange('isActive', e.target.checked)}
-                    className="rounded border-gray-300"
+                    onChange={e => handleInputChange('isActive', e.target.checked)}
+                    className='rounded border-gray-300'
                   />
-                  <Label htmlFor="isActive">Activo</Label>
+                  <Label htmlFor='isActive'>Activo</Label>
                 </div>
               </div>
 
               {/* Templates predefinidos */}
-              <div className="pt-4 border-t">
+              <div className='border-t pt-4'>
                 <Label>Templates Base</Label>
-                <div className="space-y-2 mt-2">
+                <div className='mt-2 space-y-2'>
                   <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-start"
+                    variant='outline'
+                    size='sm'
+                    className='w-full justify-start'
                     onClick={() => insertTemplate('basic')}
                   >
-                    <FileText className="h-4 w-4 mr-2" />
+                    <FileText className='mr-2 h-4 w-4' />
                     Básico
                   </Button>
                   <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-start"
+                    variant='outline'
+                    size='sm'
+                    className='w-full justify-start'
                     onClick={() => insertTemplate('packages')}
                   >
-                    <Briefcase className="h-4 w-4 mr-2" />
+                    <Briefcase className='mr-2 h-4 w-4' />
                     Con Paquetes
                   </Button>
                   <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-start"
+                    variant='outline'
+                    size='sm'
+                    className='w-full justify-start'
                     onClick={() => insertTemplate('professional')}
                   >
-                    <FileCheck className="h-4 w-4 mr-2" />
+                    <FileCheck className='mr-2 h-4 w-4' />
                     Profesional
                   </Button>
                 </div>
@@ -616,29 +607,29 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
           </Card>
 
           {/* Panel de variables */}
-          <Card className="mt-4">
+          <Card className='mt-4'>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Type className="h-5 w-5" />
+              <CardTitle className='flex items-center gap-2'>
+                <Type className='h-5 w-5' />
                 Variables
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
+              <div className='space-y-3'>
                 {/* Variables seleccionadas */}
                 {selectedVariables.length > 0 && (
                   <div>
-                    <Label className="text-sm font-medium">Variables en uso:</Label>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {selectedVariables.map((variable) => (
+                    <Label className='text-sm font-medium'>Variables en uso:</Label>
+                    <div className='mt-1 flex flex-wrap gap-1'>
+                      {selectedVariables.map(variable => (
                         <Badge
                           key={variable}
-                          variant="secondary"
-                          className="cursor-pointer hover:bg-red-100"
+                          variant='secondary'
+                          className='cursor-pointer hover:bg-red-100'
                           onClick={() => removeVariable(variable)}
                         >
                           {variable}
-                          <X className="h-3 w-3 ml-1" />
+                          <X className='ml-1 h-3 w-3' />
                         </Badge>
                       ))}
                     </div>
@@ -646,24 +637,24 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
                 )}
 
                 {/* Variables disponibles */}
-                <Accordion type="single" collapsible className="w-full">
+                <Accordion type='single' collapsible className='w-full'>
                   {Object.entries(variables).map(([category, categoryVariables]) => (
                     <AccordionItem key={category} value={category}>
-                      <AccordionTrigger className="text-sm">
+                      <AccordionTrigger className='text-sm'>
                         {category.charAt(0).toUpperCase() + category.slice(1)}
                       </AccordionTrigger>
                       <AccordionContent>
-                        <div className="space-y-1">
-                          {categoryVariables.map((variable) => (
+                        <div className='space-y-1'>
+                          {categoryVariables.map(variable => (
                             <Button
                               key={variable.key}
-                              variant="ghost"
-                              size="sm"
-                              className="w-full justify-start text-xs"
+                              variant='ghost'
+                              size='sm'
+                              className='w-full justify-start text-xs'
                               onClick={() => insertVariable(variable.key)}
                               title={variable.description}
                             >
-                              <Plus className="h-3 w-3 mr-1" />
+                              <Plus className='mr-1 h-3 w-3' />
                               {variable.key}
                             </Button>
                           ))}
@@ -675,12 +666,12 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
 
                 {/* Variable personalizada */}
                 <div>
-                  <Label className="text-sm">Variable personalizada:</Label>
-                  <div className="flex gap-1 mt-1">
+                  <Label className='text-sm'>Variable personalizada:</Label>
+                  <div className='mt-1 flex gap-1'>
                     <Input
-                      placeholder="nombre"
-                      className="text-xs"
-                      onKeyPress={(e) => {
+                      placeholder='nombre'
+                      className='text-xs'
+                      onKeyPress={e => {
                         if (e.key === 'Enter') {
                           const input = e.target as HTMLInputElement;
                           if (input.value.trim()) {
@@ -691,16 +682,17 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
                       }}
                     />
                     <Button
-                      size="sm"
-                      onClick={(e) => {
-                        const input = (e.target as HTMLElement).previousElementSibling as HTMLInputElement;
+                      size='sm'
+                      onClick={e => {
+                        const input = (e.target as HTMLElement)
+                          .previousElementSibling as HTMLInputElement;
                         if (input?.value.trim()) {
                           addCustomVariable(input.value.trim());
                           input.value = '';
                         }
                       }}
                     >
-                      <Plus className="h-3 w-3" />
+                      <Plus className='h-3 w-3' />
                     </Button>
                   </div>
                 </div>
@@ -710,123 +702,120 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading = false }
         </div>
 
         {/* Editor principal */}
-        <div className="lg:col-span-3">
-          <Card className="h-full">
+        <div className='lg:col-span-3'>
+          <Card className='h-full'>
             <CardHeader>
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
-                  <TabsTrigger value="editor" className="flex items-center gap-2">
-                    <Code className="h-4 w-4" />
+                  <TabsTrigger value='editor' className='flex items-center gap-2'>
+                    <Code className='h-4 w-4' />
                     Editor
                   </TabsTrigger>
-                  <TabsTrigger value="preview" className="flex items-center gap-2">
-                    <Eye className="h-4 w-4" />
+                  <TabsTrigger value='preview' className='flex items-center gap-2'>
+                    <Eye className='h-4 w-4' />
                     Vista Previa
                   </TabsTrigger>
-                  <TabsTrigger value="styles" className="flex items-center gap-2">
-                    <Palette className="h-4 w-4" />
+                  <TabsTrigger value='styles' className='flex items-center gap-2'>
+                    <Palette className='h-4 w-4' />
                     Estilos
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
             </CardHeader>
-            
-            <CardContent className="h-[600px]">
-              <TabsContent value="editor" className="h-full">
-                <div className="h-full">
-                  <Label htmlFor="htmlContent">Contenido HTML *</Label>
+
+            <CardContent className='h-[600px]'>
+              <TabsContent value='editor' className='h-full'>
+                <div className='h-full'>
+                  <Label htmlFor='htmlContent'>Contenido HTML *</Label>
                   <Textarea
-                    id="htmlContent"
+                    id='htmlContent'
                     value={formData['htmlContent']}
-                    onChange={(e) => handleInputChange('htmlContent', e.target.value)}
-                    placeholder="Escribe el contenido HTML del template..."
+                    onChange={e => handleInputChange('htmlContent', e.target.value)}
+                    placeholder='Escribe el contenido HTML del template...'
                     className={`h-[550px] font-mono text-sm ${errors['htmlContent'] ? 'border-red-500' : ''}`}
                   />
                   {errors['htmlContent'] && (
-                    <p className="text-sm text-red-500 mt-1">{errors['htmlContent']}</p>
+                    <p className='mt-1 text-sm text-red-500'>{errors['htmlContent']}</p>
                   )}
                 </div>
               </TabsContent>
 
-              <TabsContent value="preview" className="h-full">
-                <div className="h-full border rounded-lg overflow-auto bg-white">
+              <TabsContent value='preview' className='h-full'>
+                <div className='h-full overflow-auto rounded-lg border bg-white'>
                   {isPreviewLoading ? (
-                    <div className="flex items-center justify-center h-full">
-                      <Loader2 className="h-8 w-8 animate-spin" />
+                    <div className='flex h-full items-center justify-center'>
+                      <Loader2 className='h-8 w-8 animate-spin' />
                     </div>
                   ) : (
-                    <div 
-                      className="p-4"
-                      dangerouslySetInnerHTML={{ __html: previewContent }}
-                    />
+                    <div className='p-4' dangerouslySetInnerHTML={{ __html: previewContent }} />
                   )}
                 </div>
               </TabsContent>
 
-              <TabsContent value="styles" className="h-full">
-                <div className="grid grid-cols-2 gap-4 h-full overflow-auto">
+              <TabsContent value='styles' className='h-full'>
+                <div className='grid h-full grid-cols-2 gap-4 overflow-auto'>
                   <div>
                     <Label>Fuente</Label>
                     <Input
                       value={formData.styles?.['fontFamily'] || ''}
-                      onChange={(e) => handleStyleChange('fontFamily', e.target.value)}
-                      placeholder="Arial, sans-serif"
+                      onChange={e => handleStyleChange('fontFamily', e.target.value)}
+                      placeholder='Arial, sans-serif'
                     />
                   </div>
                   <div>
                     <Label>Tamaño de fuente</Label>
                     <Input
                       value={formData.styles?.['fontSize'] || ''}
-                      onChange={(e) => handleStyleChange('fontSize', e.target.value)}
-                      placeholder="14px"
+                      onChange={e => handleStyleChange('fontSize', e.target.value)}
+                      placeholder='14px'
                     />
                   </div>
                   <div>
                     <Label>Color de texto</Label>
                     <Input
-                      type="color"
+                      type='color'
                       value={formData.styles?.['color'] || '#333333'}
-                      onChange={(e) => handleStyleChange('color', e.target.value)}
+                      onChange={e => handleStyleChange('color', e.target.value)}
                     />
                   </div>
                   <div>
                     <Label>Color de fondo</Label>
                     <Input
-                      type="color"
+                      type='color'
                       value={formData.styles?.['backgroundColor'] || '#ffffff'}
-                      onChange={(e) => handleStyleChange('backgroundColor', e.target.value)}
+                      onChange={e => handleStyleChange('backgroundColor', e.target.value)}
                     />
                   </div>
                   <div>
                     <Label>Margen superior</Label>
                     <Input
                       value={formData.styles?.['marginTop'] || ''}
-                      onChange={(e) => handleStyleChange('marginTop', e.target.value)}
-                      placeholder="20px"
+                      onChange={e => handleStyleChange('marginTop', e.target.value)}
+                      placeholder='20px'
                     />
                   </div>
                   <div>
                     <Label>Margen inferior</Label>
                     <Input
                       value={formData.styles?.['marginBottom'] || ''}
-                      onChange={(e) => handleStyleChange('marginBottom', e.target.value)}
-                      placeholder="20px"
+                      onChange={e => handleStyleChange('marginBottom', e.target.value)}
+                      placeholder='20px'
                     />
                   </div>
                   <div>
                     <Label>Margen izquierdo</Label>
                     <Input
                       value={formData.styles?.['marginLeft'] || ''}
-                      onChange={(e) => handleStyleChange('marginLeft', e.target.value)}
-                      placeholder="40px"
+                      onChange={e => handleStyleChange('marginLeft', e.target.value)}
+                      placeholder='40px'
                     />
                   </div>
                   <div>
                     <Label>Margen derecho</Label>
                     <Input
                       value={formData.styles?.['marginRight'] || ''}
-                      onChange={(e) => handleStyleChange('marginRight', e.target.value)}
-                      placeholder="40px"
+                      onChange={e => handleStyleChange('marginRight', e.target.value)}
+                      placeholder='40px'
                     />
                   </div>
                 </div>

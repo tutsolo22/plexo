@@ -7,18 +7,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { 
-  FileText, 
-  Download, 
-  Eye, 
-  Settings, 
-  Loader2, 
-  CheckCircle, 
+import {
+  FileText,
+  Download,
+  Eye,
+  Settings,
+  Loader2,
+  CheckCircle,
   AlertCircle,
   RefreshCw,
-  FileDown
+  FileDown,
 } from 'lucide-react';
-import { PDFGenerationOptions, PDFGenerationResult, PDFEngine } from '@/types/pdf';
+import { PDFGenerationResult, PDFEngine } from '@/types/pdf';
 
 interface PDFGeneratorProps {
   quoteId?: string;
@@ -58,13 +58,13 @@ export default function PDFGenerator({
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationResult, setGenerationResult] = useState<PDFGenerationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Estados de configuración
   const [selectedEngine, setSelectedEngine] = useState<PDFEngine>('react-pdf');
   const [selectedTemplate, setSelectedTemplate] = useState(templateId || '');
   const [configuration, setConfiguration] = useState<PDFConfiguration | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
-  
+
   // Estados del formulario
   const [formData, setFormData] = useState({
     client: {
@@ -85,7 +85,7 @@ export default function PDFGenerator({
     notes: '',
     quoteNumber: '',
   });
-  
+
   // Opciones de PDF
   const [pdfOptions, setPdfOptions] = useState({
     quality: 'medium' as const,
@@ -116,7 +116,7 @@ export default function PDFGenerator({
     try {
       const response = await fetch('/api/pdf/generate');
       const data = await response.json();
-      
+
       if (data.success) {
         setConfiguration(data.configuration);
         setTemplates(data.templates);
@@ -146,25 +146,27 @@ export default function PDFGenerator({
 
     try {
       const endpoint = quoteId ? `/api/quotes/${quoteId}/pdf` : '/api/pdf/generate';
-      
-      const requestData = quoteId ? {
-        engine: selectedEngine,
-        quality: pdfOptions.quality,
-        format: pdfOptions.format,
-        orientation: pdfOptions.orientation,
-        fileName: pdfOptions.fileName,
-        showPageNumbers: pdfOptions.showPageNumbers,
-        compression: pdfOptions.compression,
-        watermark: pdfOptions.watermark,
-      } : {
-        templateId: selectedTemplate,
-        quoteId,
-        data: formData,
-        options: {
-          engine: selectedEngine,
-          ...pdfOptions,
-        },
-      };
+
+      const requestData = quoteId
+        ? {
+            engine: selectedEngine,
+            quality: pdfOptions.quality,
+            format: pdfOptions.format,
+            orientation: pdfOptions.orientation,
+            fileName: pdfOptions.fileName,
+            showPageNumbers: pdfOptions.showPageNumbers,
+            compression: pdfOptions.compression,
+            watermark: pdfOptions.watermark,
+          }
+        : {
+            templateId: selectedTemplate,
+            quoteId,
+            data: formData,
+            options: {
+              engine: selectedEngine,
+              ...pdfOptions,
+            },
+          };
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -213,7 +215,9 @@ export default function PDFGenerator({
       return {
         ...prev,
         [section]: {
-          ...(currentSection && typeof currentSection === 'object' && !Array.isArray(currentSection) ? currentSection as any : {}),
+          ...(currentSection && typeof currentSection === 'object' && !Array.isArray(currentSection)
+            ? (currentSection as any)
+            : {}),
           [field]: value,
         },
       };
@@ -222,38 +226,42 @@ export default function PDFGenerator({
 
   const getEngineIcon = (engine: PDFEngine) => {
     switch (engine) {
-      case 'react-pdf': return '⚛️';
-      case 'puppeteer': return '🎭';
-      case 'jspdf': return '📄';
-      default: return '📋';
+      case 'react-pdf':
+        return '⚛️';
+      case 'puppeteer':
+        return '🎭';
+      case 'jspdf':
+        return '📄';
+      default:
+        return '📋';
     }
   };
 
   const getQualityColor = (quality: string) => {
     switch (quality) {
-      case 'high': return 'bg-green-100 text-green-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'low': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'high':
+        return 'bg-green-100 text-green-800';
+      case 'medium':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'low':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <FileText className="h-6 w-6 text-blue-600" />
-          <h2 className="text-2xl font-bold text-gray-900">
-            Generador de PDF
-          </h2>
+      <div className='flex items-center justify-between'>
+        <div className='flex items-center gap-3'>
+          <FileText className='h-6 w-6 text-blue-600' />
+          <h2 className='text-2xl font-bold text-gray-900'>Generador de PDF</h2>
         </div>
         {generationResult && (
-          <div className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-600" />
-            <span className="text-sm text-green-600 font-medium">
-              PDF generado exitosamente
-            </span>
+          <div className='flex items-center gap-2'>
+            <CheckCircle className='h-5 w-5 text-green-600' />
+            <span className='text-sm font-medium text-green-600'>PDF generado exitosamente</span>
           </div>
         )}
       </div>
@@ -261,23 +269,23 @@ export default function PDFGenerator({
       {/* Configuración del Template */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
+          <CardTitle className='flex items-center gap-2'>
+            <Settings className='h-5 w-5' />
             Configuración
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className='space-y-4'>
           {/* Selector de Template */}
-          <div className="space-y-2">
-            <Label htmlFor="template">Template</Label>
+          <div className='space-y-2'>
+            <Label htmlFor='template'>Template</Label>
             <select
-              id="template"
-              className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              id='template'
+              className='w-full rounded-md border border-gray-300 p-2 focus:border-transparent focus:ring-2 focus:ring-blue-500'
               value={selectedTemplate}
-              onChange={(e) => setSelectedTemplate(e.target.value)}
+              onChange={e => setSelectedTemplate(e.target.value)}
             >
-              <option value="">Seleccionar template...</option>
-              {templates.map((template) => (
+              <option value=''>Seleccionar template...</option>
+              {templates.map(template => (
                 <option key={template.id} value={template.id}>
                   {template.name} ({template.type} - {template.category})
                 </option>
@@ -286,37 +294,37 @@ export default function PDFGenerator({
           </div>
 
           {/* Engine Selection */}
-          <div className="space-y-2">
+          <div className='space-y-2'>
             <Label>Engine de Generación</Label>
-            <div className="flex flex-wrap gap-2">
-              {configuration?.engines.map((engine) => (
+            <div className='flex flex-wrap gap-2'>
+              {configuration?.engines.map(engine => (
                 <button
                   key={engine}
                   onClick={() => setSelectedEngine(engine)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
+                  className={`flex items-center gap-2 rounded-lg border px-3 py-2 transition-colors ${
                     selectedEngine === engine
                       ? 'border-blue-500 bg-blue-50 text-blue-700'
                       : 'border-gray-300 hover:border-gray-400'
                   }`}
                 >
                   <span>{getEngineIcon(engine)}</span>
-                  <span className="capitalize">{engine}</span>
+                  <span className='capitalize'>{engine}</span>
                 </button>
               ))}
             </div>
           </div>
 
           {/* Opciones de PDF */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="quality">Calidad</Label>
+          <div className='grid grid-cols-2 gap-4 md:grid-cols-4'>
+            <div className='space-y-2'>
+              <Label htmlFor='quality'>Calidad</Label>
               <select
-                id="quality"
-                className="w-full p-2 border border-gray-300 rounded-md"
+                id='quality'
+                className='w-full rounded-md border border-gray-300 p-2'
                 value={pdfOptions.quality}
-                onChange={(e) => setPdfOptions(prev => ({ ...prev, quality: e.target.value as any }))}
+                onChange={e => setPdfOptions(prev => ({ ...prev, quality: e.target.value as any }))}
               >
-                {configuration?.qualities.map((quality) => (
+                {configuration?.qualities.map(quality => (
                   <option key={quality} value={quality}>
                     {quality.charAt(0).toUpperCase() + quality.slice(1)}
                   </option>
@@ -324,15 +332,15 @@ export default function PDFGenerator({
               </select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="format">Formato</Label>
+            <div className='space-y-2'>
+              <Label htmlFor='format'>Formato</Label>
               <select
-                id="format"
-                className="w-full p-2 border border-gray-300 rounded-md"
+                id='format'
+                className='w-full rounded-md border border-gray-300 p-2'
                 value={pdfOptions.format}
-                onChange={(e) => setPdfOptions(prev => ({ ...prev, format: e.target.value as any }))}
+                onChange={e => setPdfOptions(prev => ({ ...prev, format: e.target.value as any }))}
               >
-                {configuration?.formats.map((format) => (
+                {configuration?.formats.map(format => (
                   <option key={format} value={format}>
                     {format}
                   </option>
@@ -340,15 +348,17 @@ export default function PDFGenerator({
               </select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="orientation">Orientación</Label>
+            <div className='space-y-2'>
+              <Label htmlFor='orientation'>Orientación</Label>
               <select
-                id="orientation"
-                className="w-full p-2 border border-gray-300 rounded-md"
+                id='orientation'
+                className='w-full rounded-md border border-gray-300 p-2'
                 value={pdfOptions.orientation}
-                onChange={(e) => setPdfOptions(prev => ({ ...prev, orientation: e.target.value as any }))}
+                onChange={e =>
+                  setPdfOptions(prev => ({ ...prev, orientation: e.target.value as any }))
+                }
               >
-                {configuration?.orientations.map((orientation) => (
+                {configuration?.orientations.map(orientation => (
                   <option key={orientation} value={orientation}>
                     {orientation === 'portrait' ? 'Vertical' : 'Horizontal'}
                   </option>
@@ -356,35 +366,37 @@ export default function PDFGenerator({
               </select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="fileName">Nombre del archivo</Label>
+            <div className='space-y-2'>
+              <Label htmlFor='fileName'>Nombre del archivo</Label>
               <Input
-                id="fileName"
-                type="text"
-                placeholder="cotizacion.pdf"
+                id='fileName'
+                type='text'
+                placeholder='cotizacion.pdf'
                 value={pdfOptions.fileName}
-                onChange={(e) => setPdfOptions(prev => ({ ...prev, fileName: e.target.value }))}
+                onChange={e => setPdfOptions(prev => ({ ...prev, fileName: e.target.value }))}
               />
             </div>
           </div>
 
           {/* Opciones adicionales */}
-          <div className="flex flex-wrap gap-4">
-            <label className="flex items-center gap-2">
+          <div className='flex flex-wrap gap-4'>
+            <label className='flex items-center gap-2'>
               <input
-                type="checkbox"
+                type='checkbox'
                 checked={pdfOptions.showPageNumbers}
-                onChange={(e) => setPdfOptions(prev => ({ ...prev, showPageNumbers: e.target.checked }))}
+                onChange={e =>
+                  setPdfOptions(prev => ({ ...prev, showPageNumbers: e.target.checked }))
+                }
               />
-              <span className="text-sm">Mostrar números de página</span>
+              <span className='text-sm'>Mostrar números de página</span>
             </label>
-            <label className="flex items-center gap-2">
+            <label className='flex items-center gap-2'>
               <input
-                type="checkbox"
+                type='checkbox'
                 checked={pdfOptions.compression}
-                onChange={(e) => setPdfOptions(prev => ({ ...prev, compression: e.target.checked }))}
+                onChange={e => setPdfOptions(prev => ({ ...prev, compression: e.target.checked }))}
               />
-              <span className="text-sm">Comprimir PDF</span>
+              <span className='text-sm'>Comprimir PDF</span>
             </label>
           </div>
         </CardContent>
@@ -396,45 +408,45 @@ export default function PDFGenerator({
           <CardHeader>
             <CardTitle>Datos de la Cotización</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className='space-y-4'>
             {/* Cliente */}
             <div>
-              <h4 className="font-medium mb-3">Información del Cliente</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="clientName">Nombre</Label>
+              <h4 className='mb-3 font-medium'>Información del Cliente</h4>
+              <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+                <div className='space-y-2'>
+                  <Label htmlFor='clientName'>Nombre</Label>
                   <Input
-                    id="clientName"
-                    type="text"
+                    id='clientName'
+                    type='text'
                     value={formData.client.name}
-                    onChange={(e) => handleFormChange('client', 'name', e.target.value)}
+                    onChange={e => handleFormChange('client', 'name', e.target.value)}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="clientEmail">Email</Label>
+                <div className='space-y-2'>
+                  <Label htmlFor='clientEmail'>Email</Label>
                   <Input
-                    id="clientEmail"
-                    type="email"
+                    id='clientEmail'
+                    type='email'
                     value={formData.client.email}
-                    onChange={(e) => handleFormChange('client', 'email', e.target.value)}
+                    onChange={e => handleFormChange('client', 'email', e.target.value)}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="clientPhone">Teléfono</Label>
+                <div className='space-y-2'>
+                  <Label htmlFor='clientPhone'>Teléfono</Label>
                   <Input
-                    id="clientPhone"
-                    type="text"
+                    id='clientPhone'
+                    type='text'
                     value={formData.client.phone}
-                    onChange={(e) => handleFormChange('client', 'phone', e.target.value)}
+                    onChange={e => handleFormChange('client', 'phone', e.target.value)}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="clientAddress">Dirección</Label>
+                <div className='space-y-2'>
+                  <Label htmlFor='clientAddress'>Dirección</Label>
                   <Input
-                    id="clientAddress"
-                    type="text"
+                    id='clientAddress'
+                    type='text'
                     value={formData.client.address}
-                    onChange={(e) => handleFormChange('client', 'address', e.target.value)}
+                    onChange={e => handleFormChange('client', 'address', e.target.value)}
                   />
                 </div>
               </div>
@@ -442,42 +454,42 @@ export default function PDFGenerator({
 
             {/* Evento */}
             <div>
-              <h4 className="font-medium mb-3">Información del Evento</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="eventTitle">Título del Evento</Label>
+              <h4 className='mb-3 font-medium'>Información del Evento</h4>
+              <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+                <div className='space-y-2'>
+                  <Label htmlFor='eventTitle'>Título del Evento</Label>
                   <Input
-                    id="eventTitle"
-                    type="text"
+                    id='eventTitle'
+                    type='text'
                     value={formData.event.title}
-                    onChange={(e) => handleFormChange('event', 'title', e.target.value)}
+                    onChange={e => handleFormChange('event', 'title', e.target.value)}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="eventDate">Fecha</Label>
+                <div className='space-y-2'>
+                  <Label htmlFor='eventDate'>Fecha</Label>
                   <Input
-                    id="eventDate"
-                    type="date"
+                    id='eventDate'
+                    type='date'
                     value={formData.event.date}
-                    onChange={(e) => handleFormChange('event', 'date', e.target.value)}
+                    onChange={e => handleFormChange('event', 'date', e.target.value)}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="eventTime">Hora</Label>
+                <div className='space-y-2'>
+                  <Label htmlFor='eventTime'>Hora</Label>
                   <Input
-                    id="eventTime"
-                    type="time"
+                    id='eventTime'
+                    type='time'
                     value={formData.event.time}
-                    onChange={(e) => handleFormChange('event', 'time', e.target.value)}
+                    onChange={e => handleFormChange('event', 'time', e.target.value)}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="eventLocation">Ubicación</Label>
+                <div className='space-y-2'>
+                  <Label htmlFor='eventLocation'>Ubicación</Label>
                   <Input
-                    id="eventLocation"
-                    type="text"
+                    id='eventLocation'
+                    type='text'
                     value={formData.event.location}
-                    onChange={(e) => handleFormChange('event', 'location', e.target.value)}
+                    onChange={e => handleFormChange('event', 'location', e.target.value)}
                   />
                 </div>
               </div>
@@ -485,45 +497,49 @@ export default function PDFGenerator({
 
             {/* Montos */}
             <div>
-              <h4 className="font-medium mb-3">Información Financiera</h4>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="subtotal">Subtotal</Label>
+              <h4 className='mb-3 font-medium'>Información Financiera</h4>
+              <div className='grid grid-cols-1 gap-4 md:grid-cols-4'>
+                <div className='space-y-2'>
+                  <Label htmlFor='subtotal'>Subtotal</Label>
                   <Input
-                    id="subtotal"
-                    type="number"
-                    step="0.01"
+                    id='subtotal'
+                    type='number'
+                    step='0.01'
                     value={formData.subtotal}
-                    onChange={(e) => handleFormChange('', 'subtotal', parseFloat(e.target.value) || 0)}
+                    onChange={e =>
+                      handleFormChange('', 'subtotal', parseFloat(e.target.value) || 0)
+                    }
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="discount">Descuento</Label>
+                <div className='space-y-2'>
+                  <Label htmlFor='discount'>Descuento</Label>
                   <Input
-                    id="discount"
-                    type="number"
-                    step="0.01"
+                    id='discount'
+                    type='number'
+                    step='0.01'
                     value={formData.discount}
-                    onChange={(e) => handleFormChange('', 'discount', parseFloat(e.target.value) || 0)}
+                    onChange={e =>
+                      handleFormChange('', 'discount', parseFloat(e.target.value) || 0)
+                    }
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="total">Total</Label>
+                <div className='space-y-2'>
+                  <Label htmlFor='total'>Total</Label>
                   <Input
-                    id="total"
-                    type="number"
-                    step="0.01"
+                    id='total'
+                    type='number'
+                    step='0.01'
                     value={formData.total}
-                    onChange={(e) => handleFormChange('', 'total', parseFloat(e.target.value) || 0)}
+                    onChange={e => handleFormChange('', 'total', parseFloat(e.target.value) || 0)}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="quoteNumber">Número de Cotización</Label>
+                <div className='space-y-2'>
+                  <Label htmlFor='quoteNumber'>Número de Cotización</Label>
                   <Input
-                    id="quoteNumber"
-                    type="text"
+                    id='quoteNumber'
+                    type='text'
                     value={formData.quoteNumber}
-                    onChange={(e) => handleFormChange('', 'quoteNumber', e.target.value)}
+                    onChange={e => handleFormChange('', 'quoteNumber', e.target.value)}
                   />
                 </div>
               </div>
@@ -534,8 +550,8 @@ export default function PDFGenerator({
 
       {/* Alertas */}
       {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
+        <Alert variant='destructive'>
+          <AlertCircle className='h-4 w-4' />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
@@ -544,41 +560,37 @@ export default function PDFGenerator({
       {generationResult && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
+            <CardTitle className='flex items-center gap-2'>
+              <CheckCircle className='h-5 w-5 text-green-600' />
               PDF Generado Exitosamente
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="outline">
+          <CardContent className='space-y-4'>
+            <div className='flex flex-wrap gap-2'>
+              <Badge variant='outline'>
                 Engine: {getEngineIcon(selectedEngine)} {selectedEngine}
               </Badge>
               <Badge className={getQualityColor(pdfOptions.quality)}>
                 Calidad: {pdfOptions.quality}
               </Badge>
-              <Badge variant="secondary">
-                Formato: {pdfOptions.format}
-              </Badge>
-              <Badge variant="secondary">
-                Páginas: {generationResult.metadata?.pages || 1}
-              </Badge>
-              <Badge variant="secondary">
+              <Badge variant='secondary'>Formato: {pdfOptions.format}</Badge>
+              <Badge variant='secondary'>Páginas: {generationResult.metadata?.pages || 1}</Badge>
+              <Badge variant='secondary'>
                 Tamaño: {((generationResult.metadata?.size || 0) / 1024).toFixed(1)} KB
               </Badge>
             </div>
 
-            <div className="flex gap-3">
-              <Button onClick={previewPDF} variant="outline" size="sm">
-                <Eye className="h-4 w-4 mr-2" />
+            <div className='flex gap-3'>
+              <Button onClick={previewPDF} variant='outline' size='sm'>
+                <Eye className='mr-2 h-4 w-4' />
                 Vista Previa
               </Button>
-              <Button onClick={downloadPDF} size="sm">
-                <Download className="h-4 w-4 mr-2" />
+              <Button onClick={downloadPDF} size='sm'>
+                <Download className='mr-2 h-4 w-4' />
                 Descargar PDF
               </Button>
-              <Button onClick={() => setGenerationResult(null)} variant="ghost" size="sm">
-                <RefreshCw className="h-4 w-4 mr-2" />
+              <Button onClick={() => setGenerationResult(null)} variant='ghost' size='sm'>
+                <RefreshCw className='mr-2 h-4 w-4' />
                 Generar Nuevo
               </Button>
             </div>
@@ -587,21 +599,21 @@ export default function PDFGenerator({
       )}
 
       {/* Botones de Acción */}
-      <div className="flex justify-end gap-3">
+      <div className='flex justify-end gap-3'>
         <Button
           onClick={generatePDF}
           disabled={isGenerating || !selectedTemplate}
-          size="lg"
-          className="min-w-[150px]"
+          size='lg'
+          className='min-w-[150px]'
         >
           {isGenerating ? (
             <>
-              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+              <Loader2 className='mr-2 h-5 w-5 animate-spin' />
               Generando...
             </>
           ) : (
             <>
-              <FileDown className="h-5 w-5 mr-2" />
+              <FileDown className='mr-2 h-5 w-5' />
               Generar PDF
             </>
           )}

@@ -57,7 +57,7 @@ export class EmbeddingService {
         encoding_format: 'float',
       });
 
-      return response.data.map((item, index) => ({
+      return response.data.map((item, _index) => ({
         embedding: item.embedding,
         tokens: response.usage.total_tokens / texts.length, // Aproximado
       }));
@@ -79,11 +79,11 @@ export class EmbeddingService {
     if (typeof content === 'object') {
       // Convertir objeto a texto descriptivo
       const textParts = [];
-      
+
       if (content.name || content.title) {
         textParts.push(content.name || content.title);
       }
-      
+
       if (content.description) {
         textParts.push(content.description);
       }

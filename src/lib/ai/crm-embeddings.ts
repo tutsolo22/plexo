@@ -1,6 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
 
 // Configuración de Gemini AI para embeddings
 const genAI = new GoogleGenerativeAI(process.env['GOOGLE_AI_API_KEY'] || '');
@@ -47,7 +46,7 @@ export class CRMEmbeddingService {
 
       return {
         embedding,
-        dimensions: embedding.length
+        dimensions: embedding.length,
       };
     } catch (error) {
       console.error('Error generando embedding con Gemini:', error);
@@ -60,7 +59,7 @@ export class CRMEmbeddingService {
    */
   async generateBatchEmbeddings(texts: string[]): Promise<EmbeddingResult[]> {
     const results: EmbeddingResult[] = [];
-    
+
     // Procesar en lotes para evitar límites de rate
     const batchSize = 5;
     for (let i = 0; i < texts.length; i += batchSize) {
@@ -68,13 +67,13 @@ export class CRMEmbeddingService {
       const batchPromises = batch.map(text => this.generateEmbedding(text));
       const batchResults = await Promise.all(batchPromises);
       results.push(...batchResults);
-      
+
       // Pausa breve entre lotes
       if (i + batchSize < texts.length) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
-    
+
     return results;
   }
 
@@ -87,23 +86,23 @@ export class CRMEmbeddingService {
         where: { id: eventId, tenantId },
         include: {
           client: {
-            select: { name: true, email: true, type: true }
+            select: { name: true, email: true, type: true },
           },
           room: {
             include: {
               location: {
                 include: {
                   businessIdentity: {
-                    select: { name: true }
-                  }
-                }
-              }
-            }
-          }
+                    select: { name: true },
+                  },
+                },
+              },
+            },
+          },
           // user: { // user relation doesn't exist in Event model
           //   select: { name: true }
           // }
-        }
+        },
       });
 
       if (!event) return;
@@ -120,7 +119,7 @@ export class CRMEmbeddingService {
         clientType: event.client?.type,
         businessIdentity: event.room?.location?.businessIdentity?.name,
         location: event.room?.location?.name,
-        room: event.room?.name
+        room: event.room?.name,
       };
 
       // Usar upsert con raw SQL para el vector
@@ -135,7 +134,6 @@ export class CRMEmbeddingService {
           metadata = EXCLUDED.metadata,
           updated_at = NOW()
       `;
-
     } catch (error) {
       console.error('Error indexando evento:', error);
     }
@@ -150,18 +148,18 @@ export class CRMEmbeddingService {
         where: { id: clientId, tenantId },
         include: {
           priceList: {
-            select: { name: true } // removed type field - doesn't exist in PriceList model
+            select: { name: true }, // removed type field - doesn't exist in PriceList model
           },
           user: {
-            select: { name: true }
+            select: { name: true },
           },
           _count: {
             select: {
               events: true,
-              quotes: true
-            }
-          }
-        }
+              quotes: true,
+            },
+          },
+        },
       });
 
       if (!client) return;
@@ -175,7 +173,7 @@ export class CRMEmbeddingService {
         type: client.type,
         priceListType: client.priceList?.name,
         eventsCount: client._count.events,
-        quotesCount: client._count.quotes
+        quotesCount: client._count.quotes,
       };
 
       // Usar upsert con raw SQL para el vector
@@ -190,7 +188,6 @@ export class CRMEmbeddingService {
           metadata = EXCLUDED.metadata,
           updated_at = NOW()
       `;
-
     } catch (error) {
       console.error('Error indexando cliente:', error);
     }
@@ -205,7 +202,7 @@ export class CRMEmbeddingService {
         where: { id: quoteId, tenantId },
         include: {
           client: {
-            select: { name: true, email: true, type: true }
+            select: { name: true, email: true, type: true },
           },
           // businessIdentity: { // businessIdentity relation doesn't exist in Quote model
           //   select: { name: true }
@@ -215,12 +212,12 @@ export class CRMEmbeddingService {
               room: {
                 include: {
                   location: {
-                    select: { name: true }
-                  }
-                }
-              }
-            }
-          }
+                    select: { name: true },
+                  },
+                },
+              },
+            },
+          },
           // packages: { // packages relation doesn't exist in Quote model
           //   include: {
           //     packageTemplate: {
@@ -228,7 +225,7 @@ export class CRMEmbeddingService {
           //     }
           //   }
           // }
-        }
+        },
       });
 
       if (!quote) return;
@@ -242,7 +239,7 @@ export class CRMEmbeddingService {
         status: quote.status,
         total: Number(quote.total),
         clientType: quote.client.type,
-        hasEvent: !!quote.event
+        hasEvent: !!quote.event,
       };
 
       // Usar upsert con raw SQL para el vector
@@ -257,14 +254,13 @@ export class CRMEmbeddingService {
           metadata = EXCLUDED.metadata,
           updated_at = NOW()
       `;
-
     } catch (error) {
       console.error('Error indexando cotización:', error);
     }
   }
 
   /**
-   * Indexa un producto en la base de vectores  
+   * Indexa un producto en la base de vectores
    */
   async indexProduct(productId: string, tenantId: string): Promise<void> {
     try {
@@ -278,7 +274,7 @@ export class CRMEmbeddingService {
           //     }
           //   }
           // }
-        }
+        },
       });
 
       if (!product) return;
@@ -291,7 +287,7 @@ export class CRMEmbeddingService {
       const metadata = {
         itemType: product.itemType,
         unit: product.unit,
-        isActive: product.isActive
+        isActive: product.isActive,
       };
 
       // Usar upsert con raw SQL para el vector
@@ -306,7 +302,6 @@ export class CRMEmbeddingService {
           metadata = EXCLUDED.metadata,
           updated_at = NOW()
       `;
-
     } catch (error) {
       console.error('Error indexando producto:', error);
     }
@@ -315,10 +310,7 @@ export class CRMEmbeddingService {
   /**
    * Busca entidades similares usando vector search
    */
-  async searchSimilar(
-    query: string, 
-    options: SearchOptions = {}
-  ): Promise<CRMSearchResult[]> {
+  async searchSimilar(query: string, options: SearchOptions = {}): Promise<CRMSearchResult[]> {
     try {
       const { embedding } = await this.generateEmbedding(query);
       const limit = options.limit || 10;
@@ -347,9 +339,8 @@ export class CRMEmbeddingService {
         paramIndex++;
       }
 
-      const whereClause = whereConditions.length > 0 
-        ? `WHERE ${whereConditions.join(' AND ')} AND` 
-        : 'WHERE';
+      const whereClause =
+        whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')} AND` : 'WHERE';
 
       // Query SQL con pgvector
       const query_sql = `
@@ -367,14 +358,11 @@ export class CRMEmbeddingService {
 
       parameters.push(`[${embedding.join(',')}]`, threshold, limit);
 
-      const results = await prisma.$queryRawUnsafe(
-        query_sql,
-        ...parameters
-      ) as any[];
+      const results = (await prisma.$queryRawUnsafe(query_sql, ...parameters)) as any[];
 
       // Enriquecer resultados con datos de entidades si se solicita
       const enrichedResults: CRMSearchResult[] = [];
-      
+
       for (const result of results) {
         const searchResult: CRMSearchResult = {
           id: result.entity_id,
@@ -382,12 +370,12 @@ export class CRMEmbeddingService {
           content: result.content,
           metadata: result.metadata,
           type: result.entity_type.toLowerCase(),
-          entity: null
+          entity: null,
         };
 
         if (options.includeEntity) {
           searchResult.entity = await this.getEntityData(
-            result.entity_id, 
+            result.entity_id,
             result.entity_type,
             options.tenantId!
           );
@@ -397,7 +385,6 @@ export class CRMEmbeddingService {
       }
 
       return enrichedResults;
-
     } catch (error) {
       console.error('Error en búsqueda vectorial:', error);
       return [];
@@ -414,7 +401,7 @@ export class CRMEmbeddingService {
       // Re-indexar eventos
       const events = await prisma.event.findMany({
         where: { tenantId },
-        select: { id: true }
+        select: { id: true },
       });
 
       for (const event of events) {
@@ -424,7 +411,7 @@ export class CRMEmbeddingService {
       // Re-indexar clientes
       const clients = await prisma.client.findMany({
         where: { tenantId },
-        select: { id: true }
+        select: { id: true },
       });
 
       for (const client of clients) {
@@ -434,17 +421,17 @@ export class CRMEmbeddingService {
       // Re-indexar cotizaciones
       const quotes = await prisma.quote.findMany({
         where: { tenantId },
-        select: { id: true }
+        select: { id: true },
       });
 
       for (const quote of quotes) {
         await this.indexQuote(quote.id, tenantId);
       }
 
-      // Re-indexar productos 
+      // Re-indexar productos
       const products = await prisma.product.findMany({
         where: { tenantId },
-        select: { id: true }
+        select: { id: true },
       });
 
       for (const product of products) {
@@ -456,7 +443,6 @@ export class CRMEmbeddingService {
       console.log(`- Clientes: ${clients.length}`);
       console.log(`- Cotizaciones: ${quotes.length}`);
       console.log(`- Productos: ${products.length}`);
-
     } catch (error) {
       console.error('Error en re-indexación:', error);
       throw error;
@@ -495,8 +481,9 @@ Total cotizaciones: ${client._count?.quotes || 0}
   }
 
   private createQuoteContent(quote: any): string {
-    const packages = quote.packages?.map((p: any) => p.packageTemplate?.name).join(', ') || 'Sin paquetes';
-    
+    const packages =
+      quote.packages?.map((p: any) => p.packageTemplate?.name).join(', ') || 'Sin paquetes';
+
     return `
 Cotización: ${quote.quoteNumber}
 Estado: ${quote.status}
@@ -515,9 +502,9 @@ Términos: ${quote.terms || 'Sin términos'}
   }
 
   private createProductContent(product: any): string {
-    const prices = product.productPrices?.map((p: any) => 
-      `${p.priceList?.name}: $${p.price}`
-    ).join(', ') || 'Sin precios';
+    const prices =
+      product.productPrices?.map((p: any) => `${p.priceList?.name}: $${p.price}`).join(', ') ||
+      'Sin precios';
 
     return `
 Producto: ${product.name}
@@ -531,7 +518,11 @@ Precios: ${prices}
     `.trim();
   }
 
-  private async getEntityData(entityId: string, entityType: string, tenantId: string): Promise<any> {
+  private async getEntityData(
+    entityId: string,
+    entityType: string,
+    tenantId: string
+  ): Promise<any> {
     switch (entityType) {
       case 'EVENT':
         return prisma.event.findFirst({
@@ -542,12 +533,12 @@ Precios: ${prices}
               include: {
                 location: {
                   include: {
-                    businessIdentity: { select: { name: true } }
-                  }
-                }
-              }
-            }
-          }
+                    businessIdentity: { select: { name: true } },
+                  },
+                },
+              },
+            },
+          },
         });
 
       case 'CLIENT':
@@ -555,8 +546,8 @@ Precios: ${prices}
           where: { id: entityId, tenantId },
           include: {
             priceList: { select: { name: true } }, // removed type field
-            _count: { select: { events: true, quotes: true } }
-          }
+            _count: { select: { events: true, quotes: true } },
+          },
         });
 
       case 'QUOTE':
@@ -567,10 +558,10 @@ Precios: ${prices}
             // businessIdentity: { select: { name: true } }, // businessIdentity doesn't exist in Quote
             event: {
               include: {
-                room: { include: { location: { select: { name: true } } } }
-              }
-            }
-          }
+                room: { include: { location: { select: { name: true } } } },
+              },
+            },
+          },
         });
 
       case 'PRODUCT':
@@ -580,7 +571,7 @@ Precios: ${prices}
             // productPrices: { // productPrices doesn't exist in Product model
             //   include: { priceList: { select: { name: true } } }
             // }
-          }
+          },
         });
 
       default:
