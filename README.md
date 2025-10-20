@@ -5,13 +5,15 @@
 [![Next.js](https://img.shields.io/badge/Next.js-15.0-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.2-blue)](https://www.typescriptlang.org/)
 
-Sistema profesional de gestión de eventos empresariales desarrollado con tecnologías modernas y arquitectura escalable.
+Sistema profesional de gestión de eventos empresariales desarrollado con
+tecnologías modernas y arquitectura escalable.
 
 ## 🚀 Características Principales
 
 ### ✨ **Funcionalidades Core**
+
 - 🏢 **Multi-tenancy** - Soporte para múltiples empresas
-- 👥 **Gestión de Clientes** - 3 tipos: General, Colaborador, Externo  
+- 👥 **Gestión de Clientes** - 3 tipos: General, Colaborador, Externo
 - 📅 **Calendario Interactivo** - FullCalendar v6 con drag & drop
 - 💰 **Sistema de Cotizaciones** - Workflow completo con aprobaciones
 - 🏪 **Gestión de Espacios** - Locales, salas y configuración de precios
@@ -20,6 +22,7 @@ Sistema profesional de gestión de eventos empresariales desarrollado con tecnol
 - 🔐 **Autenticación Robusta** - NextAuth.js v5 con roles jerárquicos
 
 ### 🎯 **Módulos Especializados**
+
 - **Portal del Cliente** - Dashboard personalizado por tipo
 - **Sistema de Créditos** - Para clientes externos
 - **Constructor de Paquetes** - Combinaciones dinámicas
@@ -27,9 +30,18 @@ Sistema profesional de gestión de eventos empresariales desarrollado con tecnol
 - **Notificaciones Automáticas** - Email y WhatsApp
 - **Motor de Precios** - Cálculo dinámico sala+turno+cliente
 
+### 🤖 **Inteligencia Artificial**
+
+- **Agente CRM** - Asistente conversacional para gestión de clientes
+- **Memoria Conversacional** - Persistencia completa de conversaciones IA
+- **Integración WhatsApp** - Chatbot inteligente para reservas
+- **Embeddings y Vector Search** - Búsqueda semántica en base de conocimientos
+- **Coordinador de Agentes** - Orquestación de múltiples agentes especializados
+
 ## 🛠️ Stack Tecnológico
 
 ### **Frontend**
+
 - **Next.js 15** - React framework con App Router
 - **TypeScript** - Tipado estático para mayor confiabilidad
 - **Tailwind CSS** - Framework CSS utilitario
@@ -38,19 +50,30 @@ Sistema profesional de gestión de eventos empresariales desarrollado con tecnol
 - **Zod** - Validación de esquemas
 
 ### **Backend**
+
 - **Next.js API Routes** - Endpoints RESTful
 - **Prisma ORM** - Object-Relational Mapping
 - **PostgreSQL** - Base de datos relacional
 - **NextAuth.js v5** - Autenticación y autorización
 - **bcryptjs** - Encriptación de contraseñas
 
+### **Inteligencia Artificial**
+
+- **OpenAI GPT-4** - Modelo de lenguaje principal
+- **LangChain** - Framework para aplicaciones LLM
+- **Prisma + PostgreSQL** - Memoria conversacional persistente
+- **Pinecone/Upstash** - Vector database para embeddings
+- **Vercel AI SDK** - Integración unificada de proveedores AI
+
 ### **Pagos & Facturación**
+
 - **MercadoPago SDK** - Procesamiento de pagos LATAM
 - **Webhooks** - Notificaciones de estado de pago
 - **Estado de Pagos** - Seguimiento en tiempo real
 - **PDFs de Facturación** - Generación automática
 
 ### **DevOps & Calidad**
+
 - **Docker** - Containerización
 - **ESLint + Prettier** - Linting y formateo
 - **Husky** - Git hooks
@@ -61,23 +84,27 @@ Sistema profesional de gestión de eventos empresariales desarrollado con tecnol
 ## 📦 Instalación y Configuración
 
 ### **Prerrequisitos**
+
 - Node.js >= 18.0.0
 - npm >= 9.0.0
 - Docker y Docker Compose
 - PostgreSQL (o usar Docker)
 
 ### **1. Clonar Repositorio**
+
 ```bash
 git clone https://github.com/manuel-tut-solorzano/Gestion-de-Eventos.git
 cd Gestion-de-Eventos
 ```
 
 ### **2. Instalar Dependencias**
+
 ```bash
 npm install
 ```
 
 ### **3. Configurar Variables de Entorno**
+
 ```bash
 cp .env.example .env.local
 # Editar .env.local con tus configuraciones
@@ -92,6 +119,7 @@ MERCADOPAGO_ACCESS_TOKEN="TEST-YOUR_ACCESS_TOKEN_HERE"
 ```
 
 ### **4. Configurar Base de Datos**
+
 ```bash
 # Iniciar servicios con Docker
 npm run docker:dev
@@ -107,6 +135,7 @@ npm run db:seed
 ```
 
 ### **5. Iniciar Desarrollo**
+
 ```bash
 npm run dev
 # Aplicación disponible en http://localhost:3200
@@ -117,24 +146,30 @@ npm run dev
 Para probar la aplicación, utiliza las siguientes credenciales:
 
 ### **Usuario de Soporte**
+
 - **Email**: `soporteapps@hexalux.mx`
 - **Contraseña**: `password123`
 - **Permisos**: Acceso completo al sistema (Super Admin)
 
-> **Nota**: Estas credenciales se crean automáticamente al ejecutar `npm run db:seed`
+> **Nota**: Estas credenciales se crean automáticamente al ejecutar
+> `npm run db:seed`
 
 ## 💳 Configuración de MercadoPago
 
 ### **Requisitos Previos**
+
 1. Cuenta de MercadoPago activa
-2. Aplicación creada en el [Panel de Desarrolladores](https://www.mercadopago.com.ar/developers/panel)
+2. Aplicación creada en el
+   [Panel de Desarrolladores](https://www.mercadopago.com.ar/developers/panel)
 3. Credenciales de Testing y Producción
 
 ### **Configuración de Credenciales**
 
-1. **Accede al Panel de Desarrolladores**: https://www.mercadopago.com.ar/developers/panel
-2. **Crear/Seleccionar Aplicación**: Crea una nueva aplicación o selecciona una existente
-3. **Obtener Credenciales**: 
+1. **Accede al Panel de Desarrolladores**:
+   https://www.mercadopago.com.ar/developers/panel
+2. **Crear/Seleccionar Aplicación**: Crea una nueva aplicación o selecciona una
+   existente
+3. **Obtener Credenciales**:
    - Para Testing: `TEST-XXXXXXXXX-XXXXXX-XXXXXXX`
    - Para Producción: `APP_USR-XXXXXXXXX-XXXXXX-XXXXXXX`
 
@@ -167,17 +202,17 @@ Eventos: payment, merchant_order
 
 ### **Estados de Pago**
 
-| Estado | Descripción |
-|--------|-------------|
-| `pending` | Pago pendiente de procesamiento |
-| `approved` | Pago aprobado exitosamente |
-| `authorized` | Pago autorizado (pendiente de captura) |
-| `in_process` | Pago en proceso de verificación |
-| `in_mediation` | Pago en mediación |
-| `rejected` | Pago rechazado |
-| `cancelled` | Pago cancelado |
-| `refunded` | Pago reembolsado |
-| `charged_back` | Pago contracargado |
+| Estado         | Descripción                            |
+| -------------- | -------------------------------------- |
+| `pending`      | Pago pendiente de procesamiento        |
+| `approved`     | Pago aprobado exitosamente             |
+| `authorized`   | Pago autorizado (pendiente de captura) |
+| `in_process`   | Pago en proceso de verificación        |
+| `in_mediation` | Pago en mediación                      |
+| `rejected`     | Pago rechazado                         |
+| `cancelled`    | Pago cancelado                         |
+| `refunded`     | Pago reembolsado                       |
+| `charged_back` | Pago contracargado                     |
 
 ## �🗂️ Estructura del Proyecto
 
@@ -231,7 +266,8 @@ npm run release         # Generar nueva versión
 
 ## 📚 Documentación
 
-- **[Guía de Desarrollo](docs/development/README.md)** - Setup y flujo de trabajo
+- **[Guía de Desarrollo](docs/development/README.md)** - Setup y flujo de
+  trabajo
 - **[Documentación API](docs/api/README.md)** - Endpoints y ejemplos
 - **[Guía de Deployment](docs/deployment/README.md)** - Despliegue en producción
 - **[Manual de Usuario](docs/user-guide/README.md)** - Uso del sistema
@@ -259,18 +295,21 @@ Este es un proyecto propietario. Para contribuir:
 - [x] Sistema de pagos y webhooks
 
 ### **v0.2.0 - Gestión de Espacios** 🚧
+
 - [ ] Gestión de identidades comerciales
 - [ ] Gestión de ubicaciones y salas
 - [ ] Sistema de turnos laborales
 - [ ] Configuración de precios
 
 ### **v0.3.0 - Sistema de Eventos** 📅
+
 - [ ] CRUD completo de eventos
 - [ ] Verificación de disponibilidad
 - [ ] Calendario interactivo
 - [ ] Motor de precios dinámico
 
 ### **v1.0.0 - Lanzamiento** 🎯
+
 - [ ] Testing integral
 - [ ] Documentación completa
 - [ ] Configuración de producción

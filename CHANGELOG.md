@@ -1,17 +1,66 @@
 # Changelog
 
-Todos los cambios importantes de este proyecto serán documentados en este archivo.
+Todos los cambios importantes de este proyecto serán documentados en este
+archivo.
 
-El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+El formato está basado en
+[Keep a Changelog](https://keepachangelog.com/en/1.0.0/), y este proyecto
+adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added
+
+- 🤖 **Servicio de Memoria Conversacional Completo**: Sistema de persistencia
+  para IA
+  - Modelos `Conversation` y `ConversationMessage` en Prisma schema
+  - Servicio `ConversationMemoryService` con operaciones CRUD completas
+  - Gestión del ciclo de vida de conversaciones (`endedAt`, `status`)
+  - Búsqueda por teléfono (integración WhatsApp)
+  - Estadísticas de conversaciones y mensajes
+  - Limpieza automática de conversaciones antiguas (90 días)
+  - Búsqueda por contenido de mensajes con filtros de usuario
+  - Type safety completo con TypeScript y Prisma
+
+- 🛠️ **Actualización de Prisma**: v5.6.0 → v6.17.1
+  - Compatibilidad mejorada con tipos TypeScript
+  - Generación correcta de tipos para campos opcionales
+  - Optimizaciones en queries y relaciones
+
+### Changed
+
+- 🔄 **Arquitectura de IA**: Migración de stubs temporales a implementación
+  completa
+- 📦 **Dependencias**: Actualización de Prisma Client y CLI
+- 🎯 **Type Safety**: Eliminación de tipos `any` en interfaces de conversación
+
+### Fixed
+
+- 🐛 **Errores TypeScript**: Resueltos problemas con `endedAt` en tipos Prisma
+- 🔧 **Compilación**: Eliminados errores de tipos no conocidos en
+  `ConversationUpdateInput`
+- 📊 **Integración**: Servicio conversacional ahora funcional con base de datos
+
+### Technical Details
+
+#### Conversation Memory Service
+
+- **Modelos Prisma**: `Conversation` y `ConversationMessage` con relaciones
+  bidireccionales
+- **Operaciones**: Create, Read, Update, Delete con manejo de errores completo
+- **Búsqueda Avanzada**: Por usuario, teléfono, contenido y estadísticas
+- **Limpieza Automática**: Eliminación de conversaciones finalizadas después de
+  90 días
+- **Integración WhatsApp**: Búsqueda eficiente por número de teléfono
 
 ---
 
 ## [2.0.0] - 2025-10-17 - FASE 3: ANALYTICS & NOTIFICACIONES EN TIEMPO REAL
 
 ### Added
-- 📊 **Dashboard de Analytics Empresarial**: Sistema completo de Business Intelligence
+
+- 📊 **Dashboard de Analytics Empresarial**: Sistema completo de Business
+  Intelligence
   - Métricas principales: eventos, cotizaciones, ingresos, clientes nuevos
   - Gráficos interactivos: barras, líneas, torta con Recharts
   - Períodos configurables: 3, 6, 12 meses
@@ -35,24 +84,29 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.
   - Integración completa en navigation sidebar
 
 ### Changed
+
 - 🎨 **Dashboard Layout**: Integrado sistema de notificaciones en header
 - 📊 **Navigation**: Agregado enlace "Analytics" en sidebar principal
 - ⚡ **Performance**: Optimización de queries con paginación temporal
 - 🔄 **Real-time Updates**: Conexión SSE con auto-reconexión
 
 ### Fixed
+
 - 🔧 **NextAuth v5**: Corregidos imports de `getServerSession` a `auth()`
 - 🎯 **TypeScript**: Resueltos tipos en APIs de analytics
 - 📡 **API Response**: Manejo mejorado de errores en tiempo real
 
 ### Technical Details
+
 #### Analytics Dashboard
+
 - Consultas optimizadas con filtros temporales (`startOfMonth`, `endOfMonth`)
 - Agrupaciones por estado de cotizaciones
 - Cálculos de ingresos con cotizaciones aprobadas
 - Componente responsivo con tabs y filtros dinámicos
 
 #### Notification System
+
 - Server-Sent Events con polling cada 30 segundos
 - Detección automática de nuevas cotizaciones (últimos 5 minutos)
 - Alertas de eventos próximos con cálculo de horas restantes
@@ -60,12 +114,14 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.
 - Persistencia de notificaciones con estado leído/no leído
 
 #### Architecture Improvements
+
 - Separación de concerns entre APIs y componentes
 - Error handling robusto con try-catch y logging
 - Responsive design móvil/desktop completo
 - Integración seamless con sistema de autenticación existente
 
 ### Performance Metrics
+
 - Dashboard carga en <2s
 - Notificaciones tiempo real <1s latencia
 - Queries de analytics optimizadas con índices
@@ -76,22 +132,28 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.
 ## [1.5.0] - 2025-10-17 - FASE 2D: SISTEMA EMPRESARIAL COMPLETO
 
 ### Added
-- 🏗️ **Arquitectura DRY**: Implementación completa de principios Don't Repeat Yourself
+
+- 🏗️ **Arquitectura DRY**: Implementación completa de principios Don't Repeat
+  Yourself
 - ✨ **Componentes Reutilizables**: StatsCard, StatsGrid, RecentActivity, Badge
 - 🎣 **Custom Hooks**: useDashboardStats, useClients, getDashboardStats
-- 🛡️ **Middleware API**: withAuth, withValidation, withErrorHandling, withApiHandler
-- 📋 **Validaciones Centralizadas**: Schemas Zod para todos los modelos del sistem
+- 🛡️ **Middleware API**: withAuth, withValidation, withErrorHandling,
+  withApiHandler
+- 📋 **Validaciones Centralizadas**: Schemas Zod para todos los modelos del
+  sistem
 - 🎯 **API Responses**: Sistema de respuestas estandarizadas con ApiResponses
 - 📊 **Paginación**: Utilidades para paginación consistente en APIs
 - 📚 **Documentación**: ARQUITECTURA_DRY.md con patrones y mejores prácticas
 
 ### Changed
+
 - 🔄 **Dashboard Refactorizado**: Reducción de 200+ a 80 líneas de código
 - ⚡ **Performance**: 60% reducción en código duplicado
 - 🎨 **UI Consistency**: Componentes con design system consistente
 - 🔧 **Developer Experience**: Desarrollo de features 60% más rápido
 
 ### Technical Details
+
 - Implementación de Single Responsibility Principle (SRP)
 - Dependency Injection pattern con props y hooks
 - Factory pattern para middleware composers
@@ -104,16 +166,19 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.
 ## [0.1.0] - 2025-10-15
 
 ### Added
+
 - **Proyecto Inicial**: Configuración base del Sistema de Gestión de Eventos V3
 - **Stack Tecnológico**: Next.js 15, TypeScript, Tailwind CSS, Prisma ORM
 - **Estructura de Desarrollo**: ESLint, Prettier, Husky, Conventional Commits
-- **Documentación**: README completo, CONTRIBUTING guidelines, estructura de carpetas
+- **Documentación**: README completo, CONTRIBUTING guidelines, estructura de
+  carpetas
 - **Docker**: Configuración para desarrollo con PostgreSQL
 - **CI/CD**: GitHub Actions preparado para deployment
 - **Testing**: Jest y Playwright configurados
 - **Versionado**: Standard-version para releases automáticos
 
 ### Technical Details
+
 - Node.js >= 18.0.0 requerido
 - Puerto de desarrollo: 3200
 - Base de datos: PostgreSQL con Prisma ORM
@@ -135,7 +200,8 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/en/1.0.
 
 ## Formato de Commits
 
-Este proyecto sigue [Conventional Commits](https://www.conventionalcommits.org/):
+Este proyecto sigue
+[Conventional Commits](https://www.conventionalcommits.org/):
 
 - `feat:` - Nueva funcionalidad
 - `fix:` - Corrección de bug
