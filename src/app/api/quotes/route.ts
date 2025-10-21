@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { QuoteStatus } from '@prisma/client';
+import { NotificationService } from '@/lib/notifications/notification-service';
 
 // Schema de validación para crear cotización
 const createQuoteSchema = z.object({
@@ -252,94 +253,135 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      const subtotal = 0;
+      let subtotal = 0;
+      let total = 0;
 
       // Procesar paquetes si existen
-      // NOTA: Funcionalidad desactivada temporalmente - problemas con schema de Package
-      /*
       if (validatedData.packages && validatedData.packages.length > 0) {
         for (const pkg of validatedData.packages) {
           const packageTemplate = await tx.packageTemplate.findFirst({
             where: {
               id: pkg.packageTemplateId,
-              tenantId: session.user.tenantId
+              tenantId: session.user.tenantId,
             },
             include: {
               packageItems: {
                 include: {
                   product: true,
-                  service: true
-                }
-              }
+                  service: true,
+                },
+              },
+            },
+          });
+
+          if (!packageTemplate) continue;
+
+          // Calcular precio del paquete
+          let packageSubtotal = 0;
+          if (pkg.customPrice && pkg.customPrice > 0) {
+            packageSubtotal = pkg.customPrice;
+          } else {
+            // Calcular basado en items del template
+            for (const item of packageTemplate.packageItems) {
+              const itemPrice = Number(item.product?.price || item.service?.price || 0);
+              packageSubtotal += itemPrice * item.quantity;
             }
-          })
+          }
 
-          if (!packageTemplate) continue
-
-          const packagePrice = pkg.customPrice || 0 // Sin precio por defecto desde template
-          const packageTotal = packagePrice * pkg.quantity
+          const packageTotal = packageSubtotal * pkg.quantity;
 
           // Crear el paquete en la cotización
           const quotePackage = await tx.package.create({
             data: {
               quoteId: newQuote.id,
               packageTemplateId: pkg.packageTemplateId,
-              // quantity: pkg.quantity, // Propiedad no existe en el modelo
-              // unitPrice: packagePrice, // Propiedad no existe en el modelo
-              // totalPrice: packageTotal // Propiedad no existe en el modelo
-            }
-          })
+              name: packageTemplate.name,
+              description: packageTemplate.description,
+              subtotal: packageTotal,
+              tenantId: session.user.tenantId,
+            },
+          });
 
           // Crear los items del paquete
           for (const item of packageTemplate.packageItems) {
             const itemPrice = Number(item.product?.price || item.service?.price || 0);
+            const itemQuantity = item.quantity * pkg.quantity;
+            const itemTotal = itemPrice * itemQuantity;
+
             await tx.packageItem.create({
               data: {
                 packageId: quotePackage.id,
                 ...(item.productId ? { productId: item.productId } : {}),
                 ...(item.serviceId ? { serviceId: item.serviceId } : {}),
-                quantity: item.quantity * pkg.quantity,
+                quantity: itemQuantity,
                 unitPrice: itemPrice,
-                totalPrice: itemPrice * (item.quantity * pkg.quantity)
-              }
-            })
+                totalPrice: itemTotal,
+                description: item.description,
+              },
+            });
           }
 
-          subtotal += packageTotal
+          subtotal += packageTotal;
         }
       }
-      */
 
       // Procesar items individuales si existen
-      // NOTA: Funcionalidad desactivada - modelo quoteItem no existe
-      /*
       if (validatedData.items && validatedData.items.length > 0) {
+        // Crear un paquete "adicional" para items individuales
+        const additionalPackage = await tx.package.create({
+          data: {
+            quoteId: newQuote.id,
+            name: 'Items Adicionales',
+            description: 'Items individuales agregados a la cotización',
+            subtotal: 0, // Se calculará
+            tenantId: session.user.tenantId,
+          },
+        });
+
+        let packageSubtotal = 0;
+
         for (const item of validatedData.items) {
-          const itemTotal = item.unitPrice * item.quantity
-          
-          await tx.quoteItem.create({
+          const itemTotal = item.unitPrice * item.quantity;
+          packageSubtotal += itemTotal;
+
+          await tx.packageItem.create({
             data: {
-              quoteId: newQuote.id,
-              productId: item.productId,
-              serviceId: item.serviceId,
+              packageId: additionalPackage.id,
+              productId: item.productId || null,
+              serviceId: item.serviceId || null,
               quantity: item.quantity,
               unitPrice: item.unitPrice,
               totalPrice: itemTotal,
-              description: item.description
-            }
-          })
-
-          subtotal += itemTotal
+              description: item.description || null,
+            },
+          });
         }
+
+        // Actualizar subtotal del paquete adicional
+        await tx.package.update({
+          where: { id: additionalPackage.id },
+          data: { subtotal: packageSubtotal },
+        });
+
+        subtotal += packageSubtotal;
       }
-      */
+
+      // Calcular impuestos (IVA 21% por defecto - configurable después)
+      const taxRate = 0.21; // TODO: Hacer configurable por tenant/businessIdentity
+      const taxAmount = subtotal * taxRate;
+      total = subtotal + taxAmount;
+
+      // Aplicar descuento si existe
+      const discount = client.discountPercent ? (total * Number(client.discountPercent)) / 100 : 0;
+      total = total - discount;
 
       // Actualizar totales de la cotización
       const updatedQuote = await tx.quote.update({
         where: { id: newQuote.id },
         data: {
-          subtotal,
-          total: subtotal, // Sin impuestos por ahora
+          subtotal: subtotal,
+          discount: discount,
+          total: total,
         },
         include: {
           client: {
@@ -374,6 +416,14 @@ export async function POST(request: NextRequest) {
 
       return updatedQuote;
     });
+
+    // Enviar notificaciones después de crear la cotización exitosamente
+    try {
+      await NotificationService.notifyQuoteCreated(quote.id);
+    } catch (notificationError) {
+      console.error('Error enviando notificaciones:', notificationError);
+      // No fallar la respuesta por error en notificaciones
+    }
 
     return NextResponse.json(
       {

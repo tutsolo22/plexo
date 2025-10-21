@@ -1,7 +1,7 @@
 /**
  * Utilidades para optimización de consultas de base de datos
  * Sistema de Gestión de Eventos V3
- * 
+ *
  * @author Manuel Antonio Tut Solorzano
  * @version 3.0.0
  * @date 2025-10-17
@@ -13,7 +13,6 @@ import { prisma } from './prisma';
  * Cache para consultas frecuentes con optimizaciones específicas
  */
 export class DatabaseOptimizer {
-  
   /**
    * Crear índices recomendados para optimización
    */
@@ -28,9 +27,9 @@ export class DatabaseOptimizer {
         'CREATE INDEX IF NOT EXISTS "idx_audit_tenant_action" ON "AuditLog" ("tenantId", "action")',
         'CREATE INDEX IF NOT EXISTS "idx_venues_tenant_active" ON "Venue" ("tenantId", "isActive")',
         'CREATE INDEX IF NOT EXISTS "idx_items_tenant_type" ON "Item" ("tenantId", "type")',
-        'CREATE INDEX IF NOT EXISTS "idx_suppliers_tenant_active" ON "Supplier" ("tenantId", "isActive")'
+        'CREATE INDEX IF NOT EXISTS "idx_suppliers_tenant_active" ON "Supplier" ("tenantId", "isActive")',
       ];
-      
+
       for (const indexQuery of indexes) {
         try {
           await prisma.$executeRawUnsafe(indexQuery);
@@ -50,7 +49,7 @@ export class DatabaseOptimizer {
   async analyzeTableStats() {
     try {
       const tables = ['User', 'Event', 'Client', 'Quote', 'Venue'];
-      
+
       for (const table of tables) {
         try {
           await prisma.$executeRawUnsafe(`ANALYZE TABLE "${table}"`);
@@ -82,38 +81,38 @@ export class DatabaseOptimizer {
    */
   static async getDashboardStats(tenantId: string, startDate: Date, endDate: Date) {
     // Usar transacción para consultas relacionadas
-    return await prisma.$transaction(async (tx) => {
+    return await prisma.$transaction(async tx => {
       // Query optimizada con índices específicos
       const [events, quotes, clients] = await Promise.all([
         // Eventos con índice en tenantId + createdAt
         tx.event.count({
           where: {
             tenantId,
-            createdAt: { gte: startDate, lte: endDate }
-          }
+            createdAt: { gte: startDate, lte: endDate },
+          },
         }),
 
         // Cotizaciones con índice compuesto
         tx.quote.findMany({
           where: {
             tenantId,
-            createdAt: { gte: startDate, lte: endDate }
+            createdAt: { gte: startDate, lte: endDate },
           },
           select: {
             id: true,
             status: true,
             total: true,
-            createdAt: true
-          }
+            createdAt: true,
+          },
         }),
 
         // Clientes solo conteo
         tx.client.count({
           where: {
             tenantId,
-            createdAt: { gte: startDate, lte: endDate }
-          }
-        })
+            createdAt: { gte: startDate, lte: endDate },
+          },
+        }),
       ]);
 
       return { events, quotes, clients };
@@ -210,10 +209,10 @@ export class DatabaseOptimizer {
     return await prisma.event.findMany({
       where: {
         tenantId,
-        startDate: { 
+        startDate: {
           gte: new Date(),
-          lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // Próximos 30 días
-        }
+          lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Próximos 30 días
+        },
       },
       select: {
         id: true,
@@ -221,11 +220,11 @@ export class DatabaseOptimizer {
         startDate: true,
         status: true,
         client: {
-          select: { name: true }
-        }
+          select: { name: true },
+        },
       },
       orderBy: { startDate: 'asc' },
-      take: limit
+      take: limit,
     });
   }
 
@@ -233,21 +232,21 @@ export class DatabaseOptimizer {
    * Obtener lista de clientes con paginación optimizada
    */
   static async getClientsPaginated(
-    tenantId: string, 
-    page: number = 1, 
+    tenantId: string,
+    page: number = 1,
     limit: number = 10,
     search?: string
   ) {
     const skip = (page - 1) * limit;
-    
+
     const whereClause = {
       tenantId,
       ...(search && {
         OR: [
           { name: { contains: search, mode: 'insensitive' as const } },
-          { email: { contains: search, mode: 'insensitive' as const } }
-        ]
-      })
+          { email: { contains: search, mode: 'insensitive' as const } },
+        ],
+      }),
     };
 
     // Usar transacción para count + data en paralelo
@@ -264,15 +263,15 @@ export class DatabaseOptimizer {
           _count: {
             select: {
               events: true,
-              quotes: true
-            }
-          }
+              quotes: true,
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
         skip,
-        take: limit
+        take: limit,
       }),
-      prisma.client.count({ where: whereClause })
+      prisma.client.count({ where: whereClause }),
     ]);
 
     return {
@@ -283,8 +282,8 @@ export class DatabaseOptimizer {
         total,
         totalPages: Math.ceil(total / limit),
         hasNext: page * limit < total,
-        hasPrev: page > 1
-      }
+        hasPrev: page > 1,
+      },
     };
   }
 
@@ -331,22 +330,23 @@ export class DatabaseOptimizer {
 
 /**
  * Middleware para logging de queries lentas
+ * COMENTADO: $use no existe en Prisma v5+
  */
-export const queryPerformanceMiddleware = (threshold: number = 100) => {
-  return prisma.$use(async (params, next) => {
-    const start = Date.now();
-    const result = await next(params);
-    const end = Date.now();
-    const duration = end - start;
+// export const queryPerformanceMiddleware = (threshold: number = 100) => {
+//   return prisma.$use(async (params, next) => {
+//     const start = Date.now();
+//     const result = await next(params);
+//     const end = Date.now();
+//     const duration = end - start;
 
-    if (duration > threshold) {
-      console.warn(`🐌 Slow query detected: ${params.model}.${params.action} took ${duration}ms`);
-      console.warn(`   Args:`, JSON.stringify(params.args, null, 2));
-    }
+//     if (duration > threshold) {
+//       console.warn(`🐌 Slow query detected: ${params.model}.${params.action} took ${duration}ms`);
+//       console.warn(`   Args:`, JSON.stringify(params.args, null, 2));
+//     }
 
-    return result;
-  });
-};
+//     return result;
+//   });
+// };
 
 /**
  * Índices recomendados para optimización
@@ -357,13 +357,13 @@ export const RECOMMENDED_INDEXES = {
     CREATE INDEX CONCURRENTLY IF NOT EXISTS "idx_events_tenant_created"
     ON "Event" ("tenantId", "createdAt" DESC);
   `,
-  
+
   // Índice para cotizaciones por tenant, estado y fecha
   quotes_tenant_status_date: `
     CREATE INDEX CONCURRENTLY IF NOT EXISTS "idx_quotes_tenant_status_created"
     ON "Quote" ("tenantId", "status", "createdAt" DESC);
   `,
-  
+
   // Índice para clientes por tenant y búsqueda
   clients_tenant_search: `
     CREATE INDEX CONCURRENTLY IF NOT EXISTS "idx_clients_tenant_name"
@@ -372,20 +372,20 @@ export const RECOMMENDED_INDEXES = {
     CREATE INDEX CONCURRENTLY IF NOT EXISTS "idx_clients_tenant_email"
     ON "Client" ("tenantId", "email");
   `,
-  
+
   // Índice para eventos próximos
   events_upcoming: `
     CREATE INDEX CONCURRENTLY IF NOT EXISTS "idx_events_upcoming"
     ON "Event" ("tenantId", "startDate") 
     WHERE "startDate" >= NOW();
   `,
-  
+
   // Índice para cotizaciones aprobadas
   quotes_approved: `
     CREATE INDEX CONCURRENTLY IF NOT EXISTS "idx_quotes_approved"
     ON "Quote" ("tenantId", "total") 
     WHERE status = 'APPROVED';
-  `
+  `,
 } as const;
 
 /**
@@ -397,18 +397,18 @@ export async function withDatabaseRetry<T>(
   delay: number = 1000
 ): Promise<T> {
   let lastError: Error;
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await operation();
     } catch (error) {
       lastError = error as Error;
       if (attempt === maxRetries) break;
-      
+
       await new Promise(resolve => setTimeout(resolve, delay * attempt));
     }
   }
-  
+
   throw lastError!;
 }
 
@@ -421,7 +421,7 @@ export function validatePaginationParams(
 ): { page: number; limit: number } {
   const validatedPage = Math.max(1, page || 1);
   const validatedLimit = Math.min(100, Math.max(1, limit || 10));
-  
+
   return { page: validatedPage, limit: validatedLimit };
 }
 
@@ -430,7 +430,7 @@ export function validatePaginationParams(
  */
 export function buildWhereClause(filters: Record<string, any>): Record<string, any> {
   const where: Record<string, any> = {};
-  
+
   Object.entries(filters).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') {
       if (typeof value === 'string') {
@@ -440,6 +440,6 @@ export function buildWhereClause(filters: Record<string, any>): Record<string, a
       }
     }
   });
-  
+
   return where;
 }

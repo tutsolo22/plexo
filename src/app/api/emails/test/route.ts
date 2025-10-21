@@ -6,12 +6,9 @@ import { renderEmailTemplate } from '@/lib/email/email-templates';
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-    
+
     if (!session) {
-      return NextResponse.json(
-        { success: false, error: 'No autorizado' },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 });
     }
 
     const { to, subject, template, config } = await request.json();
@@ -45,24 +42,24 @@ export async function POST(request: NextRequest) {
     const templateData = {
       clientName: 'Usuario de Prueba',
       quoteNumber: 'TEST-001',
-      total: 1500.00,
+      total: 1500.0,
       eventTitle: 'Evento de Prueba',
-      eventDate: new Date().toLocaleDateString('es-ES', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+      eventDate: new Date().toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
       }),
       eventTime: '18:00',
       eventLocation: 'Salón de Eventos Gestión',
       items: [
-        { name: 'Decoración básica', quantity: 1, price: 500.00 },
-        { name: 'Catering para 50 personas', quantity: 50, price: 20.00 },
+        { name: 'Decoración básica', quantity: 1, price: 500.0 },
+        { name: 'Catering para 50 personas', quantity: 50, price: 20.0 },
       ],
       companyName: 'Gestión de Eventos',
       companyEmail: config.from,
       companyPhone: '+1234567890',
       message: 'Este es un email de prueba para verificar la configuración SMTP.',
-      trackingUrl: '' // No tracking para emails de prueba
+      trackingUrl: '', // No tracking para emails de prueba
     };
 
     // Compilar plantilla
@@ -76,28 +73,25 @@ export async function POST(request: NextRequest) {
       to,
       subject,
       html: htmlContent,
-      from: config.from
+      from: config.from,
+      tenantId: 'test-tenant', // Para testing, usar un tenant de prueba
     });
 
     if (result.success) {
       return NextResponse.json({
         success: true,
         message: 'Email de prueba enviado exitosamente',
-        messageId: result.messageId
+        messageId: result.messageId,
       });
     } else {
-      return NextResponse.json(
-        { success: false, error: result.error },
-        { status: 500 }
-      );
+      return NextResponse.json({ success: false, error: result.error }, { status: 500 });
     }
-
   } catch (error) {
     console.error('Error sending test email:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Error interno del servidor'
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error interno del servidor',
       },
       { status: 500 }
     );

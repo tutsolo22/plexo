@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
 
     // Validar que es una notificación de pago
     if (body.type !== 'payment') {
-      console.log('Notificación ignorada, tipo:', body.type);
+      // Notificación ignorada, tipo: body.type
       return NextResponse.json({ status: 'ignored' });
     }
 
@@ -37,7 +37,9 @@ export async function POST(request: NextRequest) {
       where: {
         OR: [
           { mercadoPagoPaymentId: paymentId.toString() },
-          ...(mpPayment.external_reference ? [{ externalReference: mpPayment.external_reference }] : []),
+          ...(mpPayment.external_reference
+            ? [{ externalReference: mpPayment.external_reference }]
+            : []),
         ],
       },
       include: {
@@ -74,13 +76,17 @@ export async function POST(request: NextRequest) {
     const newStatus = statusMapping[mpPayment.status || 'pending'] || $Enums.PaymentStatus.PENDING;
 
     // Actualizar el pago en nuestra base de datos
-    const updatedPayment = await prisma.payment.update({
+    await prisma.payment.update({
       where: { id: payment.id },
       data: {
         status: newStatus,
         mercadoPagoPaymentId: paymentId.toString(),
-        ...(mpPayment.transaction_amount ? { transactionId: mpPayment.transaction_amount.toString() } : {}),
-        ...(mpPayment.authorization_code ? { authorizationCode: mpPayment.authorization_code } : {}),
+        ...(mpPayment.transaction_amount
+          ? { transactionId: mpPayment.transaction_amount.toString() }
+          : {}),
+        ...(mpPayment.authorization_code
+          ? { authorizationCode: mpPayment.authorization_code }
+          : {}),
         ...(mpPayment.installments ? { installments: mpPayment.installments } : {}),
         ...(mpPayment.status === 'approved' ? { paidAt: new Date() } : {}),
         metadata: {
@@ -102,7 +108,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log('Pago actualizado:', updatedPayment.id, 'Estado:', newStatus);
+    // Pago actualizado: updatedPayment.id, Estado: newStatus
 
     // Si el pago fue aprobado, actualizar la cotización y evento
     if (newStatus === $Enums.PaymentStatus.APPROVED && payment.quote) {
@@ -139,10 +145,10 @@ export async function POST(request: NextRequest) {
           newData: {
             paymentApproved: true,
             amount: mpPayment.transaction_amount,
-            currency: mpPayment.currency_id
+            currency: mpPayment.currency_id,
           },
           tenantId: payment.tenantId,
-          userId: payment.quote.client.userId || payment.tenantId // Use client's userId or fallback to tenantId
+          userId: payment.quote.client.userId || payment.tenantId, // Use client's userId or fallback to tenantId
           // metadata field doesn't exist in AuditLog schema
           // metadata: {
           //   mercadoPagoPaymentId: paymentId,
@@ -150,7 +156,7 @@ export async function POST(request: NextRequest) {
           //   eventId: payment.quote.event?.id || null,
           //   clientId: payment.quote.client.id,
           // }
-        }
+        },
       });
     }
 
@@ -173,10 +179,10 @@ export async function POST(request: NextRequest) {
           tableName: 'Payment',
           recordId: 'unknown',
           newData: {
-            error: error instanceof Error ? error.message : 'Error desconocido'
+            error: error instanceof Error ? error.message : 'Error desconocido',
           },
           tenantId: 'system',
-          userId: 'system' // Use system user for error logs
+          userId: 'system', // Use system user for error logs
           // metadata field doesn't exist in AuditLog schema
           // metadata: {
           //   error: error instanceof Error ? error.stack : String(error),

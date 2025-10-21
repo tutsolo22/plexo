@@ -3,9 +3,10 @@
  * Agente especializado en operaciones CRM con IA integrada
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
 import { prisma } from '@/lib/prisma';
-import { crmEmbeddingService } from './crm-embeddings';
+import { crmEmbeddingService, SearchOptions } from './crm-embeddings';
+import { Prisma } from '@prisma/client';
 
 // Configuración del modelo Gemini
 const genAI = new GoogleGenerativeAI(process.env['GEMINI_API_KEY']!);
@@ -42,7 +43,7 @@ export interface SearchQuotesParams extends BaseCRMParams {
 
 // Servicio del agente CRM simplificado
 export class CRMAgentService {
-  private model: any;
+  private model: GenerativeModel;
 
   constructor() {
     this.model = genAI.getGenerativeModel({
@@ -185,7 +186,7 @@ Guías:
       // Intentar búsqueda semántica si hay query
       if (params.query) {
         try {
-          const searchOptions: any = {
+          const searchOptions: SearchOptions = {
             type: 'event',
             limit: params.limit || 10,
             tenantId: params.tenantId,
@@ -221,12 +222,12 @@ Guías:
       }
 
       // Búsqueda tradicional como fallback
-      const whereClause: any = {};
+      const whereClause: Prisma.EventWhereInput = {};
 
       if (params.query) {
         whereClause.OR = [
           { title: { contains: params.query, mode: 'insensitive' } },
-          { description: { contains: params.query, mode: 'insensitive' } },
+          { notes: { contains: params.query, mode: 'insensitive' } },
         ];
       }
 
@@ -267,7 +268,7 @@ Guías:
       // Intentar búsqueda semántica
       if (params.query) {
         try {
-          const searchOptions: any = {
+          const searchOptions: SearchOptions = {
             type: 'client',
             limit: params.limit || 10,
             tenantId: params.tenantId,
@@ -302,13 +303,13 @@ Guías:
       }
 
       // Búsqueda tradicional
-      const whereClause: any = {};
+      const whereClause: Prisma.ClientWhereInput = {};
 
       if (params.query) {
         whereClause.OR = [
           { name: { contains: params.query, mode: 'insensitive' } },
           { email: { contains: params.query, mode: 'insensitive' } },
-          { company: { contains: params.query, mode: 'insensitive' } },
+          { notes: { contains: params.query, mode: 'insensitive' } },
         ];
       }
 
@@ -348,7 +349,7 @@ Guías:
       // Intentar búsqueda semántica
       if (params.query) {
         try {
-          const searchOptions: any = {
+          const searchOptions: SearchOptions = {
             type: 'quote',
             limit: params.limit || 10,
             tenantId: params.tenantId,
@@ -383,11 +384,11 @@ Guías:
       }
 
       // Búsqueda tradicional
-      const whereClause: any = {};
+      const whereClause: Prisma.QuoteWhereInput = {};
 
       if (params.query) {
         whereClause.OR = [
-          { number: { contains: params.query, mode: 'insensitive' } },
+          { quoteNumber: { contains: params.query, mode: 'insensitive' } },
           { notes: { contains: params.query, mode: 'insensitive' } },
         ];
       }

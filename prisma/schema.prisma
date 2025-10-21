@@ -197,6 +197,7 @@ model Tenant {
   roles              Role[]
   services           Service[]
   suppliers          Supplier[]
+  tenantEmailConfigs TenantEmailConfig[]
   userRoles          UserRole[]
   users              User[]
   venues             Venue[]
@@ -1003,6 +1004,35 @@ model ContentEmbedding {
   @@index([entityId])
   @@index([entityType])
   @@map("content_embeddings")
+}
+
+model TenantEmailConfig {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Configuración SMTP
+  smtpHost     String?
+  smtpPort     Int      @default(587)
+  smtpSecure   Boolean  @default(false)
+  smtpUser     String?
+  smtpPassword String?  // Encriptado en producción
+
+  // Configuración de envío
+  fromEmail    String?
+  fromName     String?
+  replyToEmail String?
+
+  // Configuración adicional
+  provider     String?  // 'gmail', 'outlook', 'smtp', etc.
+  isActive     Boolean  @default(true)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([isActive])
+  @@map("tenant_email_configs")
 }
 
 enum EmailTemplateType {

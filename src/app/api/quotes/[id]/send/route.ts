@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { emailService } from '@/lib/email/email-service';
-import { renderEmailTemplate, EmailTemplateType, QuoteEmailData } from '@/lib/email/email-templates';
+import {
+  renderEmailTemplate,
+  EmailTemplateType,
+  QuoteEmailData,
+} from '@/lib/email/email-templates';
+import { NotificationService } from '@/lib/notifications/notification-service';
 import { randomBytes } from 'crypto';
 
 const SendQuoteSchema = z.object({
@@ -13,7 +18,7 @@ const SendQuoteSchema = z.object({
   bccEmails: z.array(z.string().email()).optional().default([]),
   attachPDF: z.boolean().optional().default(true),
   sendCopy: z.boolean().optional().default(false),
-  trackOpening: z.boolean().optional().default(true)
+  trackOpening: z.boolean().optional().default(true),
 });
 
 // Función para generar token de seguimiento
@@ -24,10 +29,7 @@ function generateTrackingToken(): string {
 /**
  * POST /api/quotes/[id]/send - Enviar cotización por email
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const quoteId = params.id;
     const body = await request.json();
@@ -42,8 +44,8 @@ export async function POST(
             id: true,
             name: true,
             email: true,
-            phone: true
-          }
+            phone: true,
+          },
         },
         event: {
           select: {
@@ -52,8 +54,8 @@ export async function POST(
             startDate: true,
             endDate: true,
             venue: { select: { name: true } },
-            room: { select: { name: true } }
-          }
+            room: { select: { name: true } },
+          },
         },
         packages: {
           include: {
@@ -65,12 +67,12 @@ export async function POST(
                 totalPrice: true,
                 description: true,
                 product: { select: { name: true, description: true, unit: true } },
-                service: { select: { name: true, description: true, unit: true } }
-              }
-            }
-          }
-        }
-      }
+                service: { select: { name: true, description: true, unit: true } },
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!quote) {
@@ -88,9 +90,9 @@ export async function POST(
 
     // Construir URL de seguimiento
     const baseUrl = process.env['NEXTAUTH_URL'] || request.nextUrl.origin;
-    const trackingUrl = trackingToken ? 
-      `${baseUrl}/api/quotes/${quoteId}/track/${trackingToken}` : 
-      `${baseUrl}/dashboard/quotes/${quoteId}`;
+    const trackingUrl = trackingToken
+      ? `${baseUrl}/api/quotes/${quoteId}/track/${trackingToken}`
+      : `${baseUrl}/dashboard/quotes/${quoteId}`;
 
     // Preparar datos para la plantilla de email
     const companyInfo = {
@@ -98,7 +100,7 @@ export async function POST(
       email: process.env['COMPANY_EMAIL'] || 'info@gestiondeeventos.com',
       phone: process.env['COMPANY_PHONE'] || '',
       website: process.env['COMPANY_WEBSITE'] || '',
-      address: process.env['COMPANY_ADDRESS'] || ''
+      address: process.env['COMPANY_ADDRESS'] || '',
     };
 
     const emailData: QuoteEmailData = {
@@ -109,25 +111,27 @@ export async function POST(
         ...(quote.notes && { description: quote.notes }),
         total: Number(quote.total),
         validUntil: quote.validUntil.toISOString(),
-        createdAt: quote.createdAt.toISOString()
+        createdAt: quote.createdAt.toISOString(),
       },
       client: {
         name: quote.client.name,
         email: quote.client.email,
-        ...(quote.client.phone && { phone: quote.client.phone })
+        ...(quote.client.phone && { phone: quote.client.phone }),
       },
-      event: quote.event ? {
-        title: quote.event.title,
-        startDate: quote.event.startDate.toISOString(),
-        endDate: quote.event.endDate.toISOString(),
-        ...(quote.event.venue && {
-          location: `${quote.event.venue.name}${quote.event.room ? ` - ${quote.event.room.name}` : ''}`
-        })
-      } : {
-        title: 'Evento por definir',
-        startDate: new Date().toISOString(),
-        endDate: new Date().toISOString()
-      },
+      event: quote.event
+        ? {
+            title: quote.event.title,
+            startDate: quote.event.startDate.toISOString(),
+            endDate: quote.event.endDate.toISOString(),
+            ...(quote.event.venue && {
+              location: `${quote.event.venue.name}${quote.event.room ? ` - ${quote.event.room.name}` : ''}`,
+            }),
+          }
+        : {
+            title: 'Evento por definir',
+            startDate: new Date().toISOString(),
+            endDate: new Date().toISOString(),
+          },
       packages: quote.packages.map(pkg => ({
         name: pkg.name,
         ...(pkg.description && { description: pkg.description }),
@@ -137,14 +141,14 @@ export async function POST(
           ...(item.description && { description: item.description }),
           quantity: item.quantity,
           unitPrice: Number(item.unitPrice),
-          totalPrice: Number(item.totalPrice)
-        }))
+          totalPrice: Number(item.totalPrice),
+        })),
       })),
       company: companyInfo,
       tracking: {
         token: trackingToken || '',
-        trackingUrl: trackingUrl || ''
-      }
+        trackingUrl: trackingUrl || '',
+      },
     };
 
     // Generar HTML del email usando la plantilla seleccionada
@@ -162,8 +166,8 @@ export async function POST(
         const pdfResponse = await fetch(`${baseUrl}/api/quotes/${quoteId}/pdf`, {
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         });
 
         if (pdfResponse.ok) {
@@ -171,7 +175,7 @@ export async function POST(
           attachments.push({
             filename: `cotizacion-${quote.quoteNumber}.pdf`,
             content: Buffer.from(pdfBuffer),
-            contentType: 'application/pdf'
+            contentType: 'application/pdf',
           });
         }
       } catch (error) {
@@ -220,28 +224,28 @@ ${companyInfo.phone}
       text: plainText,
       html: emailHtml,
       ...(attachments.length > 0 && { attachments }),
-      replyTo: companyInfo.email
+      replyTo: companyInfo.email,
     });
 
     if (!emailResult.success) {
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'Error enviando email',
-          details: emailResult.error
+          details: emailResult.error,
         },
         { status: 500 }
       );
     }
 
     // Actualizar estado de la cotización y registrar envío
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async tx => {
       // Actualizar estado de cotización a SENT_TO_CLIENT
       await tx.quote.update({
         where: { id: quoteId },
-        data: { 
-          status: 'SENT_TO_CLIENT'
-        }
+        data: {
+          status: 'SENT_TO_CLIENT',
+        },
       });
 
       // Registrar el envío en el log
@@ -259,11 +263,19 @@ ${companyInfo.phone}
             attachPDF: validatedData.attachPDF,
             ccEmails: ccList,
             bccEmails: bccList,
-            customMessage: validatedData.customMessage
-          }
-        }
+            customMessage: validatedData.customMessage,
+          },
+        },
       });
     });
+
+    // Enviar notificaciones después del envío exitoso
+    try {
+      await NotificationService.notifyQuoteSent(quoteId);
+    } catch (notificationError) {
+      console.error('Error enviando notificaciones:', notificationError);
+      // No fallar la respuesta por error en notificaciones
+    }
 
     // Respuesta exitosa
     return NextResponse.json({
@@ -276,18 +288,17 @@ ${companyInfo.phone}
         bcc: bccList,
         template: validatedData.template,
         attachedPDF: validatedData.attachPDF,
-        trackingUrl: trackingUrl
+        trackingUrl: trackingUrl,
       },
-      message: 'Cotización enviada exitosamente'
+      message: 'Cotización enviada exitosamente',
     });
-
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: 'Datos de entrada inválidos',
-          details: error.errors
+          details: error.errors,
         },
         { status: 400 }
       );
@@ -295,10 +306,10 @@ ${companyInfo.phone}
 
     console.error('Error enviando cotización:', error);
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: 'Error interno del servidor',
-        details: error instanceof Error ? error.message : 'Error desconocido'
+        details: error instanceof Error ? error.message : 'Error desconocido',
       },
       { status: 500 }
     );
@@ -308,10 +319,7 @@ ${companyInfo.phone}
 /**
  * GET /api/quotes/[id]/send - Obtener información de envío de cotización
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const quoteId = params.id;
 
@@ -322,10 +330,10 @@ export async function GET(
         client: {
           select: {
             name: true,
-            email: true
-          }
-        }
-      }
+            email: true,
+          },
+        },
+      },
     });
 
     if (!quote) {
@@ -349,8 +357,8 @@ export async function GET(
         sentAt: true,
         openedAt: true,
         clickedAt: true,
-        metadata: true
-      }
+        metadata: true,
+      },
     });
 
     return NextResponse.json({
@@ -360,22 +368,21 @@ export async function GET(
           id: quote.id,
           quoteNumber: quote.quoteNumber,
           status: quote.status,
-          client: quote.client
+          client: quote.client,
         },
         emailHistory: emailLogs,
         wasSent: emailLogs.length > 0,
         lastSent: emailLogs[0]?.sentAt || null,
         totalSends: emailLogs.length,
-        hasTracking: emailLogs.some(log => log.openedAt !== null)
-      }
+        hasTracking: emailLogs.some(log => log.openedAt !== null),
+      },
     });
-
   } catch (error) {
     console.error('Error obteniendo información de envío:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Error obteniendo información de envío'
+      {
+        success: false,
+        error: 'Error obteniendo información de envío',
       },
       { status: 500 }
     );

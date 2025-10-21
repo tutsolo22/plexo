@@ -395,7 +395,7 @@ export class CRMEmbeddingService {
    * Re-indexa todas las entidades de un tenant
    */
   async reindexTenant(tenantId: string): Promise<void> {
-    console.log(`Iniciando re-indexación del tenant: ${tenantId}`);
+    // Iniciando re-indexación del tenant
 
     try {
       // Re-indexar eventos
@@ -438,11 +438,11 @@ export class CRMEmbeddingService {
         await this.indexProduct(product.id, tenantId);
       }
 
-      console.log(`Re-indexación completada para tenant: ${tenantId}`);
-      console.log(`- Eventos: ${events.length}`);
-      console.log(`- Clientes: ${clients.length}`);
-      console.log(`- Cotizaciones: ${quotes.length}`);
-      console.log(`- Productos: ${products.length}`);
+      // Re-indexación completada
+      // - Eventos: ${events.length}
+      // - Clientes: ${clients.length}
+      // - Cotizaciones: ${quotes.length}
+      // - Productos: ${products.length}
     } catch (error) {
       console.error('Error en re-indexación:', error);
       throw error;

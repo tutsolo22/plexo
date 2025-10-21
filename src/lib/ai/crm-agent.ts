@@ -1,6 +1,6 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
 import { prisma } from '@/lib/prisma';
-import { crmEmbeddingService } from './crm-embeddings';
+import { crmEmbeddingService, SearchOptions } from './crm-embeddings';
 import { SYSTEM_PROMPTS, RESPONSE_TEMPLATES } from './prompt-templates';
 import { EventStatus, QuoteStatus, LegacyUserRole } from '@prisma/client';
 import { ClientAnalysis, GeneratedQuote } from './types';
@@ -64,7 +64,7 @@ export interface SearchRoomsParams extends CRMSearchParams {
 }
 
 export class CRMAgentService {
-  private model: any;
+  private model: GenerativeModel;
   private defaultTenantId: string;
 
   constructor(tenantId?: string) {
@@ -523,7 +523,7 @@ Responde SOLO con formato JSON:
   private async searchQuotes(params: SearchQuotesParams) {
     // Si hay query de texto, usar búsqueda semántica
     if (params.query) {
-      const searchOptions: any = {
+      const searchOptions: SearchOptions = {
         type: 'quote',
         limit: params.limit || 10,
         tenantId: params.tenantId!,

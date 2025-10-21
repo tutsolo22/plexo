@@ -1,9 +1,8 @@
-import { crmAgentService } from './crm-agent';
+import { crmAgentService, type AgentResponse } from './crm-agent';
 import {
   whatsappAgentService,
   type WhatsAppMessage,
   type WhatsAppResponse,
-  type AgentResponse,
 } from './whatsapp-agent';
 
 // ===============================

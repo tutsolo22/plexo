@@ -1,7 +1,7 @@
 /**
  * Configuración y cliente Redis para Cache
  * Sistema de Gestión de Eventos V3
- * 
+ *
  * @author Manuel Antonio Tut Solorzano
  * @version 3.0.0
  * @date 2025-10-17
@@ -40,25 +40,25 @@ export async function createRedisClient(): Promise<RedisClientType> {
     });
 
     // Event listeners para debugging
-    client.on('error', (err) => {
+    client.on('error', err => {
       console.error('Redis Client Error:', err);
     });
 
     client.on('connect', () => {
-      console.log('✅ Redis conectado exitosamente');
+      // Redis conectado exitosamente
     });
 
     client.on('ready', () => {
-      console.log('🚀 Redis listo para usar');
+      // Redis listo para usar
     });
 
     client.on('end', () => {
-      console.log('🔴 Redis desconectado');
+      // Redis desconectado
     });
 
     await client.connect();
     redisClient = client as any;
-    
+
     return client as any;
   } catch (error) {
     console.error('Error conectando a Redis:', error);
@@ -100,14 +100,14 @@ export function createUpstashClient(): Redis | null {
         url: UPSTASH_REDIS_REST_URL,
         token: UPSTASH_REDIS_REST_TOKEN,
       });
-      console.log('✅ Upstash Redis configurado correctamente');
+      // Upstash Redis configurado correctamente
       return upstashClient;
     } catch (error) {
       console.error('Error configurando Upstash Redis:', error);
       return null;
     }
   } else {
-    console.warn('⚠️ Variables de Upstash Redis no configuradas');
+    // Variables de Upstash Redis no configuradas
     return null;
   }
 }
@@ -119,12 +119,12 @@ export function getPreferredRedisClient(): Redis | RedisClientType | null {
   // Priorizar Upstash Redis si está configurado
   const upstash = createUpstashClient();
   if (upstash) {
-    console.log('🚀 Usando Upstash Redis');
+    // Usando Upstash Redis
     return upstash;
   }
 
   // Fallback a Redis local
-  console.log('🔄 Usando Redis local como fallback');
+  // Usando Redis local como fallback
   return null; // Será manejado por getRedisClient() cuando sea necesario
 }
 
@@ -200,23 +200,23 @@ export async function testUpstashConnection() {
   try {
     const client = createUpstashClient();
     if (!client) {
-      return { 
-        connected: false, 
-        error: 'Cliente Upstash Redis no configurado' 
+      return {
+        connected: false,
+        error: 'Cliente Upstash Redis no configurado',
       };
     }
-    
+
     await client.ping();
-    return { 
-      connected: true, 
+    return {
+      connected: true,
       message: 'Conexión a Upstash Redis exitosa',
-      service: 'Upstash'
+      service: 'Upstash',
     };
   } catch (error) {
-    return { 
-      connected: false, 
+    return {
+      connected: false,
       error: `Error de conexión Upstash: ${error}`,
-      service: 'Upstash'
+      service: 'Upstash',
     };
   }
 }
@@ -362,36 +362,30 @@ export const redisCache = new RedisCache();
  */
 export const CacheKeys = {
   // Analytics Dashboard
-  ANALYTICS_DASHBOARD: (period: string, tenantId: string) => 
+  ANALYTICS_DASHBOARD: (period: string, tenantId: string) =>
     `analytics:dashboard:${period}:${tenantId}`,
-  
+
   // Estadísticas de eventos
-  EVENTS_STATS: (tenantId: string) => 
-    `events:stats:${tenantId}`,
-  
+  EVENTS_STATS: (tenantId: string) => `events:stats:${tenantId}`,
+
   // Notificaciones de usuario
-  USER_NOTIFICATIONS: (userId: string) => 
-    `notifications:user:${userId}`,
-  
+  USER_NOTIFICATIONS: (userId: string) => `notifications:user:${userId}`,
+
   // Lista de clientes
-  CLIENTS_LIST: (tenantId: string, page: number, limit: number) => 
+  CLIENTS_LIST: (tenantId: string, page: number, limit: number) =>
     `clients:list:${tenantId}:${page}:${limit}`,
-  
+
   // Datos de cliente específico
-  CLIENT_DATA: (clientId: string) => 
-    `client:data:${clientId}`,
-  
+  CLIENT_DATA: (clientId: string) => `client:data:${clientId}`,
+
   // Cotizaciones del dashboard
-  QUOTES_DASHBOARD: (tenantId: string) => 
-    `quotes:dashboard:${tenantId}`,
-  
+  QUOTES_DASHBOARD: (tenantId: string) => `quotes:dashboard:${tenantId}`,
+
   // Eventos próximos
-  UPCOMING_EVENTS: (tenantId: string) => 
-    `events:upcoming:${tenantId}`,
-  
+  UPCOMING_EVENTS: (tenantId: string) => `events:upcoming:${tenantId}`,
+
   // Métricas de email tracking
-  EMAIL_STATS: (tenantId: string) => 
-    `email:stats:${tenantId}`,
+  EMAIL_STATS: (tenantId: string) => `email:stats:${tenantId}`,
 } as const;
 
 /**

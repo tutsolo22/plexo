@@ -5,26 +5,29 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { 
-  Mail, 
-  Save, 
-  TestTube, 
-  AlertCircle, 
-  CheckCircle, 
+import {
+  Mail,
+  Save,
+  TestTube,
+  AlertCircle,
+  CheckCircle,
   Settings,
   Eye,
   EyeOff,
-  Loader2
+  Loader2,
 } from 'lucide-react';
 
 interface SMTPConfig {
-  host: string;
-  port: number;
-  secure: boolean;
-  user: string;
-  password: string;
-  from: string;
-  replyTo: string;
+  smtpHost: string;
+  smtpPort: number;
+  smtpSecure: boolean;
+  smtpUser: string;
+  smtpPassword: string;
+  fromEmail: string;
+  fromName: string;
+  replyToEmail: string;
+  provider: string;
+  isActive: boolean;
 }
 
 interface TestEmailData {
@@ -35,19 +38,22 @@ interface TestEmailData {
 
 const EmailConfiguration: React.FC = () => {
   const [config, setConfig] = useState<SMTPConfig>({
-    host: '',
-    port: 587,
-    secure: false,
-    user: '',
-    password: '',
-    from: '',
-    replyTo: ''
+    smtpHost: '',
+    smtpPort: 587,
+    smtpSecure: false,
+    smtpUser: '',
+    smtpPassword: '',
+    fromEmail: '',
+    fromName: '',
+    replyToEmail: '',
+    provider: 'smtp',
+    isActive: false,
   });
 
   const [testEmail, setTestEmail] = useState<TestEmailData>({
     to: '',
     subject: 'Prueba de configuración de email - Gestión de Eventos',
-    template: 'professional'
+    template: 'professional',
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -76,14 +82,14 @@ const EmailConfiguration: React.FC = () => {
   const handleConfigChange = (field: keyof SMTPConfig, value: string | number | boolean) => {
     setConfig(prev => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
   const handleTestEmailChange = (field: keyof TestEmailData, value: string) => {
     setTestEmail(prev => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
@@ -126,7 +132,7 @@ const EmailConfiguration: React.FC = () => {
         },
         body: JSON.stringify({
           ...testEmail,
-          config
+          config,
         }),
       });
 
@@ -145,7 +151,13 @@ const EmailConfiguration: React.FC = () => {
   };
 
   const isFormValid = () => {
-    return config.host && config.port && config.user && config.password && config.from;
+    return (
+      config.smtpHost &&
+      config.smtpPort &&
+      config.smtpUser &&
+      config.smtpPassword &&
+      config.fromEmail
+    );
   };
 
   const isTestEmailValid = () => {
@@ -153,27 +165,31 @@ const EmailConfiguration: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className='space-y-6'>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className='flex items-center justify-between'>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Configuración de Email</h1>
-          <p className="text-gray-600">Configure el servidor SMTP para el envío de emails</p>
+          <h1 className='text-2xl font-bold text-gray-900'>Configuración de Email</h1>
+          <p className='text-gray-600'>Configure el servidor SMTP para el envío de emails</p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Settings className="h-5 w-5 text-gray-500" />
+        <div className='flex items-center space-x-2'>
+          <Settings className='h-5 w-5 text-gray-500' />
         </div>
       </div>
 
       {/* Mensaje de estado */}
       {message && (
-        <Card className={`border-l-4 ${message.type === 'success' ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}>
-          <CardContent className="p-4">
-            <div className={`flex items-center ${message.type === 'success' ? 'text-green-800' : 'text-red-800'}`}>
+        <Card
+          className={`border-l-4 ${message.type === 'success' ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}
+        >
+          <CardContent className='p-4'>
+            <div
+              className={`flex items-center ${message.type === 'success' ? 'text-green-800' : 'text-red-800'}`}
+            >
               {message.type === 'success' ? (
-                <CheckCircle className="h-5 w-5 mr-2" />
+                <CheckCircle className='mr-2 h-5 w-5' />
               ) : (
-                <AlertCircle className="h-5 w-5 mr-2" />
+                <AlertCircle className='mr-2 h-5 w-5' />
               )}
               {message.text}
             </div>
@@ -184,138 +200,156 @@ const EmailConfiguration: React.FC = () => {
       {/* Configuración SMTP */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Mail className="h-5 w-5 mr-2" />
+          <CardTitle className='flex items-center'>
+            <Mail className='mr-2 h-5 w-5' />
             Configuración SMTP
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent className='space-y-4'>
+          <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
             <div>
-              <Label htmlFor="host">Servidor SMTP *</Label>
+              <Label htmlFor='smtpHost'>Servidor SMTP *</Label>
               <Input
-                id="host"
-                type="text"
-                placeholder="smtp.gmail.com"
-                value={config.host}
-                onChange={(e) => handleConfigChange('host', e.target.value)}
+                id='smtpHost'
+                type='text'
+                placeholder='smtp.gmail.com'
+                value={config.smtpHost}
+                onChange={e => handleConfigChange('smtpHost', e.target.value)}
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Ej: smtp.gmail.com, smtp.outlook.com
-              </p>
+              <p className='mt-1 text-xs text-gray-500'>Ej: smtp.gmail.com, smtp.outlook.com</p>
             </div>
 
             <div>
-              <Label htmlFor="port">Puerto *</Label>
+              <Label htmlFor='smtpPort'>Puerto *</Label>
               <Input
-                id="port"
-                type="number"
-                placeholder="587"
-                value={config.port}
-                onChange={(e) => handleConfigChange('port', parseInt(e.target.value) || 587)}
+                id='smtpPort'
+                type='number'
+                placeholder='587'
+                value={config.smtpPort}
+                onChange={e => handleConfigChange('smtpPort', parseInt(e.target.value) || 587)}
               />
-              <p className="text-xs text-gray-500 mt-1">
-                587 (TLS), 465 (SSL), 25 (no seguro)
-              </p>
+              <p className='mt-1 text-xs text-gray-500'>587 (TLS), 465 (SSL), 25 (no seguro)</p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className='flex items-center space-x-2'>
             <input
-              type="checkbox"
-              id="secure"
-              checked={config.secure}
-              onChange={(e) => handleConfigChange('secure', e.target.checked)}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              type='checkbox'
+              id='smtpSecure'
+              checked={config.smtpSecure}
+              onChange={e => handleConfigChange('smtpSecure', e.target.checked)}
+              className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
             />
-            <Label htmlFor="secure" className="text-sm">
+            <Label htmlFor='smtpSecure' className='text-sm'>
               Usar conexión segura (SSL/TLS)
             </Label>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
             <div>
-              <Label htmlFor="user">Usuario/Email *</Label>
+              <Label htmlFor='smtpUser'>Usuario/Email *</Label>
               <Input
-                id="user"
-                type="email"
-                placeholder="tu-email@empresa.com"
-                value={config.user}
-                onChange={(e) => handleConfigChange('user', e.target.value)}
+                id='smtpUser'
+                type='email'
+                placeholder='tu-email@empresa.com'
+                value={config.smtpUser}
+                onChange={e => handleConfigChange('smtpUser', e.target.value)}
               />
             </div>
 
             <div>
-              <Label htmlFor="password">Contraseña *</Label>
-              <div className="relative">
+              <Label htmlFor='smtpPassword'>Contraseña *</Label>
+              <div className='relative'>
                 <Input
-                  id="password"
+                  id='smtpPassword'
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="************"
-                  value={config.password}
-                  onChange={(e) => handleConfigChange('password', e.target.value)}
+                  placeholder='************'
+                  value={config.smtpPassword}
+                  onChange={e => handleConfigChange('smtpPassword', e.target.value)}
                 />
                 <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  type='button'
+                  className='absolute inset-y-0 right-0 flex items-center pr-3'
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-gray-400" />
+                    <EyeOff className='h-4 w-4 text-gray-400' />
                   ) : (
-                    <Eye className="h-4 w-4 text-gray-400" />
+                    <Eye className='h-4 w-4 text-gray-400' />
                   )}
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className='mt-1 text-xs text-gray-500'>
                 Para Gmail, use una contraseña de aplicación
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
             <div>
-              <Label htmlFor="from">Email remitente *</Label>
+              <Label htmlFor='fromName'>Nombre del remitente</Label>
               <Input
-                id="from"
-                type="email"
-                placeholder="noreply@gestion-eventos.com"
-                value={config.from}
-                onChange={(e) => handleConfigChange('from', e.target.value)}
+                id='fromName'
+                type='text'
+                placeholder='Gestión de Eventos'
+                value={config.fromName}
+                onChange={e => handleConfigChange('fromName', e.target.value)}
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Este email aparecerá como remitente
-              </p>
+              <p className='mt-1 text-xs text-gray-500'>Nombre que aparecerá en el remitente</p>
             </div>
 
             <div>
-              <Label htmlFor="replyTo">Email de respuesta</Label>
+              <Label htmlFor='fromEmail'>Email remitente *</Label>
               <Input
-                id="replyTo"
-                type="email"
-                placeholder="contacto@gestion-eventos.com"
-                value={config.replyTo}
-                onChange={(e) => handleConfigChange('replyTo', e.target.value)}
+                id='fromEmail'
+                type='email'
+                placeholder='noreply@gestion-eventos.com'
+                value={config.fromEmail}
+                onChange={e => handleConfigChange('fromEmail', e.target.value)}
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Email para recibir respuestas (opcional)
-              </p>
+              <p className='mt-1 text-xs text-gray-500'>Este email aparecerá como remitente</p>
             </div>
           </div>
 
-          <div className="flex justify-end">
-            <Button 
-              onClick={saveConfiguration} 
-              disabled={!isFormValid() || saving}
-            >
+          <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+            <div>
+              <Label htmlFor='replyToEmail'>Email de respuesta</Label>
+              <Input
+                id='replyToEmail'
+                type='email'
+                placeholder='contacto@gestion-eventos.com'
+                value={config.replyToEmail}
+                onChange={e => handleConfigChange('replyToEmail', e.target.value)}
+              />
+              <p className='mt-1 text-xs text-gray-500'>Email para recibir respuestas (opcional)</p>
+            </div>
+
+            <div>
+              <Label htmlFor='provider'>Proveedor</Label>
+              <select
+                id='provider'
+                value={config.provider}
+                onChange={e => handleConfigChange('provider', e.target.value)}
+                className='w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
+              >
+                <option value='smtp'>SMTP Personalizado</option>
+                <option value='gmail'>Gmail</option>
+                <option value='outlook'>Outlook</option>
+              </select>
+              <p className='mt-1 text-xs text-gray-500'>Selecciona el proveedor de email</p>
+            </div>
+          </div>
+
+          <div className='flex justify-end'>
+            <Button onClick={saveConfiguration} disabled={!isFormValid() || saving}>
               {saving ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
                   Guardando...
                 </>
               ) : (
                 <>
-                  <Save className="h-4 w-4 mr-2" />
+                  <Save className='mr-2 h-4 w-4' />
                   Guardar Configuración
                 </>
               )}
@@ -327,63 +361,63 @@ const EmailConfiguration: React.FC = () => {
       {/* Prueba de Email */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <TestTube className="h-5 w-5 mr-2" />
+          <CardTitle className='flex items-center'>
+            <TestTube className='mr-2 h-5 w-5' />
             Probar Configuración
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent className='space-y-4'>
+          <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
             <div>
-              <Label htmlFor="testTo">Email de destino *</Label>
+              <Label htmlFor='testTo'>Email de destino *</Label>
               <Input
-                id="testTo"
-                type="email"
-                placeholder="prueba@ejemplo.com"
+                id='testTo'
+                type='email'
+                placeholder='prueba@ejemplo.com'
                 value={testEmail.to}
-                onChange={(e) => handleTestEmailChange('to', e.target.value)}
+                onChange={e => handleTestEmailChange('to', e.target.value)}
               />
             </div>
 
             <div>
-              <Label htmlFor="testTemplate">Plantilla</Label>
+              <Label htmlFor='testTemplate'>Plantilla</Label>
               <select
-                id="testTemplate"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                id='testTemplate'
+                className='w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500'
                 value={testEmail.template}
-                onChange={(e) => handleTestEmailChange('template', e.target.value)}
+                onChange={e => handleTestEmailChange('template', e.target.value)}
               >
-                <option value="basic">Básica</option>
-                <option value="professional">Profesional</option>
-                <option value="custom">Personalizada</option>
+                <option value='basic'>Básica</option>
+                <option value='professional'>Profesional</option>
+                <option value='custom'>Personalizada</option>
               </select>
             </div>
           </div>
 
           <div>
-            <Label htmlFor="testSubject">Asunto</Label>
+            <Label htmlFor='testSubject'>Asunto</Label>
             <Input
-              id="testSubject"
-              type="text"
+              id='testSubject'
+              type='text'
               value={testEmail.subject}
-              onChange={(e) => handleTestEmailChange('subject', e.target.value)}
+              onChange={e => handleTestEmailChange('subject', e.target.value)}
             />
           </div>
 
-          <div className="flex justify-end">
-            <Button 
-              onClick={sendTestEmail} 
+          <div className='flex justify-end'>
+            <Button
+              onClick={sendTestEmail}
               disabled={!isTestEmailValid() || testing}
-              variant="outline"
+              variant='outline'
             >
               {testing ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className='mr-2 h-4 w-4 animate-spin' />
                   Enviando...
                 </>
               ) : (
                 <>
-                  <TestTube className="h-4 w-4 mr-2" />
+                  <TestTube className='mr-2 h-4 w-4' />
                   Enviar Email de Prueba
                 </>
               )}
@@ -398,10 +432,10 @@ const EmailConfiguration: React.FC = () => {
           <CardTitle>Guía de Configuración</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4 text-sm">
+          <div className='space-y-4 text-sm'>
             <div>
-              <h4 className="font-medium text-gray-900 mb-2">Gmail</h4>
-              <ul className="list-disc list-inside text-gray-600 space-y-1">
+              <h4 className='mb-2 font-medium text-gray-900'>Gmail</h4>
+              <ul className='list-inside list-disc space-y-1 text-gray-600'>
                 <li>Host: smtp.gmail.com</li>
                 <li>Puerto: 587 (TLS) o 465 (SSL)</li>
                 <li>Seguro: Activado</li>
@@ -410,8 +444,8 @@ const EmailConfiguration: React.FC = () => {
             </div>
 
             <div>
-              <h4 className="font-medium text-gray-900 mb-2">Outlook/Hotmail</h4>
-              <ul className="list-disc list-inside text-gray-600 space-y-1">
+              <h4 className='mb-2 font-medium text-gray-900'>Outlook/Hotmail</h4>
+              <ul className='list-inside list-disc space-y-1 text-gray-600'>
                 <li>Host: smtp-mail.outlook.com</li>
                 <li>Puerto: 587</li>
                 <li>Seguro: Activado</li>
@@ -420,9 +454,10 @@ const EmailConfiguration: React.FC = () => {
             </div>
 
             <div>
-              <h4 className="font-medium text-gray-900 mb-2">Otros proveedores</h4>
-              <p className="text-gray-600">
-                Consulte la documentación de su proveedor de email para obtener la configuración SMTP correcta.
+              <h4 className='mb-2 font-medium text-gray-900'>Otros proveedores</h4>
+              <p className='text-gray-600'>
+                Consulte la documentación de su proveedor de email para obtener la configuración
+                SMTP correcta.
               </p>
             </div>
           </div>

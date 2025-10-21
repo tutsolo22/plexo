@@ -11,6 +11,32 @@ adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- 📧 **Sistema Multi-Tenant de Configuraciones Email**: Arquitectura completa
+  para gestión de email por tenant
+  - Modelo `TenantEmailConfig` en Prisma con configuración SMTP completa
+  - API `/api/emails/config` con aislamiento por tenant (GET/POST)
+  - Servicio `EmailService` mejorado con `getTenantTransporter()` y
+    `getTenantFromAddress()`
+  - Soporte para múltiples proveedores: Gmail, Outlook, Yahoo, AOL, iCloud, Zoho
+    y SMTP personalizado
+  - Componente `EmailConfiguration` con formulario completo y validación
+  - Seguridad: encriptación de contraseñas y aislamiento completo por tenant
+  - Fallback automático a configuración por defecto cuando no hay configuración
+    específica
+
+- 💰 **Sistema de Cotizaciones Avanzado Completo**: Gestión profesional de
+  cotizaciones
+  - APIs completas: CRUD, envío por email, duplicación, generación PDF
+  - Componentes React: `QuoteList`, `QuoteForm`, `PDFGenerator`,
+    `TemplateEditor`
+  - Páginas: dashboard principal, creación, edición y vista detallada
+  - Gestión de paquetes con items detallados y cálculos automáticos
+  - Sistema de estados: borrador, enviada, vista, aceptada, rechazada
+  - 3 plantillas de email profesionales con variables dinámicas
+  - PDFs profesionales con branding y detalles completos
+  - Duplicación avanzada con cambio de cliente
+  - Integración completa con clientes y eventos
+
 - 🤖 **Servicio de Memoria Conversacional Completo**: Sistema de persistencia
   para IA
   - Modelos `Conversation` y `ConversationMessage` en Prisma schema
