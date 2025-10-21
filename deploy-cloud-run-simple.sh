@@ -61,6 +61,16 @@ check_prerequisites() {
     print_success "Prerrequisitos verificados"
 }
 
+# Sincronizar dependencias localmente
+sync_dependencies() {
+    print_message "Sincronizando dependencias npm..."
+    
+    # Instalar con legacy-peer-deps para resolver conflictos
+    npm install --legacy-peer-deps
+    
+    print_success "Dependencias sincronizadas"
+}
+
 # Desplegar usando source-based deployment (buildpacks)
 deploy_source_based() {
     print_message "Desplegando usando source-based deployment (buildpacks)..."
@@ -112,6 +122,7 @@ main() {
     fi
 
     check_prerequisites
+    sync_dependencies
     deploy_source_based
 
     # Obtener la URL del servicio desplegado
