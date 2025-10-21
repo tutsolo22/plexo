@@ -1,0 +1,62 @@
+# Dockerfile de Producción - Gestión de Eventos v3.0
+FROM node:18-alpine AS base
+
+# Instalar dependencias del sistema
+RUN apk add --no-cache \
+    libc6-compat \
+    postgresql-client \
+    redis \
+    curl
+
+# Crear usuario no-root
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+WORKDIR /app
+
+# Instalar dependencias solo de producción
+FROM base AS deps
+COPY package.json package-lock.json* ./
+RUN npm ci --only=production --ignore-scripts && npm cache clean --force
+
+# Construir la aplicación
+FROM base AS builder
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+# Generar Prisma client
+RUN npx prisma generate
+
+# Construir la aplicación
+ENV NEXT_TELEMETRY_DISABLED 1
+RUN npm run build
+
+# Imagen de producción
+FROM base AS runner
+COPY --from=builder /app/public ./public
+
+# Copiar archivos necesarios de Prisma
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+
+# Copiar archivos de Next.js
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Cambiar a usuario no-root
+USER nextjs
+
+# Exponer puerto
+EXPOSE 3000
+
+# Variables de entorno
+ENV PORT 3000
+ENV NODE_ENV production
+ENV NEXT_TELEMETRY_DISABLED 1
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3000/api/health || exit 1
+
+# Comando de inicio
+CMD ["node", "server.js"]
