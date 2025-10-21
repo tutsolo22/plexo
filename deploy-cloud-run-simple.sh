@@ -14,7 +14,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuración - EDITAR ESTOS VALORES
-PROJECT_ID="TU_PROJECT_ID_AQUI"  # Cambiar por tu project ID de GCP
+PROJECT_ID="plexo-475822"  # Cambiar por tu project ID de GCP
 SERVICE_NAME="plexo-gestion-eventos"
 REGION="us-central1"
 
