@@ -1,66 +1,41 @@
-# Dockerfile optimizado para Google Cloud Run
+# Dockerfile simplificado para Google Cloud Run
 # Gestión de Eventos v3.0 - Producción
 
-FROM node:18-alpine AS base
+FROM node:18-alpine
 
-# Instalar dependencias del sistema necesarias
-RUN apk add --no-cache \
-    libc6-compat \
-    curl \
-    postgresql-client
+# Instalar dependencias del sistema
+RUN apk add --no-cache libc6-compat curl postgresql-client
 
-# Crear usuario no-root
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
+# Crear directorio de trabajo
 WORKDIR /app
 
-# Instalar dependencias solo de producción
-FROM base AS deps
-COPY package.json package-lock.json* ./
+# Copiar archivos de configuración
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Instalar dependencias
 RUN npm ci --only=production --ignore-scripts && npm cache clean --force
 
-# Construir la aplicación
-FROM base AS builder
-COPY --from=deps /app/node_modules ./node_modules
+# Copiar código fuente
 COPY . .
 
 # Generar Prisma client
 RUN npx prisma generate
 
-# Construir la aplicación con configuración de producción
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV NODE_ENV production
+# Construir la aplicación
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
 RUN npm run build
-
-# Imagen de producción optimizada para Cloud Run
-FROM base AS runner
-
-# Copiar archivos públicos
-COPY --from=builder /app/public ./public
-
-# Copiar archivos necesarios de Prisma
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-
-# Copiar archivos de Next.js (standalone build)
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# Cambiar a usuario no-root
-USER nextjs
-
-# Health check para Cloud Run
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/api/health || exit 1
 
 # Exponer puerto 8080 (requerido por Cloud Run)
 EXPOSE 8080
 
-# Variable de entorno para puerto de Cloud Run
-ENV PORT 8080
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+# Configurar puerto para Next.js
+ENV PORT=8080
 
-# Comando de inicio optimizado para Cloud Run
-CMD ["node", "server.js"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/api/health || exit 1
+
+# Comando de inicio
+CMD ["npm", "start"]
