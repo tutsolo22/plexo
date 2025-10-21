@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ejemplo de Integración - Chat Widget</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 16px;
+            margin: 16px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        .highlight {
+            background-color: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .method-title {
+            color: #2c5aa0;
+            font-weight: bold;
+            margin-top: 30px;
+        }
+        .method-description {
+            color: #666;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Chat Widget - Guía de Integración</h1>
+
+        <p>Este widget de chat permite integrar fácilmente un asistente virtual inteligente en cualquier sitio web. El widget se conecta con tu sistema de gestión de eventos y puede responder preguntas sobre servicios, eventos y contactar con tu negocio.</p>
+
+        <h2>Método 1: Integración Automática (Recomendado)</h2>
+        <p>Simplemente agrega este script al final del &lt;body&gt; de tu página HTML:</p>
+
+        <div class="code-block">
+&lt;script src="https://tu-dominio.com/widget.js" data-api-key="TU_API_KEY_AQUI"&gt;&lt;/script&gt;
+        </div>
+
+        <h2>Método 2: Integración Programática</h2>
+        <p>Para mayor control, puedes inicializar el widget manualmente:</p>
+
+        <div class="code-block">
+&lt;script src="https://tu-dominio.com/widget.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  // Inicializar el widget con opciones personalizadas
+  window.ChatWidget.init({
+    apiKey: 'TU_API_KEY_AQUI',
+    baseUrl: 'https://tu-dominio.com', // Opcional, por defecto usa la URL actual
+    position: 'bottom-right', // 'bottom-right', 'bottom-left', 'top-right', 'top-left'
+    primaryColor: '#3B82F6', // Color principal del widget
+    secondaryColor: '#F3F4F6' // Color de fondo de mensajes del bot
+  });
+&lt;/script&gt;
+        </div>
+
+        <h2>Configuración de Parámetros</h2>
+
+        <div class="method-title">apiKey (requerido)</div>
+        <div class="method-description">Clave API única para autenticar el widget. Obtén esta clave desde tu panel de administración.</div>
+
+        <div class="method-title">baseUrl (opcional)</div>
+        <div class="method-description">URL base de tu API. Por defecto usa el dominio actual.</div>
+
+        <div class="method-title">position (opcional)</div>
+        <div class="method-description">Posición del widget en la pantalla. Opciones: 'bottom-right' (predeterminado), 'bottom-left', 'top-right', 'top-left'.</div>
+
+        <div class="method-title">primaryColor (opcional)</div>
+        <div class="method-description">Color principal del widget (botón, header, mensajes del usuario). Formato hexadecimal.</div>
+
+        <div class="method-title">secondaryColor (opcional)</div>
+        <div class="method-description">Color de fondo de los mensajes del bot. Formato hexadecimal.</div>
+
+        <h2>Características del Widget</h2>
+        <ul>
+            <li><strong>Interfaz Personalizable:</strong> Colores, posición y logo personalizables</li>
+            <li><strong>IA Avanzada:</strong> Respuestas inteligentes usando Google Gemini AI</li>
+            <li><strong>Información en Tiempo Real:</strong> Acceso a datos actualizados de eventos y servicios</li>
+            <li><strong>Conversaciones Persistentes:</strong> Historial de chat mantenido entre sesiones</li>
+            <li><strong>Responsive:</strong> Funciona perfectamente en dispositivos móviles y desktop</li>
+            <li><strong>Seguro:</strong> Autenticación por API key con límites de tasa</li>
+        </ul>
+
+        <h2>Ejemplos de Personalización</h2>
+
+        <h3>Widget en la esquina inferior izquierda con colores personalizados:</h3>
+        <div class="code-block">
+window.ChatWidget.init({
+  apiKey: 'TU_API_KEY',
+  position: 'bottom-left',
+  primaryColor: '#10B981', // Verde
+  secondaryColor: '#ECFDF5' // Verde claro
+});
+        </div>
+
+        <h3>Widget en la esquina superior derecha:</h3>
+        <div class="code-block">
+window.ChatWidget.init({
+  apiKey: 'TU_API_KEY',
+  position: 'top-right',
+  primaryColor: '#8B5CF6', // Púrpura
+  secondaryColor: '#F3F4F6' // Gris claro
+});
+        </div>
+
+        <h2>Solución de Problemas</h2>
+
+        <h3>El widget no aparece</h3>
+        <ul>
+            <li>Verifica que la API key sea correcta y esté activa</li>
+            <li>Asegúrate de que el script se cargue después del contenido de la página</li>
+            <li>Revisa la consola del navegador en busca de errores</li>
+        </ul>
+
+        <h3>El widget no responde</h3>
+        <ul>
+            <li>Verifica la conexión a internet</li>
+            <li>Comprueba que la URL base sea correcta</li>
+            <li>Revisa si has excedido el límite de tasa de la API</li>
+        </ul>
+
+        <h3>Problemas de estilo</h3>
+        <ul>
+            <li>El widget usa z-index alto (9999) para aparecer sobre otros elementos</li>
+            <li>Si hay conflictos de CSS, ajusta los colores usando los parámetros</li>
+            <li>El widget es responsive y se adapta automáticamente al tamaño de pantalla</li>
+        </ul>
+
+        <h2>Consideraciones de Seguridad</h2>
+        <ul>
+            <li>La API key debe mantenerse confidencial</li>
+            <li>No incluyas la API key directamente en el código HTML público</li>
+            <li>Usa variables de entorno o configuración del servidor para la API key</li>
+            <li>El widget incluye límites de tasa para prevenir abuso</li>
+        </ul>
+
+        <h2>Soporte</h2>
+        <p>Para soporte técnico o preguntas sobre la integración, contacta con nuestro equipo de desarrollo.</p>
+
+        <p><em>Última actualización: Diciembre 2024</em></p>
+    </div>
+
+    <!-- Ejemplo del widget (deshabilitado en esta página de documentación) -->
+    <!-- <script src="https://tu-dominio.com/widget.js" data-api-key="TU_API_KEY_AQUI"></script> -->
+</body>
+</html>

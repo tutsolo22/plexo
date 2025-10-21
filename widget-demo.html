@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo - Widget de Chat</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 3rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+
+        .demo-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .code-block {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .highlight {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .steps {
+            counter-reset: step-counter;
+        }
+
+        .step {
+            counter-increment: step-counter;
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border-left: 4px solid #3B82F6;
+        }
+
+        .step::before {
+            content: counter(step-counter);
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background: #3B82F6;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            margin-right: 15px;
+            font-weight: bold;
+        }
+
+        .warning {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .warning::before {
+            content: "⚠️";
+            margin-right: 10px;
+        }
+
+        .success {
+            background: rgba(40, 167, 69, 0.1);
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .success::before {
+            content: "✅";
+            margin-right: 10px;
+        }
+
+        .config-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .option {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .option h4 {
+            margin: 0 0 10px 0;
+            color: #3B82F6;
+        }
+
+        .option p {
+            margin: 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .test-button {
+            background: #3B82F6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 10px 10px 0;
+            transition: background 0.3s;
+        }
+
+        .test-button:hover {
+            background: #2563EB;
+        }
+
+        .test-button.secondary {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .test-button.secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Widget de Chat - Demo</h1>
+        <p class="subtitle">Integración fácil del chatbot inteligente en cualquier sitio web</p>
+
+        <div class="demo-section">
+            <h2>🚀 Instalación Rápida</h2>
+
+            <div class="steps">
+                <div class="step">
+                    <strong>Obtén tu API Key</strong><br>
+                    Accede al panel de administración en <code>/admin/widget</code> y crea una nueva clave API.
+                </div>
+
+                <div class="step">
+                    <strong>Copia este código</strong><br>
+                    Agrega este script antes del cierre de <code>&lt;/body&gt;</code> en tu sitio web:
+                </div>
+            </div>
+
+            <div class="code-block">
+&lt;script src="http://localhost:3200/widget.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  ChatWidget.init({
+    apiKey: '<span class="highlight">tu_api_key_aqui</span>',
+    baseUrl: 'http://localhost:3200',
+    position: 'bottom-right',
+    primaryColor: '#3B82F6'
+  });
+&lt;/script&gt;
+            </div>
+
+            <div class="warning">
+                <strong>Importante:</strong> Reemplaza <code>tu_api_key_aqui</code> con tu clave API real y ajusta la URL base según tu entorno de producción.
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>⚙️ Opciones de Configuración</h2>
+
+            <div class="config-options">
+                <div class="option">
+                    <h4>📍 Posición</h4>
+                    <p>Controla dónde aparece el widget en la pantalla</p>
+                    <code>position: 'bottom-right'</code>
+                </div>
+
+                <div class="option">
+                    <h4>🎨 Colores</h4>
+                    <p>Personaliza los colores para que coincidan con tu marca</p>
+                    <code>primaryColor: '#3B82F6'</code>
+                </div>
+
+                <div class="option">
+                    <h4>🌐 Idioma</h4>
+                    <p>Soporte multiidioma</p>
+                    <code>language: 'es'</code>
+                </div>
+
+                <div class="option">
+                    <h4>📏 Tamaño</h4>
+                    <p>Ajusta el tamaño del widget</p>
+                    <code>size: 'normal'</code>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>🧪 Pruebas del Widget</h2>
+
+            <p>Para probar el widget en esta página, necesitarías:</p>
+
+            <ol>
+                <li>Una API Key válida del sistema</li>
+                <li>El servidor corriendo en <code>localhost:3200</code></li>
+                <li>Configuración del widget en el panel admin</li>
+            </ol>
+
+            <div class="success">
+                <strong>¿Ya tienes todo configurado?</strong><br>
+                El widget debería aparecer automáticamente en la esquina inferior derecha de esta página si has agregado el código correcto.
+            </div>
+
+            <button class="test-button" onclick="testWidget()">Probar Widget</button>
+            <button class="test-button secondary" onclick="openAdminPanel()">Ir al Panel Admin</button>
+        </div>
+
+        <div class="demo-section">
+            <h2>📊 Funcionalidades del Chatbot</h2>
+
+            <p>El widget incluye un chatbot inteligente que puede:</p>
+
+            <ul>
+                <li>✅ Responder preguntas sobre servicios y horarios</li>
+                <li>✅ Ayudar con reservas y cotizaciones</li>
+                <li>✅ Proporcionar información de contacto</li>
+                <li>✅ Escalar conversaciones a atención humana</li>
+                <li>✅ Recordar conversaciones anteriores</li>
+            </ul>
+
+            <h3>Comandos Disponibles:</h3>
+            <ul>
+                <li><code>ayuda</code> - Muestra comandos disponibles</li>
+                <li><code>horarios</code> - Información de atención</li>
+                <li><code>servicios</code> - Lista de servicios</li>
+                <li><code>contacto</code> - Información de contacto</li>
+                <li><code>reservar</code> - Iniciar proceso de reserva</li>
+            </ul>
+        </div>
+
+        <div class="demo-section">
+            <h2>🔧 Solución de Problemas</h2>
+
+            <h3>Widget no aparece:</h3>
+            <ul>
+                <li>Verifica que la API Key sea correcta</li>
+                <li>Confirma que el servidor esté corriendo</li>
+                <li>Revisa la consola del navegador por errores</li>
+            </ul>
+
+            <h3>Errores comunes:</h3>
+            <ul>
+                <li><code>API Key inválida</code> - Verifica en el panel admin</li>
+                <li><code>CORS error</code> - Configura CORS en el servidor</li>
+                <li><code>Widget ya inicializado</code> - Solo inicializa una vez</li>
+            </ul>
+        </div>
+
+        <div class="demo-section">
+            <h2>📚 Recursos Adicionales</h2>
+
+            <ul>
+                <li><strong>Documentación completa:</strong> <code>WIDGET_README.md</code></li>
+                <li><strong>Panel de administración:</strong> <code>/admin/widget</code></li>
+                <li><strong>API Documentation:</strong> <code>/api/widget/*</code></li>
+                <li><strong>Analytics:</strong> Métricas en tiempo real</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Widget Script (deshabilitado por defecto - requiere configuración) -->
+    <!--
+    <script src="http://localhost:3200/widget.js"></script>
+    <script>
+      ChatWidget.init({
+        apiKey: 'tu_api_key_aqui',
+        baseUrl: 'http://localhost:3200',
+        position: 'bottom-right',
+        primaryColor: '#3B82F6'
+      });
+    </script>
+    -->
+
+    <script>
+        function testWidget() {
+            if (window.ChatWidget) {
+                alert('✅ Widget detectado y funcionando correctamente');
+            } else {
+                alert('❌ Widget no detectado. Agrega el script del widget primero.');
+            }
+        }
+
+        function openAdminPanel() {
+            window.open('/admin/widget', '_blank');
+        }
+
+        // Detectar si el widget está presente
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                if (window.ChatWidget) {
+                    console.log('🎯 Widget de Chat detectado y listo');
+                } else {
+                    console.log('ℹ️ Widget no detectado - Agrega el script para activarlo');
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
