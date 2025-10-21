@@ -59,6 +59,23 @@ export async function GET(request: NextRequest) {
     const totalRevenue = events.reduce((sum, event) => sum + Number(event.quote?.total || 0), 0)
     const averageEventValue = events.length > 0 ? totalRevenue / events.length : 0
 
+    // Calcular costos asociados a estos eventos
+    const eventIds = events.map(e => e.id)
+    const eventCosts = await prisma.packageItem.aggregate({
+      where: {
+        package: {
+          quote: {
+            eventId: { in: eventIds }
+          }
+        }
+      },
+      _sum: { totalPrice: true }
+    })
+
+    const totalCosts = Number(eventCosts._sum.totalPrice || 0)
+    const grossProfit = totalRevenue - totalCosts
+    const profitMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0
+
     // Comparar con período anterior
     const previousStartDate = new Date(startDate)
     previousStartDate.setDate(previousStartDate.getDate() - period)
@@ -93,7 +110,11 @@ export async function GET(request: NextRequest) {
         revenueData,
         summary: {
           totalRevenue,
+          totalCosts,
+          grossProfit,
+          profitMargin,
           averageEventValue: Math.round(averageEventValue * 100) / 100,
+          averageCostPerEvent: events.length > 0 ? totalCosts / events.length : 0,
           totalEvents: events.length,
           revenueGrowth: Math.round(revenueGrowth * 100) / 100,
           period: {

@@ -776,29 +776,39 @@ RESPONDE EN FORMATO JSON:
   }
 
   /**
-   * Marca una conversación como cerrada
+   * Procesa un mensaje desde el widget del sitio web
    */
-  async closeConversation(conversationId: string, reason = 'completed'): Promise<void> {
+  async processWidgetMessage(context: {
+    phone: string;
+    tenantId: string;
+    message: string;
+    conversationId: string;
+  }): Promise<{ message: string; shouldEscalate: boolean }> {
     try {
-      const parts = conversationId.split('_');
-      const phone = parts[1];
-      const tenantId = parts[2];
+      // Crear mensaje simulado de WhatsApp
+      const widgetMessage: WhatsAppMessage = {
+        id: `widget_${Date.now()}`,
+        from: context.phone,
+        to: 'widget_assistant',
+        body: context.message,
+        timestamp: new Date(),
+        type: 'text',
+      };
 
-      if (!phone || !tenantId) {
-        console.error('Invalid conversationId format:', conversationId);
-        return;
-      }
+      // Procesar como mensaje normal de WhatsApp
+      const response = await this.processIncomingMessage(widgetMessage, context.tenantId);
 
-      await prisma.botMessage.create({
-        data: {
-          tenantId,
-          phone,
-          direction: 'out',
-          text: `[SYSTEM] Conversation closed: ${reason}`,
-        },
-      });
+      return {
+        message: response.message,
+        shouldEscalate: response.shouldEscalate,
+      };
+
     } catch (error) {
-      console.error('Error cerrando conversación:', error);
+      console.error('Error procesando mensaje del widget:', error);
+      return {
+        message: 'Lo siento, hubo un error procesando tu mensaje. Por favor, intenta de nuevo.',
+        shouldEscalate: false,
+      };
     }
   }
 }

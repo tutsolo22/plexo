@@ -11,7 +11,6 @@ import {
   Filter,
   Users,
   DollarSign,
-  ClipboardList,
   FileText,
 } from 'lucide-react';
 
@@ -161,15 +160,26 @@ export default function ReportsPage() {
         <Card>
           <CardContent className='p-6'>
             <div className='flex items-center'>
-              <BarChart3 className='text-plexo-volt h-8 w-8' />
+              <DollarSign className='h-8 w-8 text-red-600' />
               <div className='ml-4'>
-                <p className='text-sm font-medium text-gray-600 dark:text-gray-300'>
-                  Promedio/Evento
+                <p className='text-sm font-medium text-gray-600 dark:text-gray-300'>Costos Totales</p>
+                <p className='text-2xl font-bold'>{formatCurrency(45000)}</p>
+                <p className='text-xs text-red-600'>Este mes</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className='p-6'>
+            <div className='flex items-center'>
+              <TrendingUp className='h-8 w-8 text-purple-600' />
+              <div className='ml-4'>
+                <p className='text-sm font-medium text-gray-600 dark:text-gray-300'>Ganancia Neta</p>
+                <p className='text-2xl font-bold'>{formatCurrency(795000)}</p>
+                <p className='mt-1 flex items-center text-xs text-green-600'>
+                  <TrendingUp className='mr-1 h-3 w-3' />+15.2%
                 </p>
-                <p className='text-2xl font-bold'>
-                  {formatCurrency(reportData.revenue / reportData.events)}
-                </p>
-                <p className='text-xs text-gray-500'>Por evento</p>
               </div>
             </div>
           </CardContent>
@@ -255,56 +265,154 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
 
-        {/* Reportes Disponibles */}
+        {/* Costos Operativos */}
         <Card>
           <CardHeader>
-            <CardTitle>Generar Reportes</CardTitle>
-            <CardDescription>Exporta reportes detallados en diferentes formatos</CardDescription>
+            <CardTitle>Costos Operativos</CardTitle>
+            <CardDescription>Gastos operativos mensuales</CardDescription>
           </CardHeader>
-          <CardContent className='space-y-3'>
-            <Button
-              variant='outline'
-              className='w-full justify-start'
-              onClick={() => generateReport('ventas')}
-            >
-              <FileText className='mr-2 h-4 w-4' />
-              Reporte de Ventas
-            </Button>
-            <Button
-              variant='outline'
-              className='w-full justify-start'
-              onClick={() => generateReport('clientes')}
-            >
-              <Users className='mr-2 h-4 w-4' />
-              Reporte de Clientes
-            </Button>
-            <Button
-              variant='outline'
-              className='w-full justify-start'
-              onClick={() => generateReport('eventos')}
-            >
-              <Calendar className='mr-2 h-4 w-4' />
-              Reporte de Eventos
-            </Button>
-            <Button
-              variant='outline'
-              className='w-full justify-start'
-              onClick={() => generateReport('cotizaciones')}
-            >
-              <ClipboardList className='mr-2 h-4 w-4' />
-              Reporte de Cotizaciones
-            </Button>
-            <Button
-              variant='outline'
-              className='w-full justify-start'
-              onClick={() => generateReport('financiero')}
-            >
-              <DollarSign className='mr-2 h-4 w-4' />
-              Reporte Financiero
-            </Button>
+          <CardContent>
+            <div className='space-y-4'>
+              {[
+                { category: 'Alquiler', amount: 15000, percentage: 33 },
+                { category: 'Servicios', amount: 12000, percentage: 27 },
+                { category: 'Salarios', amount: 10000, percentage: 22 },
+                { category: 'Marketing', amount: 5000, percentage: 11 },
+                { category: 'Otros', amount: 3000, percentage: 7 }
+              ].map(cost => (
+                <div key={cost.category} className='flex items-center justify-between'>
+                  <div className='flex items-center space-x-3'>
+                    <div className='bg-red-100 dark:bg-red-900/20 h-3 w-3 rounded-full'></div>
+                    <span className='font-medium'>{cost.category}</span>
+                  </div>
+                  <div className='text-right'>
+                    <p className='font-medium'>{formatCurrency(cost.amount)}</p>
+                    <p className='text-sm text-gray-500'>{cost.percentage}%</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Proveedores */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Proveedores</CardTitle>
+            <CardDescription>Proveedores por volumen de costos</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className='space-y-4'>
+              {[
+                { name: 'Catering Elite', cost: 25000, events: 8 },
+                { name: 'Decoraciones Premium', cost: 18000, events: 12 },
+                { name: 'Música & Entretenimiento', cost: 15000, events: 6 },
+                { name: 'Fotografía Profesional', cost: 12000, events: 10 },
+                { name: 'Transporte VIP', cost: 8000, events: 5 }
+              ].map(supplier => (
+                <div key={supplier.name} className='flex items-center justify-between'>
+                  <div className='flex items-center space-x-3'>
+                    <div className='flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/20'>
+                      <span className='text-sm font-medium'>{supplier.name.charAt(0)}</span>
+                    </div>
+                    <div>
+                      <p className='font-medium'>{supplier.name}</p>
+                      <p className='text-sm text-gray-500'>{supplier.events} eventos</p>
+                    </div>
+                  </div>
+                  <p className='font-medium'>{formatCurrency(supplier.cost)}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Rentabilidad */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Análisis de Rentabilidad</CardTitle>
+            <CardDescription>Márgenes de ganancia por tipo de evento</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className='space-y-4'>
+              {[
+                { type: 'Bodas', revenue: 65000, costs: 28000, margin: 57 },
+                { type: 'Corporativos', revenue: 35000, costs: 12000, margin: 66 },
+                { type: 'Cumpleaños', revenue: 15000, costs: 6000, margin: 60 },
+                { type: 'Otros', revenue: 10000, costs: 4000, margin: 60 }
+              ].map(item => (
+                <div key={item.type} className='space-y-2'>
+                  <div className='flex justify-between'>
+                    <span className='font-medium'>{item.type}</span>
+                    <span className='text-sm text-gray-500'>
+                      {formatCurrency(item.revenue)} - {formatCurrency(item.costs)}
+                    </span>
+                  </div>
+                  <div className='flex items-center space-x-2'>
+                    <div className='h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700'>
+                      <div
+                        className='bg-green-500 h-2 rounded-full'
+                        style={{ width: `${item.margin}%` }}
+                      ></div>
+                    </div>
+                    <span className='text-sm font-medium text-green-600'>{item.margin}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Reportes Disponibles */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Generar Reportes</CardTitle>
+          <CardDescription>Exporta reportes detallados en diferentes formatos</CardDescription>
+        </CardHeader>
+        <CardContent className='space-y-3'>
+          <Button
+            variant='outline'
+            className='w-full justify-start'
+            onClick={() => generateReport('ventas')}
+          >
+            <FileText className='mr-2 h-4 w-4' />
+            Reporte de Ventas
+          </Button>
+          <Button
+            variant='outline'
+            className='w-full justify-start'
+            onClick={() => generateReport('costos')}
+          >
+            <DollarSign className='mr-2 h-4 w-4' />
+            Reporte de Costos
+          </Button>
+          <Button
+            variant='outline'
+            className='w-full justify-start'
+            onClick={() => generateReport('proveedores')}
+          >
+            <Users className='mr-2 h-4 w-4' />
+            Reporte de Proveedores
+          </Button>
+          <Button
+            variant='outline'
+            className='w-full justify-start'
+            onClick={() => generateReport('rentabilidad')}
+          >
+            <TrendingUp className='mr-2 h-4 w-4' />
+            Reporte de Rentabilidad
+          </Button>
+          <Button
+            variant='outline'
+            className='w-full justify-start'
+            onClick={() => generateReport('financiero')}
+          >
+            <BarChart3 className='mr-2 h-4 w-4' />
+            Reporte Financiero Completo
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Análisis de Tendencias */}
       <Card>

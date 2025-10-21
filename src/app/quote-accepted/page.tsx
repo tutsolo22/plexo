@@ -1,16 +1,16 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { Suspense, useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { 
-  CheckCircle, 
-  Calendar, 
-  MapPin, 
-  Phone, 
-  Mail, 
+import {
+  CheckCircle,
+  Calendar,
+  MapPin,
+  Phone,
+  Mail,
   FileText,
   Heart,
   Star,
@@ -41,11 +41,11 @@ interface QuoteData {
   }
 }
 
-export default function QuoteAcceptedPage() {
+function QuoteAcceptedContent() {
   const searchParams = useSearchParams()
   const quoteId = searchParams.get('quote')
   const token = searchParams.get('token')
-  
+
   const [quoteData, setQuoteData] = useState<QuoteData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -127,7 +127,7 @@ export default function QuoteAcceptedPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-100">
       <div className="container mx-auto px-4 py-8">
-        
+
         {/* Header de Agradecimiento */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
@@ -146,7 +146,7 @@ export default function QuoteAcceptedPage() {
         </div>
 
         <div className="max-w-4xl mx-auto space-y-6">
-          
+
           {/* Información del Evento */}
           <Card className="border-green-200 bg-white/80 backdrop-blur-sm">
             <CardHeader>
@@ -213,7 +213,7 @@ export default function QuoteAcceptedPage() {
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start gap-3">
                     <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                       <span className="text-blue-600 font-semibold">2</span>
@@ -225,7 +225,7 @@ export default function QuoteAcceptedPage() {
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start gap-3">
                     <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                       <span className="text-blue-600 font-semibold">3</span>
@@ -238,7 +238,7 @@ export default function QuoteAcceptedPage() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-gradient-to-br from-yellow-50 to-amber-50 p-6 rounded-lg border border-amber-200">
                   <div className="flex items-center gap-2 mb-3">
                     <Star className="h-5 w-5 text-amber-500" />
@@ -285,7 +285,7 @@ export default function QuoteAcceptedPage() {
                     )}
                   </div>
                 </div>
-                
+
                 <div>
                   <h4 className="font-semibold text-gray-900 mb-3">Nuestros Datos</h4>
                   <div className="space-y-2 text-gray-600">
@@ -318,7 +318,7 @@ export default function QuoteAcceptedPage() {
                 ¡Gracias por Confiar en Nosotros!
               </h3>
               <p className="text-gray-600 mb-4">
-                Estamos emocionados de ser parte de tu evento especial y nos comprometemos 
+                Estamos emocionados de ser parte de tu evento especial y nos comprometemos
                 a hacer que sea una experiencia inolvidable.
               </p>
               <div className="flex justify-center gap-2">
@@ -331,5 +331,13 @@ export default function QuoteAcceptedPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function QuoteAcceptedPage() {
+  return (
+    <Suspense fallback={<div>Cargando...</div>}>
+      <QuoteAcceptedContent />
+    </Suspense>
   )
 }

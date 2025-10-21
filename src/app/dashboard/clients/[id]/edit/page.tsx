@@ -25,6 +25,7 @@ interface Client {
   email: string;
   phone?: string;
   address?: string;
+  company?: string;
   type: 'GENERAL' | 'COLABORADOR' | 'EXTERNO';
   isActive: boolean;
   eventCounter: number;
@@ -43,6 +44,7 @@ interface ClientFormData {
   email: string;
   phone: string;
   address: string;
+  company: string;
   notes: string;
   type: 'GENERAL' | 'COLABORADOR' | 'EXTERNO';
   isActive: boolean;
@@ -60,6 +62,7 @@ export default function EditClientPage() {
     email: '',
     phone: '',
     address: '',
+    company: '',
     notes: '',
     type: 'GENERAL',
     isActive: true,
@@ -94,6 +97,7 @@ export default function EditClientPage() {
         email: clientData.email || '',
         phone: clientData.phone || '',
         address: clientData.address || '',
+        company: clientData.company || '',
         notes: clientData.notes || '',
         type: clientData.type || 'GENERAL',
         isActive: clientData.isActive ?? true,
@@ -161,6 +165,7 @@ export default function EditClientPage() {
           email: formData.email.trim().toLowerCase(),
           phone: formData.phone.trim() || null,
           address: formData.address.trim() || null,
+          company: formData.company.trim() || null,
           notes: formData.notes.trim() || null,
           type: formData.type,
           isActive: formData.isActive,
@@ -290,6 +295,18 @@ export default function EditClientPage() {
                   onChange={e => handleInputChange('name', e.target.value)}
                   placeholder='Nombre completo del cliente'
                   required
+                />
+              </div>
+
+              {/* Company */}
+              <div className='space-y-2'>
+                <Label htmlFor='company'>Empresa</Label>
+                <Input
+                  id='company'
+                  type='text'
+                  value={formData.company}
+                  onChange={e => handleInputChange('company', e.target.value)}
+                  placeholder='Nombre de la empresa'
                 />
               </div>
 

@@ -4,11 +4,15 @@ const nextConfig = {
     serverComponentsExternalPackages: ['@prisma/client'],
   },
   eslint: {
-    // Solo durante el build de producción, ignorar warnings
+    // Warning: This allows production builds to successfully complete even if
+    // your project has ESLint errors.
     ignoreDuringBuilds: false,
   },
   typescript: {
-    // Solo durante el build de producción, ignorar errores de TypeScript no críticos
+    // !! WARN !!
+    // Dangerously allow production builds to successfully complete even if
+    // your project has type errors.
+    // !! WARN !!
     ignoreBuildErrors: false,
   },
   images: {

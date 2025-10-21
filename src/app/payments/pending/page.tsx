@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Clock, Loader2, ArrowRight } from 'lucide-react'
 import { PaymentStatus } from '@/components/payments'
 
-export default function PaymentPendingPage() {
+function PaymentPendingContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [paymentId, setPaymentId] = useState<string | null>(null)
@@ -166,13 +166,21 @@ export default function PaymentPendingPage() {
         <Card className="border-orange-200 bg-orange-50">
           <CardContent className="p-4">
             <p className="text-sm text-orange-800">
-              <strong>Importante:</strong> Si realizaste un pago en efectivo o transferencia, 
-              el procesamiento puede tomar más tiempo. Recibirás una notificación por email 
+              <strong>Importante:</strong> Si realizaste un pago en efectivo o transferencia,
+              el procesamiento puede tomar más tiempo. Recibirás una notificación por email
               cuando tu pago sea confirmado.
             </p>
           </CardContent>
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function PaymentPendingPage() {
+  return (
+    <Suspense fallback={<div>Cargando...</div>}>
+      <PaymentPendingContent />
+    </Suspense>
   )
 }

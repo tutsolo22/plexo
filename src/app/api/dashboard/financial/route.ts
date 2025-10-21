@@ -200,7 +200,18 @@ export async function GET(request: NextRequest) {
     const avgCostPerEvent = totalEvents > 0 ? totalCosts / totalEvents : 0
 
     // Procesar tendencias mensuales
-    const monthlyData = monthlyTrends.reduce((acc: any[], event) => {
+    interface MonthlyDataItem {
+      month: string;
+      revenue: number;
+      events: number;
+      operationalCosts?: number;
+      supplierCosts?: number;
+      totalCosts?: number;
+      grossProfit?: number;
+      profitMargin?: number;
+    }
+
+    const monthlyData = monthlyTrends.reduce((acc: MonthlyDataItem[], event) => {
       const month = event.startDate.toISOString().substring(0, 7)
       const revenue = Number(event.quote?.total || 0)
 
@@ -217,13 +228,13 @@ export async function GET(request: NextRequest) {
       }
 
       return acc
-    }, [])
+    }, [] as MonthlyDataItem[])
 
     // Calcular métricas mensuales
     const monthlyOperationalCost = totalOperationalCosts / Math.max(period, 1)
     const monthlySupplierCost = totalSupplierCosts / Math.max(period, 1)
 
-    monthlyData.forEach(month => {
+    monthlyData.forEach((month: MonthlyDataItem) => {
       month.operationalCosts = monthlyOperationalCost
       month.supplierCosts = monthlySupplierCost
       month.totalCosts = month.operationalCosts + month.supplierCosts
@@ -257,19 +268,19 @@ export async function GET(request: NextRequest) {
       },
 
       breakdown: {
-        revenueByStatus: revenueByStatus.map(status => ({
+        revenueByStatus: revenueByStatus.map((status: { status: string; _sum: { total: any }; _count: number }) => ({
           status: status.status,
           amount: Number(status._sum.total || 0),
           count: status._count
         })),
 
-        costsByCategory: expenseCategories.map(cat => ({
+        costsByCategory: expenseCategories.map((cat: { category: string; _sum: { amount: any }; _count: number }) => ({
           category: cat.category,
           amount: Number(cat._sum.amount || 0),
           count: cat._count
         })),
 
-        eventsByStatus: eventsByStatus.map(status => ({
+        eventsByStatus: eventsByStatus.map((status: { status: string; _count: number }) => ({
           status: status.status,
           count: status._count
         }))
