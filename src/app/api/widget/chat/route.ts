@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { headers } from 'next/headers';
-import { whatsappAgentService } from '@/lib/ai/whatsapp-agent';
 
 // Función para validar API key
 async function validateApiKey(apiKey: string) {
@@ -69,9 +67,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
+      // Cargar prisma en tiempo de ejecución
+      const prismaMod = await import('@/lib/prisma');
+      const { prisma } = prismaMod;
+
     const widgetApiKey = await validateApiKey(apiKey);
 
-    const conversation = await prisma.widgetConversation.findFirst({
+  const conversation = await prisma.widgetConversation.findFirst({
       where: {
         widgetApiKeyId: widgetApiKey.id,
         sessionId: sessionId,
@@ -140,7 +142,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const widgetApiKey = await validateApiKey(apiKey);
+  // Cargar prisma en tiempo de ejecución
+  const prismaMod2 = await import('@/lib/prisma');
+  const { prisma } = prismaMod2;
+
+  const widgetApiKey = await validateApiKey(apiKey);
 
     // Obtener o crear conversación
     const conversation = await getOrCreateConversation(
@@ -169,8 +175,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Procesar mensaje con el agente de WhatsApp
-    let botResponse = 'Gracias por tu mensaje. Un agente te contactará pronto.';
+  // Procesar mensaje con el agente de WhatsApp
+  let botResponse = 'Gracias por tu mensaje. Un agente te contactará pronto.';
 
     try {
       // Crear contexto para el agente
@@ -181,9 +187,11 @@ export async function POST(request: NextRequest) {
         conversationId: conversation.id,
       };
 
-      // Obtener respuesta del agente
-      const agentResponse = await whatsappAgentService.processWidgetMessage(context);
-      botResponse = agentResponse.message;
+  // Obtener respuesta del agente (import dinámico del servicio)
+  const waMod = await import('@/lib/ai/whatsapp-agent');
+  const { whatsappAgentService } = waMod;
+  const agentResponse = await whatsappAgentService.processWidgetMessage(context);
+  botResponse = agentResponse.message;
 
     } catch (agentError) {
       console.error('Error procesando mensaje con agente:', agentError);

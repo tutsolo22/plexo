@@ -68,8 +68,10 @@ async function testAgentsHandler(req: NextRequest) {
 
     const startTime = Date.now();
 
-    // Procesar con el coordinador de agentes
-    const response = await agentCoordinator.processMessage(testMessage, tenantId);
+  // Procesar con el coordinador de agentes (import dinámico)
+  const coordMod = await import('@/lib/ai/agent-coordinator');
+  const { agentCoordinator } = coordMod;
+  const response = await agentCoordinator.processMessage(testMessage, tenantId);
 
     const endTime = Date.now();
     const totalTime = endTime - startTime;

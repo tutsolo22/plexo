@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
-import { vectorSearchService } from '@/lib/ai/vector-search';
-import { prisma } from '@/lib/prisma';
+// Lazily import prisma and vectorSearchService inside handlers to avoid
+// initializing the Prisma client during Next's build-time data collection.
 import { withAuth } from '@/lib/api/middleware/auth';
 import { withErrorHandling } from '@/lib/api/middleware/error-handling';
 import { ApiResponses } from '@/lib/api/responses';
@@ -16,7 +16,11 @@ export const POST = withErrorHandling(
         switch (action) {
           case 'full':
             // Re-indexación completa
-            await vectorSearchService.reindexAll();
+            {
+              const vsMod = await import('@/lib/ai/vector-search');
+              const vectorSearchService = vsMod.vectorSearchService;
+              await vectorSearchService.reindexAll();
+            }
             return ApiResponses.success({
               message: 'Re-indexación completa iniciada',
               action: 'reindex_all',
@@ -25,9 +29,14 @@ export const POST = withErrorHandling(
 
           case 'events':
             // Re-indexar solo eventos
-            const events = await prisma.event.findMany({ select: { id: true } });
-            for (const event of events) {
-              await vectorSearchService.indexEvent(event.id);
+            {
+              const { prisma } = await import('@/lib/prisma');
+              const vsMod = await import('@/lib/ai/vector-search');
+              const vectorSearchService = vsMod.vectorSearchService;
+              const events = await prisma.event.findMany({ select: { id: true } });
+              for (const event of events) {
+                await vectorSearchService.indexEvent(event.id);
+              }
             }
             return ApiResponses.success({
               message: `${events.length} eventos re-indexados`,
@@ -37,9 +46,14 @@ export const POST = withErrorHandling(
 
           case 'clients':
             // Re-indexar solo clientes
-            const clients = await prisma.client.findMany({ select: { id: true } });
-            for (const client of clients) {
-              await vectorSearchService.indexClient(client.id);
+            {
+              const { prisma } = await import('@/lib/prisma');
+              const vsMod = await import('@/lib/ai/vector-search');
+              const vectorSearchService = vsMod.vectorSearchService;
+              const clients = await prisma.client.findMany({ select: { id: true } });
+              for (const client of clients) {
+                await vectorSearchService.indexClient(client.id);
+              }
             }
             return ApiResponses.success({
               message: `${clients.length} clientes re-indexados`,
@@ -49,9 +63,14 @@ export const POST = withErrorHandling(
 
           case 'venues':
             // Re-indexar solo venues
-            const venues = await prisma.venue.findMany({ select: { id: true } });
-            for (const venue of venues) {
-              await vectorSearchService.indexVenue(venue.id);
+            {
+              const { prisma } = await import('@/lib/prisma');
+              const vsMod = await import('@/lib/ai/vector-search');
+              const vectorSearchService = vsMod.vectorSearchService;
+              const venues = await prisma.venue.findMany({ select: { id: true } });
+              for (const venue of venues) {
+                await vectorSearchService.indexVenue(venue.id);
+              }
             }
             return ApiResponses.success({
               message: `${venues.length} venues re-indexados`,
@@ -121,7 +140,7 @@ export const GET = withErrorHandling(
         // TODO: Implementar modelo de embeddings en Prisma schema
         // Obtener estadísticas de embeddings
         const totalEmbeddings = 0; // await prisma.contentEmbedding.count();
-        
+
         const embeddingsByType: any[] = []; /* await prisma.contentEmbedding.groupBy({
           by: ['entityType'],
           _count: {
@@ -135,6 +154,7 @@ export const GET = withErrorHandling(
         }, {} as Record<string, number>);
 
         // Obtener totales de entidades
+        const { prisma } = await import('@/lib/prisma');
         const [totalEvents, totalClients, totalVenues] = await Promise.all([
           prisma.event.count(),
           prisma.client.count(),

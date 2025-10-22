@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env['OPENAI_API_KEY'],
-});
-
 // Datos de ejemplo que ya tienes en la base de datos
 const SAMPLE_DATA = {
   events: [
@@ -95,26 +91,14 @@ const SAMPLE_DATA = {
   ]
 };
 
-const SYSTEM_PROMPT = `Eres un asistente AI especializado en gestión de eventos para "Casona María". Tu trabajo es ayudar con consultas sobre eventos, clientes, venues y cotizaciones.
-
-DATOS DISPONIBLES:
-${JSON.stringify(SAMPLE_DATA, null, 2)}
-
-INSTRUCCIONES:
-1. Responde siempre de manera profesional y útil
-2. Usa los datos reales disponibles cuando sea relevante
-3. Para búsquedas de eventos, filtra por tipo, fecha, cliente, etc.
-4. Para cotizaciones, calcula precios basados en venue, servicios y duración
-5. Para análisis de clientes, usa el historial y datos disponibles
-6. Formatea las respuestas de manera clara y profesional
-7. Incluye emojis para hacer las respuestas más atractivas
-8. Siempre ofrece ayuda adicional al final
-
-EJEMPLOS DE RESPUESTAS:
-- Para búsquedas: Lista los eventos relevantes con detalles
-- Para disponibilidad: Verifica fechas y da información del venue
-- Para cotizaciones: Calcula precios detallados con subtotales
-- Para clientes: Analiza historial y da recomendaciones`;
+// SYSTEM_PROMPT será construido en tiempo de ejecución para evitar work en build-time
+function buildSystemPrompt() {
+  return `Eres un asistente AI especializado en gestión de eventos para "Casona María". Tu trabajo es ayudar con consultas sobre eventos, clientes, venues y cotizaciones.\n\nDATOS DISPONIBLES:\n${JSON.stringify(
+    SAMPLE_DATA,
+    null,
+    2
+  )}\n\nINSTRUCCIONES:\n1. Responde siempre de manera profesional y útil\n2. Usa los datos reales disponibles cuando sea relevante\n3. Para búsquedas de eventos, filtra por tipo, fecha, cliente, etc.\n4. Para cotizaciones, calcula precios basados en venue, servicios y duración\n5. Para análisis de clientes, usa el historial y datos disponibles\n6. Formatea las respuestas de manera clara y profesional\n7. Incluye emojis para hacer las respuestas más atractivas\n8. Siempre ofrece ayuda adicional al final\n\nEJEMPLOS DE RESPUESTAS:\n- Para búsquedas: Lista los eventos relevantes con detalles\n- Para disponibilidad: Verifica fechas y da información del venue\n- Para cotizaciones: Calcula precios detallados con subtotales\n- Para clientes: Analiza historial y da recomendaciones`;
+  }
 
 function getRelevantData(message: string) {
   const msg = message.toLowerCase();
@@ -157,13 +141,16 @@ export async function POST(req: NextRequest) {
     // Obtener datos relevantes basados en el mensaje
     const relevantData = getRelevantData(message);
     
+    // Crear cliente OpenAI en tiempo de ejecución (evitar usar variables/creación en módulo)
+    const openai = new OpenAI({ apiKey: process.env['OPENAI_API_KEY'] });
+
     // Crear el prompt con datos contextuales
-    const contextualPrompt = `${SYSTEM_PROMPT}
-
-DATOS RELEVANTES PARA ESTA CONSULTA:
-${JSON.stringify(relevantData, null, 2)}
-
-CONSULTA DEL USUARIO: ${message}`;
+    const systemPrompt = buildSystemPrompt();
+    const contextualPrompt = `${systemPrompt}\n\nDATOS RELEVANTES PARA ESTA CONSULTA:\n${JSON.stringify(
+      relevantData,
+      null,
+      2
+    )}\n\nCONSULTA DEL USUARIO: ${message}`;
 
     // Llamar a OpenAI
     const response = await openai.chat.completions.create({
@@ -171,12 +158,12 @@ CONSULTA DEL USUARIO: ${message}`;
       messages: [
         {
           role: 'system',
-          content: contextualPrompt
+          content: contextualPrompt,
         },
         {
-          role: 'user', 
-          content: message
-        }
+          role: 'user',
+          content: message,
+        },
       ],
       temperature: 0.7,
       max_tokens: 1500,

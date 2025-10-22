@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { vectorSearchService } from '@/lib/ai/vector-search';
+// Use lazy imports to avoid initializing Prisma at module load time
 import { withAuth } from '@/lib/api/middleware/auth';
 import { withValidation } from '@/lib/api/middleware/validation';
 import { withErrorHandling } from '@/lib/api/middleware/error-handling';
@@ -21,7 +21,8 @@ async function searchHandler(req: NextRequest) {
     const { query, type, limit, threshold, includeMetadata } = searchRequestSchema.parse(body);
 
     // Realizar búsqueda semántica
-    const results = await vectorSearchService.searchSimilar(query, {
+    const vs = await import('@/lib/ai/vector-search');
+    const results = await vs.vectorSearchService.searchSimilar(query, {
       type,
       limit,
       threshold,
@@ -75,7 +76,8 @@ export const GET = withErrorHandling(
           return ApiResponses.badRequest('La consulta es demasiado larga');
         }
 
-        const results = await vectorSearchService.searchSimilar(query, {
+        const vs = await import('@/lib/ai/vector-search');
+        const results = await vs.vectorSearchService.searchSimilar(query, {
           type,
           limit: Math.min(limit, 50),
           threshold: Math.max(0, Math.min(threshold, 1)),

@@ -1,4 +1,5 @@
-import { prisma } from '@/lib/prisma';
+// Import prisma dynamically inside methods to avoid initializing the client
+// at module load time (which breaks Next build when client isn't generated).
 import { embeddingService, SearchResult } from './embeddings';
 
 export interface VectorSearchOptions {
@@ -23,7 +24,7 @@ export class VectorSearchService {
   async storeEmbedding(options: StoreEmbeddingOptions): Promise<void> {
     try {
       const { embedding } = await embeddingService.generateEmbedding(options.content);
-
+      const { prisma } = await import('@/lib/prisma');
       await prisma.contentEmbedding.upsert({
         where: { id: options.id },
         update: {
@@ -75,7 +76,8 @@ export class VectorSearchService {
         LIMIT $2
       `;
 
-      const results = (await prisma.$queryRawUnsafe(sql, ...params)) as any[];
+  const { prisma } = await import('@/lib/prisma');
+  const results = (await prisma.$queryRawUnsafe(sql, ...params)) as any[];
 
       // Filtrar por threshold y formatear resultados
       return results
@@ -99,6 +101,7 @@ export class VectorSearchService {
    */
   async indexEvent(eventId: string): Promise<void> {
     try {
+      const { prisma } = await import('@/lib/prisma');
       const event = await prisma.event.findUnique({
         where: { id: eventId },
         include: {
@@ -146,6 +149,7 @@ export class VectorSearchService {
    */
   async indexClient(clientId: string): Promise<void> {
     try {
+      const { prisma } = await import('@/lib/prisma');
       const client = await prisma.client.findUnique({
         where: { id: clientId },
         include: {
@@ -191,6 +195,7 @@ export class VectorSearchService {
    */
   async indexVenue(venueId: string): Promise<void> {
     try {
+      const { prisma } = await import('@/lib/prisma');
       const venue = await prisma.venue.findUnique({
         where: { id: venueId },
       });
@@ -231,6 +236,7 @@ export class VectorSearchService {
     try {
       // Iniciando re-indexación completa
 
+      const { prisma } = await import('@/lib/prisma');
       // Limpiar embeddings existentes
       await prisma.contentEmbedding.deleteMany();
 

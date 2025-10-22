@@ -18,6 +18,7 @@
     "producción"
   ],
   "scripts": {
+    "prebuild": "npm run db:generate",
     "build": "next build",
     "start": "next start",
     "db:generate": "prisma generate",
