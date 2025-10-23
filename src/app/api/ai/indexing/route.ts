@@ -37,12 +37,12 @@ export const POST = withErrorHandling(
               for (const event of events) {
                 await vectorSearchService.indexEvent(event.id);
               }
+              return ApiResponses.success({
+                message: `${events.length} eventos re-indexados`,
+                action: 'reindex_events',
+                count: events.length,
+              });
             }
-            return ApiResponses.success({
-              message: `${events.length} eventos re-indexados`,
-              action: 'reindex_events',
-              count: events.length,
-            });
 
           case 'clients':
             // Re-indexar solo clientes
@@ -54,12 +54,12 @@ export const POST = withErrorHandling(
               for (const client of clients) {
                 await vectorSearchService.indexClient(client.id);
               }
+              return ApiResponses.success({
+                message: `${clients.length} clientes re-indexados`,
+                action: 'reindex_clients',
+                count: clients.length,
+              });
             }
-            return ApiResponses.success({
-              message: `${clients.length} clientes re-indexados`,
-              action: 'reindex_clients',
-              count: clients.length,
-            });
 
           case 'venues':
             // Re-indexar solo venues
@@ -71,12 +71,12 @@ export const POST = withErrorHandling(
               for (const venue of venues) {
                 await vectorSearchService.indexVenue(venue.id);
               }
+              return ApiResponses.success({
+                message: `${venues.length} venues re-indexados`,
+                action: 'reindex_venues',
+                count: venues.length,
+              });
             }
-            return ApiResponses.success({
-              message: `${venues.length} venues re-indexados`,
-              action: 'reindex_venues',
-              count: venues.length,
-            });
 
           default:
             return ApiResponses.badRequest('Acción no válida. Use: full, events, clients, venues');
@@ -104,15 +104,24 @@ export const PUT = withErrorHandling(
         }
 
         switch (entityType) {
-          case 'event':
+          case 'event': {
+            const vsMod = await import('@/lib/ai/vector-search');
+            const vectorSearchService = vsMod.vectorSearchService;
             await vectorSearchService.indexEvent(entityId);
             break;
-          case 'client':
+          }
+          case 'client': {
+            const vsMod = await import('@/lib/ai/vector-search');
+            const vectorSearchService = vsMod.vectorSearchService;
             await vectorSearchService.indexClient(entityId);
             break;
-          case 'venue':
+          }
+          case 'venue': {
+            const vsMod = await import('@/lib/ai/vector-search');
+            const vectorSearchService = vsMod.vectorSearchService;
             await vectorSearchService.indexVenue(entityId);
             break;
+          }
           default:
             return ApiResponses.badRequest('Tipo de entidad no válido. Use: event, client, venue');
         }
