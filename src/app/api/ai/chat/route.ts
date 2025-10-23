@@ -151,8 +151,12 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
     const userId = searchParams.get('userId');
 
     if (conversationId) {
-      // Obtener conversación específica
-      const conversation = await conversationMemoryService.getConversation(conversationId);
+        // Cargar conversationMemoryService en tiempo de ejecución
+        const convMod = await import('@/lib/ai/conversation-memory');
+        const { conversationMemoryService } = convMod;
+
+        // Obtener conversación específica
+        const conversation = await conversationMemoryService.getConversation(conversationId);
 
       if (!conversation) {
         return ApiResponses.notFound('Conversación no encontrada');
@@ -161,7 +165,9 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
       return ApiResponses.success(conversation);
     } else if (userId) {
       // Obtener conversaciones del usuario
-      const conversations = await conversationMemoryService.getUserConversations(userId, 20);
+  const convMod = await import('@/lib/ai/conversation-memory');
+  const { conversationMemoryService } = convMod;
+  const conversations = await conversationMemoryService.getUserConversations(userId, 20);
       return ApiResponses.success(conversations);
     } else {
       return ApiResponses.badRequest('Se requiere conversationId o userId');
@@ -183,7 +189,9 @@ export const DELETE = withErrorHandling(async (req: NextRequest) => {
       return ApiResponses.badRequest('Se requiere conversationId');
     }
 
-    await conversationMemoryService.endConversation(conversationId, reason);
+  const convMod = await import('@/lib/ai/conversation-memory');
+  const { conversationMemoryService } = convMod;
+  await conversationMemoryService.endConversation(conversationId, reason);
 
     return ApiResponses.success({
       message: 'Conversación finalizada',

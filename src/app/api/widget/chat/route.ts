@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 
 // Función para validar API key
-async function validateApiKey(apiKey: string) {
+async function validateApiKey(prisma: any, apiKey: string) {
   const widgetApiKey = await prisma.widgetApiKey.findFirst({
     where: {
       apiKey: apiKey,
@@ -22,6 +22,7 @@ async function validateApiKey(apiKey: string) {
 
 // Función para obtener o crear conversación
 async function getOrCreateConversation(
+  prisma: any,
   widgetApiKeyId: string,
   sessionId: string,
   userData?: any
@@ -71,7 +72,7 @@ export async function GET(request: NextRequest) {
       const prismaMod = await import('@/lib/prisma');
       const { prisma } = prismaMod;
 
-    const widgetApiKey = await validateApiKey(apiKey);
+    const widgetApiKey = await validateApiKey(prisma, apiKey);
 
   const conversation = await prisma.widgetConversation.findFirst({
       where: {
@@ -146,10 +147,11 @@ export async function POST(request: NextRequest) {
   const prismaMod2 = await import('@/lib/prisma');
   const { prisma } = prismaMod2;
 
-  const widgetApiKey = await validateApiKey(apiKey);
+  const widgetApiKey = await validateApiKey(prisma, apiKey);
 
     // Obtener o crear conversación
     const conversation = await getOrCreateConversation(
+      prisma,
       widgetApiKey.id,
       sessionId,
       userData

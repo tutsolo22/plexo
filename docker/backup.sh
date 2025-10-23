@@ -45,8 +45,8 @@ log() {
 check_prerequisites() {
     print_message "Verificando prerrequisitos..."
 
-    if [ ! -f ".env.production" ]; then
-        print_error "Archivo .env.production no encontrado"
+    if [ ! -f ".env" ] && [ ! -f ".env.production" ]; then
+        print_error "Archivo .env o .env.production no encontrado"
         exit 1
     fi
 
@@ -70,9 +70,14 @@ perform_backup() {
     print_message "Iniciando backup de base de datos..."
     log "Iniciando backup"
 
-    # Obtener credenciales de .env.production
-    DB_USER=$(grep POSTGRES_USER .env.production | cut -d '=' -f2)
-    DB_NAME=$(grep POSTGRES_DB .env.production | cut -d '=' -f2)
+    # Obtener credenciales del archivo .env (o .env.production como fallback)
+    if [ -f ".env" ]; then
+        DB_USER=$(grep POSTGRES_USER .env | cut -d '=' -f2)
+        DB_NAME=$(grep POSTGRES_DB .env | cut -d '=' -f2)
+    else
+        DB_USER=$(grep POSTGRES_USER .env.production | cut -d '=' -f2)
+        DB_NAME=$(grep POSTGRES_DB .env.production | cut -d '=' -f2)
+    fi
 
     if [ -z "$DB_USER" ] || [ -z "$DB_NAME" ]; then
         print_error "No se pudieron obtener las credenciales de la base de datos"

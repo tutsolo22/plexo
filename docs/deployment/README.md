@@ -48,8 +48,8 @@ cd gestion-eventos
 
 ### 2. Configurar Variables de Entorno
 ```bash
-cp .env.production.example .env.production
-nano .env.production  # Editar con tus valores
+cp .env.example .env
+nano .env  # Editar con tus valores
 ```
 
 ### 3. Ejecutar Despliegue
@@ -62,7 +62,7 @@ chmod +x deploy.sh
 
 ### Variables de Entorno
 
-Copia `.env.production.example` a `.env.production` y configura:
+Copia `.env.example` a `.env` y configura (o usa `.env.production` para compatibilidad):
 
 #### Base de Datos
 ```env

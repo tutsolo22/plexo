@@ -111,15 +111,20 @@ main() {
     print_message "Servicio: $SERVICE_NAME"
     print_message "Región: $REGION"
 
-    # Cargar variables de entorno de producción
-    if [ -f ".env.production" ]; then
-        print_message "Cargando variables de entorno de producción..."
-        set -a
-        source .env.production
-        set +a
-    else
-        print_warning ".env.production no encontrado. Asegúrate de configurar las variables manualmente"
-    fi
+        # Prefer .env for Cloud Run deployments
+        if [ -f ".env" ]; then
+            print_message "Cargando variables de entorno desde .env..."
+            set -a
+            source .env
+            set +a
+        elif [ -f ".env.production" ]; then
+            print_message "Cargando variables de entorno de producción..."
+            set -a
+            source .env.production
+            set +a
+        else
+            print_warning ".env no encontrado. Asegúrate de configurar las variables manualmente"
+        fi
 
     check_prerequisites
     sync_dependencies

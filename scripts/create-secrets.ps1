@@ -11,7 +11,7 @@
 
 param(
   [Parameter(Mandatory=$true)] [string]$ProjectId,
-  [Parameter(Mandatory=$false)] [string]$EnvFile = ".env.production"
+  [Parameter(Mandatory=$false)] [string]$EnvFile = ".env"
 )
 
 function Check-Command($name) {

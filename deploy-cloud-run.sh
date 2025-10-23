@@ -148,13 +148,20 @@ main() {
     print_message "Región: $REGION"
 
     # Cargar variables de entorno de producción
-    if [ -f ".env.production" ]; then
-        print_message "Cargando variables de entorno de producción..."
-        set -a
-        source .env.production
-        set +a
-    else
-        print_warning ".env.production no encontrado. Asegúrate de configurar las variables manualmente"
+        # Prefer .env for Cloud Run deployments (Cloud Run sets env vars via the console).
+        if [ -f ".env" ]; then
+            print_message "Cargando variables de entorno desde .env..."
+            set -a
+            source .env
+            set +a
+        elif [ -f ".env.production" ]; then
+            # Backwards compatibility: support older workflows that used .env.production
+            print_message "Cargando variables de entorno de producción..."
+            set -a
+            source .env.production
+            set +a
+        else
+            print_warning "Archivo .env no encontrado. Asegúrate de configurar las variables manualmente"
     fi
 
     check_prerequisites
