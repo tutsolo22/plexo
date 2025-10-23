@@ -10,7 +10,14 @@ if [ -z "${DATABASE_URL:-}" ]; then
       echo "Missing DB_USER/DB_PASS/DB_NAME for Cloud SQL socket connection" >&2
       exit 1
     fi
-    export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS}@/$(echo ${DB_NAME})?host=/cloudsql/${CLOUDSQL_CONNECTION_NAME}"
+
+    # URL-encode DB_USER, DB_PASS and DB_NAME to avoid invalid characters breaking the connection string
+    # Use node (available in the base image) to perform encodeURIComponent
+    ENCODED_DB_USER=$(node -e "console.log(encodeURIComponent(process.argv[1]||''))" "${DB_USER}")
+    ENCODED_DB_PASS=$(node -e "console.log(encodeURIComponent(process.argv[1]||''))" "${DB_PASS}")
+    ENCODED_DB_NAME=$(node -e "console.log(encodeURIComponent(process.argv[1]||''))" "${DB_NAME}")
+
+    export DATABASE_URL="postgresql://${ENCODED_DB_USER}:${ENCODED_DB_PASS}@/${ENCODED_DB_NAME}?host=/cloudsql/${CLOUDSQL_CONNECTION_NAME}"
   else
     echo "DATABASE_URL not provided and no CLOUDSQL_CONNECTION_NAME specified" >&2
     exit 1

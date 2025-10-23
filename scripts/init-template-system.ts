@@ -1,7 +1,6 @@
-import { PrismaClient, EmailCategory } from '@prisma/client'
+import { EmailCategory } from '@prisma/client'
 import { createBaseTenantTemplates, createBaseBusinessTemplates } from '../src/lib/template-inheritance'
-
-const prisma = new PrismaClient()
+import { prisma } from '../src/lib/prisma'
 
 async function createGlobalTemplates() {
   console.log('🌐 Creando templates globales del sistema...')

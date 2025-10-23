@@ -20,7 +20,6 @@ RUN npm ci --omit=dev
 # Copy application code (seed script expects prisma/seed.ts)
 COPY prisma ./prisma
 COPY prisma/seed.ts ./prisma/seed.ts
-COPY dist ./dist
 
 # Use a small entrypoint script to run either migrate or seed
 COPY docker/db-job/entrypoint.sh /entrypoint.sh

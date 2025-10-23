@@ -5,10 +5,9 @@
 // correspondientes. Se puede ejecutar independientemente.
 // =========================================================================
 
-import { PrismaClient, RoleType } from '@prisma/client'
+import { RoleType } from '@prisma/client'
 import { roleManagementService, getDefaultPermissions } from '../src/lib/role-management'
-
-const prisma = new PrismaClient()
+import { prisma } from '../src/lib/prisma'
 
 // =========================================================================
 // DEFINICIÓN DE ROLES POR DEFECTO

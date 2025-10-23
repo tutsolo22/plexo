@@ -1,7 +1,5 @@
 // Script de verificación de enums
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '../src/lib/prisma'
 
 async function verifyEnums() {
   console.log('🔍 Verificando enums disponibles...')

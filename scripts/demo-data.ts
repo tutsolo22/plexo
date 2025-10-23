@@ -1,9 +1,7 @@
 // 🎭 SCRIPT PARA DATOS DE DEMO CASONA
 // Archivo: scripts/demo-data.ts
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../src/lib/prisma';
 
 async function seedDemoData() {
   console.log('🎪 Iniciando seed de datos para demo...');

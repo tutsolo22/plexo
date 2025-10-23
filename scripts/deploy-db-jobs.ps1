@@ -27,24 +27,24 @@ $jobMigrate = "db-migrate-job"
 Write-Host "Creating/updating Cloud Run Job: $jobMigrate"
 gcloud run jobs describe $jobMigrate --region $Region --project $ProjectId 2>$null | Out-Null
 if ($LASTEXITCODE -ne 0) {
-  gcloud run jobs create $jobMigrate --image $ImageName --region $Region --project $ProjectId --add-cloudsql-instances $CloudSqlInstance --set-env-vars DATABASE_NAME=$DatabaseName
+  gcloud run jobs create $jobMigrate --image $ImageName --region $Region --project $ProjectId --set-cloudsql-instances $CloudSqlInstance --set-env-vars DATABASE_NAME=$DatabaseName
 } else {
-  gcloud run jobs update $jobMigrate --image $ImageName --region $Region --project $ProjectId --add-cloudsql-instances $CloudSqlInstance --set-env-vars DATABASE_NAME=$DatabaseName
+  gcloud run jobs update $jobMigrate --image $ImageName --region $Region --project $ProjectId --set-cloudsql-instances $CloudSqlInstance --set-env-vars DATABASE_NAME=$DatabaseName
 }
 
 # Execute migrate job
 Write-Host "Executing job: $jobMigrate"
-gcloud run jobs execute $jobMigrate --region $Region --project $ProjectId --task-command migrate --max-retries 0 --service-account=default
+gcloud run jobs execute $jobMigrate --region $Region --project $ProjectId --args migrate --max-retries 0
 
 # Create seed job
 $jobSeed = "db-seed-job"
 Write-Host "Creating/updating Cloud Run Job: $jobSeed"
 gcloud run jobs describe $jobSeed --region $Region --project $ProjectId 2>$null | Out-Null
 if ($LASTEXITCODE -ne 0) {
-  gcloud run jobs create $jobSeed --image $ImageName --region $Region --project $ProjectId --add-cloudsql-instances $CloudSqlInstance --set-env-vars DATABASE_NAME=$DatabaseName
+  gcloud run jobs create $jobSeed --image $ImageName --region $Region --project $ProjectId --set-cloudsql-instances $CloudSqlInstance --set-env-vars DATABASE_NAME=$DatabaseName
 } else {
-  gcloud run jobs update $jobSeed --image $ImageName --region $Region --project $ProjectId --add-cloudsql-instances $CloudSqlInstance --set-env-vars DATABASE_NAME=$DatabaseName
+  gcloud run jobs update $jobSeed --image $ImageName --region $Region --project $ProjectId --set-cloudsql-instances $CloudSqlInstance --set-env-vars DATABASE_NAME=$DatabaseName
 }
 
 Write-Host "Seed job created/updated. Execute it manually when you want to run seeds:"
-Write-Host "gcloud run jobs execute $jobSeed --region $Region --project $ProjectId --task-command seed"
+Write-Host "gcloud run jobs execute $jobSeed --region $Region --project $ProjectId --args seed"
