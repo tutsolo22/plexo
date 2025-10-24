@@ -13,11 +13,12 @@ function buildDatabaseUrl(): string | undefined {
     return env['DATABASE_URL']
   }
 
-  // If Cloud SQL socket is provided, build the socket-based URL
+  // If Cloud SQL socket is provided, build the socket-based URL.
+  // Support both DB_* and POSTGRES_* env var names (some deploys use POSTGRES_*).
   const cloudsql = env['CLOUDSQL_CONNECTION_NAME']
-  const dbUser = env['DB_USER']
-  const dbPass = env['DB_PASS']
-  const dbName = env['DB_NAME']
+  const dbUser = env['DB_USER'] ?? env['POSTGRES_USER']
+  const dbPass = env['DB_PASS'] ?? env['POSTGRES_PASSWORD']
+  const dbName = env['DB_NAME'] ?? env['POSTGRES_DB']
   if (cloudsql && dbUser && dbPass && dbName) {
     const u = encodeURIComponent(dbUser)
     const p = encodeURIComponent(dbPass)
@@ -27,8 +28,8 @@ function buildDatabaseUrl(): string | undefined {
   }
 
   // Otherwise, try host/port style
-  const host = env['DB_HOST']
-  const port = env['DB_PORT'] || '5432'
+  const host = env['DB_HOST'] ?? env['POSTGRES_HOST'] ?? env['PGHOST']
+  const port = env['DB_PORT'] ?? env['POSTGRES_PORT'] ?? env['PGPORT'] ?? '5432'
   if (host && dbUser && dbPass && dbName) {
     const u = encodeURIComponent(dbUser)
     const p = encodeURIComponent(dbPass)

@@ -1,3 +1,4 @@
+const path = require('path');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
@@ -24,6 +25,19 @@ const nextConfig = {
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
   },
   webpack: (config, { isServer }) => {
+    // Add alias for '@/...' to point to /src so imports resolve correctly
+    config.resolve = config.resolve || {};
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      '@': path.resolve(__dirname, 'src'),
+      '@/components': path.resolve(__dirname, 'src/components'),
+      '@/lib': path.resolve(__dirname, 'src/lib'),
+      '@/hooks': path.resolve(__dirname, 'src/hooks'),
+      '@/types': path.resolve(__dirname, 'src/types'),
+      '@/app': path.resolve(__dirname, 'src/app'),
+      '@/components/ui': path.resolve(__dirname, 'src/components/ui'),
+    };
+
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,

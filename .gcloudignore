@@ -1,5 +1,15 @@
-Dockerfile
-Dockerfile.cloudrun
-Dockerfile.production
-docker-compose.dev.yml
-docker-compose.prod.yml
+# This file specifies files to be omitted from the build context when using gcloud builds submit
+node_modules/
+.git/
+.vscode/
+dist/
+build/
+*.log
+tmp/
+**/.DS_Store
+**/node_modules/**
+/.gcloudignore
+.dockerignore
+docker/**/node_modules/
+selenium/
+**/.cache/**
