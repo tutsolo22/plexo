@@ -25,7 +25,7 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate deploy",
-    "db:seed": "tsx prisma/seed.ts",
+  "db:seed": "node prisma/seed-runner.js",
     "db:studio": "prisma studio",
     "docker:build": "docker-compose -f docker-compose.prod.yml build",
     "docker:up": "docker-compose -f docker-compose.prod.yml up -d",
@@ -150,7 +150,7 @@
     "typescript": "^5.3.0"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "node prisma/seed-runner.js"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
