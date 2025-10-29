@@ -10,6 +10,7 @@ export default function NewUserPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [role, setRole] = useState('USER')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
@@ -17,9 +18,13 @@ export default function NewUserPage() {
     e.preventDefault()
     setLoading(true)
     try {
-      const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email, role }) })
-      if (res.ok) router.push('/dashboard/users')
-      else alert('Error')
+      const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email, role, password }) })
+      if (res.ok) {
+        router.push('/dashboard/users')
+      } else {
+        const json = await res.json().catch(()=>null)
+        alert('Error creando usuario' + (json?.error ? ': ' + json.error : ''))
+      }
     } finally { setLoading(false) }
   }
 
@@ -34,6 +39,10 @@ export default function NewUserPage() {
         <div>
           <Label>Email</Label>
           <Input type="email" value={email} onChange={e=>setEmail(e.target.value)} />
+        </div>
+        <div>
+          <Label>Contraseña</Label>
+          <Input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Mínimo 6 caracteres" />
         </div>
         <div>
           <Label>Rol</Label>

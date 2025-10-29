@@ -46,7 +46,6 @@ const config = {
     '!src/**/*.stories.{ts,tsx}',
     '!src/**/index.{ts,tsx}',
     '!src/lib/prisma.ts', // Excluir configuración de BD
-    '!src/middleware.ts', // Excluir middleware
   ],
   
   // Umbral de coverage
@@ -65,19 +64,19 @@ const config = {
   // Directorio de salida para coverage
   coverageDirectory: 'coverage',
   
-  // Transformar archivos CSS y otros assets
-  moduleNameMapping: {
-    '^.+\\.(css|sass|scss)$': 'identity-obj-proxy',
-  },
-  
   // Variables de entorno para testing
   testEnvironmentOptions: {
     customExportConditions: [''],
   },
   
-  // Mock de módulos externos problemáticos
+  // Transformar archivos CSS y otros assets y mapear módulos
   moduleNameMapping: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^@/components/(.*)$': '<rootDir>/src/components/$1',
+    '^@/lib/(.*)$': '<rootDir>/src/lib/$1',
+    '^@/app/(.*)$': '<rootDir>/src/app/$1',
+    '^@/types/(.*)$': '<rootDir>/src/types/$1',
+    '^.+\\.(css|sass|scss)$': 'identity-obj-proxy',
     '^uuid$': require.resolve('uuid'),
   },
   

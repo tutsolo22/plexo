@@ -26,6 +26,8 @@ export default function UsersClient() {
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
+  const toastRef = React.useRef(toast)
+  React.useEffect(() => { toastRef.current = toast }, [toast])
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -43,15 +45,15 @@ export default function UsersClient() {
         setData(json.data || [])
         setTotalPages(json.pagination?.pages || 1)
       } else {
-        toast({ type: 'error', title: 'Error cargando usuarios', description: json.error })
+        toastRef.current?.({ type: 'error', title: 'Error cargando usuarios', description: json.error })
       }
     } catch (err) {
       console.error(err)
-      toast({ type: 'error', title: 'Error', description: 'No se pudieron cargar usuarios' })
+      toastRef.current?.({ type: 'error', title: 'Error', description: 'No se pudieron cargar usuarios' })
     } finally {
       setLoading(false)
     }
-  }, [page, limit, search, role, isActive, toast])
+  }, [page, limit, search, role, isActive])
 
   useEffect(() => {
     fetchData()

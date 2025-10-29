@@ -31,7 +31,7 @@
   .dark {
     --background: 240 10% 3.9%; /* #0A0A0A */
     --foreground: 0 0% 98%; /* #FAFAFA */
-    --card: 240 3.7% 15.9%; /* #27272A */
+    --card: 0 100% 50%; /* RED FOR DEBUGGING */
     --card-foreground: 0 0% 98%; /* #FAFAFA */
     --popover: 240 3.7% 15.9%; /* #27272A */
     --popover-foreground: 0 0% 98%; /* #FAFAFA */

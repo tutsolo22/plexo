@@ -7,7 +7,8 @@ import { z } from 'zod';
 const createUserSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
   email: z.string().email('Email inválido'),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  // password is optional for admin-created users; activation flow will handle setting password
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres').optional(),
   role: z
     .enum(['SUPER_ADMIN', 'TENANT_ADMIN', 'MANAGER', 'USER', 'CLIENT_EXTERNAL'])
     .default('USER'),
@@ -151,9 +152,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Hash de la contraseña
-    const { hashPassword } = await import('@/lib/auth/password');
-    const hashedPassword = await hashPassword(validatedData.password);
+    // Hash de la contraseña si fue proporcionada
+    const { hashPassword, generateVerificationToken } = await import('@/lib/auth/password');
+    let hashedPassword = null
+    let activationCode = null
+    if (validatedData.password) {
+      hashedPassword = await hashPassword(validatedData.password)
+    } else {
+      // generar token de activación para que el usuario cree su contraseña por correo
+      activationCode = generateVerificationToken()
+    }
 
     // Determinar tenant
     let tenantId = (session.user as any).tenantId || null;
@@ -169,7 +177,9 @@ export async function POST(request: NextRequest) {
         role: validatedData.role,
         isActive: validatedData.isActive,
         tenantId,
-        emailVerified: new Date(), // Auto-verificar en creación administrativa
+        // Si la creación la hace admin y no se proporcionó password, no marcar como verificado
+        emailVerified: hashedPassword ? new Date() : null,
+        activationCode: activationCode
       },
       select: {
         id: true,
@@ -188,6 +198,19 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Si no se proporcionó contraseña, enviar email de activación para crear contraseña
+    if (!validatedData.password && activationCode) {
+      try {
+        const emailService = new (await import('@/lib/email/email-service')).EmailService()
+        const activationLink = `${process.env['NEXTAUTH_URL'] || ''}/auth/activate?token=${activationCode}`
+        const subject = 'Activación de cuenta - Gestión de Eventos'
+        const html = `<p>Hola ${user.name || ''},</p><p>Para activar tu cuenta y crear tu contraseña haz clic en el siguiente enlace:</p><p><a href="${activationLink}">Activar cuenta</a></p>`
+        await emailService.sendEmail({ to: user.email, subject, html, tenantId: user.tenant?.id }).catch(e => console.error(e))
+      } catch (e) {
+        console.error('Error enviando email de activación:', e)
+      }
+    }
 
     return NextResponse.json(
       {

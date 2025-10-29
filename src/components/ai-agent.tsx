@@ -24,9 +24,12 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isClient, setIsClient] = useState(false)
-  const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const scrollAreaRef = useRef<HTMLDivElement | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const lastMessageRef = useRef<HTMLDivElement | null>(null)
   const initializedRef = useRef(false)
+  const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
+  const draggingRef = useRef<{ active: boolean; startX: number; startY: number; origLeft: number; origTop: number } | null>(null)
 
   const getFormattedTime = () => {
     return new Date().toLocaleTimeString('es-ES', {
@@ -70,9 +73,50 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
     }
   }, [])
 
+  // establecer posición inicial (bottom-right) una vez en cliente
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
+    if (!isClient) return
+    if (position) return
+    const w = window.innerWidth
+    const h = window.innerHeight
+    const defaultWidth = 420
+    const left = Math.max(12, w - defaultWidth - 24)
+    const top = Math.max(80, h - 520 - 24)
+    setPosition({ left, top })
+  }, [isClient, position])
+
+  const startDrag = (e: React.MouseEvent) => {
+    if (!position) return
+    draggingRef.current = { active: true, startX: e.clientX, startY: e.clientY, origLeft: position.left, origTop: position.top }
+    window.addEventListener('mousemove', onDrag)
+    window.addEventListener('mouseup', endDrag)
+  }
+
+  const onDrag = (e: MouseEvent) => {
+    const d = draggingRef.current
+    if (!d || !position) return
+    const dx = e.clientX - d.startX
+    const dy = e.clientY - d.startY
+    setPosition({ left: Math.max(8, d.origLeft + dx), top: Math.max(8, d.origTop + dy) })
+  }
+
+  const endDrag = () => {
+    draggingRef.current = null
+    window.removeEventListener('mousemove', onDrag)
+    window.removeEventListener('mouseup', endDrag)
+  }
+
+  useEffect(() => {
+    // Intentar desplazar el último mensaje a la vista
+    try {
+      if (lastMessageRef.current) {
+        lastMessageRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
+      } else if (scrollAreaRef.current) {
+        // fallback: desplazar el contenedor
+        (scrollAreaRef.current as any).scrollTop = (scrollAreaRef.current as any).scrollHeight
+      }
+    } catch (e) {
+      // ignore
     }
     try {
       // Persistir conversación para evitar pérdida en remounts de React StrictMode
@@ -108,7 +152,7 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
         timestamp: getFormattedTime(),
       }
 
-      setMessages(prev => [...prev, assistantMessage])
+  setMessages(prev => [...prev, assistantMessage])
     } catch (error) {
       console.error('Error enviando mensaje:', error)
       const errorMessage: Message = {
@@ -121,8 +165,28 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
     } finally {
       setIsLoading(false)
       // Volver a enfocar el input para continuar la conversación
-      setTimeout(() => inputRef.current?.focus(), 50)
+      setTimeout(() => {
+        try {
+          inputRef.current?.focus()
+        } catch (e) {
+          // ignore
+        }
+      }, 50)
     }
+  }
+
+  const clearConversation = () => {
+    try {
+      localStorage.removeItem('plexo_ai_messages')
+    } catch (e) {}
+    initializedRef.current = false
+    const greeting: Message = {
+      id: Date.now().toString(),
+      content: '¡Hola! Soy tu asistente de IA para Plexo. ¿En qué puedo ayudarte hoy? Puedo ayudarte con información sobre eventos, cotizaciones, clientes y más.',
+      role: 'assistant',
+      timestamp: getFormattedTime(),
+    }
+    setMessages([greeting])
   }
 
   const generateAIResponse = (userInput: string): string => {
@@ -156,54 +220,52 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
   }
 
   if (isMinimized) {
+    // minimized as a small draggable button to avoid covering UI
     return (
-      <Card className="fixed bottom-4 right-4 w-80 shadow-lg border-primary/20">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-primary text-primary-foreground">
+      <div style={position ? { position: 'fixed', left: position.left, top: position.top, zIndex: 60 } : { position: 'fixed', right: 16, bottom: 16, zIndex: 60 }}>
+        <div onMouseDown={startDrag} className="flex items-center gap-2 cursor-grab select-none bg-primary text-primary-foreground rounded-full shadow p-2">
+          <Bot size={16} />
+          <button onClick={(e)=>{ e.stopPropagation(); onToggleMinimize?.() }} aria-label="Maximize" className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center ml-2">
+            <Maximize2 size={14} />
+          </button>
+          <button onClick={(e)=>{ e.stopPropagation(); clearConversation() }} aria-label="Clear" className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center ml-2">
+            C
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={position ? { position: 'fixed', left: position.left, top: position.top, zIndex: 60 } : { position: 'fixed', right: 16, bottom: 16, zIndex: 60 }}>
+      <Card className="w-full max-w-[420px] max-h-[65vh] h-[520px] shadow-lg border-primary/20 flex flex-col">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-primary text-primary-foreground">
+        <div onMouseDown={startDrag} className="flex-1 cursor-grab">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Bot size={16} />
-            Asistente IA
+            Asistente IA de Plexo
           </CardTitle>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={clearConversation} className="h-6 w-6 p-0 text-primary-foreground hover:bg-black/20">C</Button>
           <Button
             variant="ghost"
             size="sm"
             onClick={onToggleMinimize}
             className="h-6 w-6 p-0 text-primary-foreground hover:bg-black/20"
           >
-            <Maximize2 size={14} />
+            <Minimize2 size={14} />
           </Button>
-        </CardHeader>
-        <CardContent className="p-3">
-          <p className="text-sm text-muted-foreground">
-            Haz clic para expandir y chatear conmigo
-          </p>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  return (
-    <Card className="fixed bottom-4 right-4 w-96 h-96 shadow-lg border-primary/20 flex flex-col">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-primary text-primary-foreground">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <Bot size={16} />
-          Asistente IA de Plexo
-        </CardTitle>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onToggleMinimize}
-          className="h-6 w-6 p-0 text-primary-foreground hover:bg-black/20"
-        >
-          <Minimize2 size={14} />
-        </Button>
+        </div>
       </CardHeader>
       
-      <CardContent className="flex-1 p-0">
-        <ScrollArea ref={scrollAreaRef} className="h-full p-4">
+      <CardContent className="flex-1 p-0 overflow-hidden">
+        <div ref={scrollAreaRef} className="h-full p-4 overflow-y-auto">
           <div className="space-y-4">
-            {messages.map((message) => (
+            {messages.map((message, idx) => (
               <div
                 key={message.id}
+                ref={idx === messages.length - 1 ? lastMessageRef : null}
                 className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
@@ -248,7 +310,7 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </CardContent>
       
       <CardFooter className="p-3 border-t">
@@ -273,5 +335,6 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
         </div>
       </CardFooter>
     </Card>
+    </div>
   )
 }
