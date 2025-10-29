@@ -68,9 +68,20 @@ create_directories() {
 check_configuration() {
     print_message "Verificando configuración..."
 
-    if [ ! -f ".env.production" ]; then
-        print_error "Archivo .env.production no encontrado."
-        print_message "Copia .env.production.example a .env.production y configura las variables."
+    # Prefer .env; support .env.production for backward compatibility
+    if [ -f ".env" ]; then
+        print_message "Cargando variables desde .env..."
+        set -a
+        source .env
+        set +a
+    elif [ -f ".env.production" ]; then
+        print_message "Cargando variables desde .env.production..."
+        set -a
+        source .env.production
+        set +a
+    else
+        print_error "Archivo .env o .env.production no encontrado."
+        print_message "Copia .env.production.example a .env o .env.production y configura las variables."
         exit 1
     fi
 

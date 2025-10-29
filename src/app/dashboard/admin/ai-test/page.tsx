@@ -2,6 +2,8 @@ import { Metadata } from 'next';
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import APIKeyTestPanel from '@/components/ai/APIKeyTestPanel';
+import { hasRoleAccess } from '@/lib/auth/permissions';
+import { LegacyUserRole } from '@prisma/client';
 
 export const metadata: Metadata = {
   title: 'Panel de Verificación de API Keys | Gestión de Eventos',
@@ -16,8 +18,8 @@ export default async function AITestPage() {
     redirect('/auth/signin');
   }
 
-  // Solo admins pueden acceder a este panel
-  if (session.user.role !== 'TENANT_ADMIN' && session.user.role !== 'MANAGER') {
+  // Solo usuarios con jerarquía de MANAGER o superior pueden acceder (incluye TENANT_ADMIN y SUPER_ADMIN)
+  if (!hasRoleAccess(session.user.role as LegacyUserRole, LegacyUserRole.MANAGER)) {
     redirect('/dashboard');
   }
 

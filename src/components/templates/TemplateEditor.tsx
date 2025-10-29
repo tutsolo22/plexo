@@ -741,7 +741,7 @@ export function TemplateEditor({
               </TabsContent>
 
               <TabsContent value='preview' className='h-full'>
-                <div className='h-full overflow-auto rounded-lg border bg-white'>
+                <div className='h-full overflow-auto rounded-lg border bg-card'>
                   {isPreviewLoading ? (
                     <div className='flex h-full items-center justify-center'>
                       <Loader2 className='h-8 w-8 animate-spin' />

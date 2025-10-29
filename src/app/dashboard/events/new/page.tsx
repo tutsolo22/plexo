@@ -1,10 +1,10 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { EventForm } from '../../components/EventForm'
 
-export default function NewEventPage() {
+function NewEventContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [initialData, setInitialData] = useState<any>({})
@@ -45,5 +45,13 @@ export default function NewEventPage() {
         onCancel={handleCancel}
       />
     </div>
+  )
+}
+
+export default function NewEventPage() {
+  return (
+    <Suspense fallback={<div>Cargando...</div>}>
+      <NewEventContent />
+    </Suspense>
   )
 }

@@ -1,67 +1,69 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { prisma } from '@/lib/prisma';
+import { createClientSchema, clientFiltersSchema } from '@/lib/validations/client';
 
-// Schema de validación para crear cliente
-const createClientSchema = z.object({
-  name: z.string().min(1, 'El nombre es requerido'),
-  email: z.string().email('Email inválido').optional(),
-  phone: z.string().optional(),
-  address: z.string().optional(),
-  notes: z.string().optional(),
-  type: z.enum(['GENERAL', 'COLABORADOR', 'EXTERNO']).default('GENERAL'),
-  priceListId: z.string().optional(),
-});
-
-// GET /api/clients - Listar clientes
+// GET /api/clients - Listar clientes con búsqueda avanzada
 export async function GET(request: NextRequest) {
   try {
-    // TEMPORALMENTE DESHABILITADO PARA PRUEBAS
-    /*
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
-    */
-
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const search = searchParams.get('search') || '';
-    const type = searchParams.get('type');
 
-    const skip = (page - 1) * limit;
+    // Parsear y validar filtros
+    const filters = clientFiltersSchema.parse({
+      search: searchParams.get('search') || undefined,
+      type: searchParams.get('type') || undefined,
+      isActive: searchParams.get('isActive') ? searchParams.get('isActive') === 'true' : undefined,
+      dateFrom: searchParams.get('dateFrom') || undefined,
+      dateTo: searchParams.get('dateTo') || undefined,
+      page: parseInt(searchParams.get('page') || '1'),
+      limit: parseInt(searchParams.get('limit') || '10'),
+    });
 
-    // Construir filtros
+    const skip = (filters.page - 1) * filters.limit;
+
+    // Construir filtros de búsqueda avanzada
     const where: Record<string, unknown> = {
-      // tenantId: session.user.tenantId // TEMPORALMENTE COMENTADO PARA PRUEBAS
+      deletedAt: null, // Soft delete - solo mostrar no eliminados
+      // tenantId: session.user.tenantId // TODO: Habilitar cuando se implemente auth
     };
 
-    if (search) {
+    // Búsqueda global por múltiples campos
+    if (filters.search) {
       where['OR'] = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { phone: { contains: search, mode: 'insensitive' } },
+        { name: { contains: filters.search, mode: 'insensitive' } },
+        { email: { contains: filters.search, mode: 'insensitive' } },
+        { phone: { contains: filters.search, mode: 'insensitive' } },
+        { company: { contains: filters.search, mode: 'insensitive' } },
+        { address: { contains: filters.search, mode: 'insensitive' } },
       ];
     }
 
-    if (type) {
-      where['type'] = type;
+    // Filtros específicos
+    if (filters.type) {
+      where['type'] = filters.type;
     }
 
-    /*
-    // Solo CLIENT_EXTERNAL puede ver sus propios datos
-    const userRoleType = session.user.role.roleId as $Enums.RoleType
-    if (userRoleType === $Enums.RoleType.CLIENT_EXTERNAL) {
-      where["userId"] = session.user.id
+    if (filters.isActive !== undefined) {
+      where['isActive'] = filters.isActive;
     }
-    */
+
+    // Filtro por rango de fechas
+    if (filters.dateFrom || filters.dateTo) {
+      const createdAtFilter: Record<string, Date> = {};
+      if (filters.dateFrom) {
+        createdAtFilter['gte'] = new Date(filters.dateFrom);
+      }
+      if (filters.dateTo) {
+        createdAtFilter['lte'] = new Date(filters.dateTo);
+      }
+      where['createdAt'] = createdAtFilter;
+    }
 
     const [clients, total] = await Promise.all([
       prisma.client.findMany({
         where,
         skip,
-        take: limit,
+        take: filters.limit,
         include: {
           priceList: true,
           user: {
@@ -71,6 +73,7 @@ export async function GET(request: NextRequest) {
             select: {
               events: true,
               quotes: true,
+              documents: true,
             },
           },
         },
@@ -83,10 +86,10 @@ export async function GET(request: NextRequest) {
       success: true,
       data: clients,
       pagination: {
-        page,
-        limit,
+        page: filters.page,
+        limit: filters.limit,
         total,
-        pages: Math.ceil(total / limit),
+        pages: Math.ceil(total / filters.limit),
       },
     });
   } catch (error) {
@@ -101,33 +104,16 @@ export async function GET(request: NextRequest) {
 // POST /api/clients - Crear cliente
 export async function POST(request: NextRequest) {
   try {
-    // TEMPORALMENTE DESHABILITADO PARA PRUEBAS
-    /*
-    const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
-
-    // Solo ciertos roles pueden crear clientes
-    const userRoleType = session.user.role.roleId as $Enums.RoleType
-    if (userRoleType !== $Enums.RoleType.SUPER_ADMIN && 
-        userRoleType !== $Enums.RoleType.TENANT_ADMIN && 
-        userRoleType !== $Enums.RoleType.MANAGER && 
-        userRoleType !== $Enums.RoleType.USER) {
-      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
-    }
-    */
-
     const body = await request.json();
     const validatedData = createClientSchema.parse(body);
 
-    // TEMPORALMENTE SIMPLIFICADO PARA PRUEBAS
     // Verificar email único si se proporciona
     if (validatedData.email) {
       const existingClient = await prisma.client.findFirst({
         where: {
           email: validatedData.email,
-          // tenantId: session.user.tenantId
+          deletedAt: null, // Solo verificar clientes no eliminados
+          // tenantId: session.user.tenantId // TODO: Habilitar cuando se implemente auth
         },
       });
 
@@ -141,14 +127,15 @@ export async function POST(request: NextRequest) {
 
     const createData = {
       tenantId: 'test-tenant', // VALOR TEMPORAL PARA PRUEBAS
-      // userId: session.user.id,
+      // userId: session.user.id, // TODO: Habilitar cuando se implemente auth
       name: validatedData.name,
+      email: validatedData.email,
+      phone: validatedData.phone || null,
+      address: validatedData.address || null,
+      company: validatedData.company || null,
       type: validatedData.type,
-      email: validatedData.email || 'default@test.com',
-      phone: validatedData.phone ?? null,
-      address: validatedData.address ?? null,
-      notes: validatedData.notes ?? null,
-      // priceListId: priceListId ?? null
+      discountPercent: validatedData.discountPercent || null,
+      notes: validatedData.notes || null,
     };
 
     const client = await prisma.client.create({
@@ -157,6 +144,13 @@ export async function POST(request: NextRequest) {
         priceList: true,
         user: {
           select: { id: true, name: true, email: true },
+        },
+        _count: {
+          select: {
+            events: true,
+            quotes: true,
+            documents: true,
+          },
         },
       },
     });
@@ -172,7 +166,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: 'Datos inválidos', details: error.errors },
+        { success: false, error: 'Datos inválidos', details: (error as z.ZodError).errors },
         { status: 400 }
       );
     }

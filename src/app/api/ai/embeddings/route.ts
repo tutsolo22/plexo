@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { crmEmbeddingService } from '@/lib/ai/crm-embeddings';
-import { $Enums } from '@prisma/client';
 import { z } from 'zod';
 
 // Schema de validación para búsqueda vectorial
@@ -38,7 +35,10 @@ export async function POST(request: NextRequest) {
       }),
     };
 
-    const results = await crmEmbeddingService.searchSimilar(validatedData.query, searchOptions);
+  // Cargar servicios en tiempo de ejecución para evitar inicializar Prisma durante el build
+  const crmMod = await import('@/lib/ai/crm-embeddings');
+  const { crmEmbeddingService } = crmMod;
+  const results = await crmEmbeddingService.searchSimilar(validatedData.query, searchOptions);
 
     return NextResponse.json({
       success: true,
@@ -78,11 +78,9 @@ export async function PUT(request: NextRequest) {
     }
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden re-indexar
-    const userRoleType = session.user.role as $Enums.RoleType;
-    if (
-      userRoleType !== $Enums.RoleType.SUPER_ADMIN &&
-      userRoleType !== $Enums.RoleType.TENANT_ADMIN
-    ) {
+    // Verificar rol del usuario usando valores string (evitar referencias de tipo a $Enums en tiempo de compilación)
+    const userRoleType = session.user.role as string;
+    if (userRoleType !== 'SUPER_ADMIN' && userRoleType !== 'TENANT_ADMIN') {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
 
@@ -91,7 +89,9 @@ export async function PUT(request: NextRequest) {
 
     if (reindexAll) {
       // Re-indexar todo el tenant
-      await crmEmbeddingService.reindexTenant(session.user.tenantId);
+  const crmMod = await import('@/lib/ai/crm-embeddings');
+  const { crmEmbeddingService } = crmMod;
+  await crmEmbeddingService.reindexTenant(session.user.tenantId);
 
       return NextResponse.json({
         success: true,
@@ -105,16 +105,32 @@ export async function PUT(request: NextRequest) {
       // Re-indexar entidad específica
       switch (entityType.toLowerCase()) {
         case 'event':
-          await crmEmbeddingService.indexEvent(entityId, session.user.tenantId);
+          {
+            const crmMod = await import('@/lib/ai/crm-embeddings');
+            const { crmEmbeddingService } = crmMod;
+            await crmEmbeddingService.indexEvent(entityId, session.user.tenantId);
+          }
           break;
         case 'client':
-          await crmEmbeddingService.indexClient(entityId, session.user.tenantId);
+          {
+            const crmMod = await import('@/lib/ai/crm-embeddings');
+            const { crmEmbeddingService } = crmMod;
+            await crmEmbeddingService.indexClient(entityId, session.user.tenantId);
+          }
           break;
         case 'quote':
-          await crmEmbeddingService.indexQuote(entityId, session.user.tenantId);
+          {
+            const crmMod = await import('@/lib/ai/crm-embeddings');
+            const { crmEmbeddingService } = crmMod;
+            await crmEmbeddingService.indexQuote(entityId, session.user.tenantId);
+          }
           break;
         case 'product':
-          await crmEmbeddingService.indexProduct(entityId, session.user.tenantId);
+          {
+            const crmMod = await import('@/lib/ai/crm-embeddings');
+            const { crmEmbeddingService } = crmMod;
+            await crmEmbeddingService.indexProduct(entityId, session.user.tenantId);
+          }
           break;
         default:
           return NextResponse.json(
@@ -156,11 +172,11 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Solo roles administrativos pueden ver estadísticas
-    const userRoleType = session.user.role as $Enums.RoleType;
+    const userRoleType = session.user.role as string;
     if (
-      userRoleType !== $Enums.RoleType.SUPER_ADMIN &&
-      userRoleType !== $Enums.RoleType.TENANT_ADMIN &&
-      userRoleType !== $Enums.RoleType.MANAGER
+      userRoleType !== 'SUPER_ADMIN' &&
+      userRoleType !== 'TENANT_ADMIN' &&
+      userRoleType !== 'MANAGER'
     ) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
@@ -168,8 +184,8 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const businessIdentityId = searchParams.get('businessIdentityId');
 
-    // Construir query para estadísticas
-    const whereClause = [`tenant_id = '${session.user.tenantId}'`];
+  // Construir query para estadísticas
+  const whereClause = [`tenant_id = '${session.user.tenantId}'`];
 
     if (businessIdentityId) {
       whereClause.push(`metadata->>'businessIdentity' = '${businessIdentityId}'`);
@@ -190,6 +206,8 @@ export async function DELETE(request: NextRequest) {
       GROUP BY entity_type
       ORDER BY total DESC
     `;
+
+    const { prisma } = await import('@/lib/prisma');
 
     const stats = (await prisma.$queryRawUnsafe(statsQuery)) as Array<{
       entity_type: string;

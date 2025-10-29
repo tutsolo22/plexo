@@ -11,7 +11,7 @@ services:
     container_name: gestion-eventos-app
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3250:3250"
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}

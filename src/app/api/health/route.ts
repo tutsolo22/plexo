@@ -1,17 +1,17 @@
-# Health Check Endpoint para Gestión de Eventos
-# Ruta: /api/health
-# Método: GET
+// Health Check Endpoint para Gestión de Eventos
+// Ruta: /api/health
+// Método: GET
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createClient } from 'redis';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   const health = {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    version: process.env.npm_package_version || '1.0.0',
+    version: process.env['npm_package_version'] || '1.0.0',
     services: {
       database: 'unknown',
       redis: 'unknown',
@@ -36,9 +36,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Verificar conexión a Redis (si está configurado)
-    if (process.env.REDIS_URL) {
+    if (process.env['REDIS_URL']) {
       try {
-        const redis = createClient({ url: process.env.REDIS_URL });
+        const redis = createClient({ url: process.env['REDIS_URL'] });
         await redis.connect();
         await redis.ping();
         await redis.disconnect();
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Verificar configuración SMTP (básica)
-    if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+    if (process.env['SMTP_HOST'] && process.env['SMTP_USER']) {
       health.services.smtp = 'configured';
     } else {
       health.services.smtp = 'not_configured';

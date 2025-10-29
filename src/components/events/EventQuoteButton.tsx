@@ -122,7 +122,7 @@ const EventQuoteButton: React.FC<EventQuoteButtonProps> = ({
 
   if (showQuickForm) {
     return (
-      <div className='rounded-lg border border-gray-200 bg-white p-4 shadow-sm'>
+      <div className='rounded-lg border border bg-card p-4 shadow-sm'>
         <div className='mb-4'>
           <h4 className='mb-2 font-medium text-gray-900'>Crear Cotización Rápida</h4>
           <div className='mb-3 flex items-center space-x-2 text-sm text-gray-600'>

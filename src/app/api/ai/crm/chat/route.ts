@@ -1,7 +1,5 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
-import { crmAgentService } from '@/lib/ai/crm-agent-v2';
-import { conversationMemoryService } from '@/lib/ai/conversation-memory';
 import { withValidation } from '@/lib/api/middleware/validation';
 import { withErrorHandling } from '@/lib/api/middleware/error-handling';
 import { ApiResponses } from '@/lib/api/responses';
@@ -39,6 +37,10 @@ async function crmChatHandler(req: NextRequest) {
     // Usar sessionId como conversationId si no se proporciona conversationId
     let currentConversationId = conversationId || sessionId;
 
+    // Cargar conversationMemoryService en tiempo de ejecución
+    const convMod = await import('@/lib/ai/conversation-memory');
+    const { conversationMemoryService } = convMod;
+
     // Si no hay conversación, crear una nueva
     if (!currentConversationId) {
       currentConversationId = await conversationMemoryService.createConversation({
@@ -70,6 +72,8 @@ async function crmChatHandler(req: NextRequest) {
     });
 
     // Procesar mensaje con el agente CRM v2 especializado (sin coordinador)
+    const crmMod = await import('@/lib/ai/crm-agent-v2');
+    const { crmAgentService } = crmMod;
     const agentResponse = await crmAgentService.processQuery(message, {
       tenantId: session.user.tenantId,
       userRole: typeof session.user.role === 'string' ? session.user.role : 'USER',
@@ -127,7 +131,9 @@ async function getCrmConversationHandler(req: NextRequest) {
       return ApiResponses.badRequest('conversationId es requerido');
     }
 
-    const messages = await conversationMemoryService.getConversationContext(conversationId, limit);
+  const convMod2 = await import('@/lib/ai/conversation-memory');
+  const { conversationMemoryService: _conversationMemoryService } = convMod2;
+  const messages = await _conversationMemoryService.getConversationContext(conversationId, limit);
 
     // Filtrar solo mensajes de CRM agent
     const crmMessages = messages.filter(
@@ -167,7 +173,9 @@ async function deleteCrmConversationHandler(req: NextRequest) {
     }
 
     // Verificar que la conversación pertenece al usuario/tenant
-    const conversation = await conversationMemoryService.getConversationContext(conversationId, 1);
+  const convMod3 = await import('@/lib/ai/conversation-memory');
+  const { conversationMemoryService: _conversationMemoryService2 } = convMod3;
+  const conversation = await _conversationMemoryService2.getConversationContext(conversationId, 1);
     if (conversation.length === 0) {
       return ApiResponses.notFound('Conversación no encontrada');
     }

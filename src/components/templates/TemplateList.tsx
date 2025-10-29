@@ -643,7 +643,7 @@ export function TemplateList({ onEdit, onNew }: TemplateListProps) {
             <DialogDescription>Visualización del template con datos de ejemplo</DialogDescription>
           </DialogHeader>
 
-          <div className='min-h-[400px] rounded-lg border bg-white p-4'>
+          <div className='min-h-[400px] rounded-lg border bg-card p-4'>
             {previewLoading ? (
               <div className='flex h-64 items-center justify-center'>
                 <Loader2 className='h-8 w-8 animate-spin' />

@@ -38,6 +38,15 @@ tecnologías modernas y arquitectura escalable.
 - **Embeddings y Vector Search** - Búsqueda semántica en base de conocimientos
 - **Coordinador de Agentes** - Orquestación de múltiples agentes especializados
 
+### 🎯 **Widget de Chat Integrable**
+
+- **Chatbot Web** - Widget integrable en cualquier sitio web
+- **IA Avanzada** - Respuestas inteligentes con Google Gemini
+- **Multi-tenant** - Aislamiento completo por empresa
+- **Personalizable** - Colores, mensajes y posición configurables
+- **Analytics Avanzado** - Métricas detalladas de uso y conversión
+- **Instalación Simple** - Solo un script para integrar
+
 ## 🛠️ Stack Tecnológico
 
 ### **Frontend**
@@ -153,6 +162,42 @@ Para probar la aplicación, utiliza las siguientes credenciales:
 
 > **Nota**: Estas credenciales se crean automáticamente al ejecutar
 > `npm run db:seed`
+
+## 🎯 Instalación del Widget de Chat
+
+### **Instalación Rápida**
+
+Para integrar el chatbot en cualquier sitio web:
+
+1. **Obtén tu API Key**:
+   - Accede a `/admin/widget` con credenciales de admin
+   - Ve a "Claves API" y crea una nueva clave
+
+2. **Integra el código** en tu sitio web:
+
+```html
+<!-- Agrega esto antes del cierre de </body> -->
+<script src="http://localhost:3200/widget.js"></script>
+<script>
+  ChatWidget.init({
+    apiKey: 'tu_api_key_aqui',
+    baseUrl: 'http://localhost:3200',
+    position: 'bottom-right',
+    primaryColor: '#3B82F6'
+  });
+</script>
+```
+
+### **Panel de Administración**
+
+- **URL**: `/admin/widget`
+- **Configuración**: Personaliza colores y mensajes
+- **Analytics**: Métricas de uso y conversión
+- **API Keys**: Gestiona claves de integración
+
+📖 **Documentación completa**: Ver `WIDGET_README.md`<br>
+🧪 **Demo interactiva**: Abre `widget-demo.html` en tu navegador<br>
+📋 **Código de instalación**: Copia de `widget-install.html`
 
 ## 💳 Configuración de MercadoPago
 

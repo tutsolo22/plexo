@@ -186,6 +186,7 @@ model Tenant {
   configurations     Configuration[]
   emailTemplates     EmailTemplate[]
   events             Event[]
+  expenses           Expense[]
   masterEvents       MasterEvent[]
   packageTemplates   PackageTemplate[]
   packages           Package[]
@@ -201,6 +202,8 @@ model Tenant {
   userRoles          UserRole[]
   users              User[]
   venues             Venue[]
+  widgetApiKeys      WidgetApiKey[]
+  widgetConfigs      WidgetConfig[]
   workShifts         WorkShift[]
 
   @@map("tenants")
@@ -419,18 +422,21 @@ model Client {
   email            String
   phone            String?
   address          String?
+  company          String?         // Nombre de la empresa
   type             ClientType      @default(GENERAL)
   discountPercent  Decimal?        @db.Decimal(5, 2)
   eventCounter     Int             @default(0)
   freeEventsTarget Int?
   notes            String?
   isActive         Boolean         @default(true)
+  deletedAt        DateTime?       // Soft delete
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   tenantId         String
   priceListId      String?
   userId           String?         @unique
   clientCredits    ClientCredits[]
+  documents        ClientDocument[] // Documentos adjuntos
   priceList        PriceList?      @relation(fields: [priceListId], references: [id])
   tenant           Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user             User?           @relation(fields: [userId], references: [id])
@@ -443,6 +449,7 @@ model Client {
   @@index([tenantId])
   @@index([type])
   @@index([isActive])
+  @@index([deletedAt]) // Para soft delete
   @@map("clients")
 }
 
@@ -463,6 +470,28 @@ model ClientCredits {
   @@index([userId])
   @@index([type])
   @@map("client_credits")
+}
+
+model ClientDocument {
+  id          String   @id @default(cuid())
+  name        String   // Nombre del documento
+  fileName    String   // Nombre del archivo original
+  fileUrl     String   // URL/path del archivo
+  fileSize    Int      // Tamaño en bytes
+  mimeType    String   // Tipo MIME del archivo
+  description String?  // Descripción opcional
+  category    String?  // Categoría (contrato, identificación, etc.)
+  isPublic    Boolean  @default(false) // Si es visible para el cliente
+  uploadedBy  String   // ID del usuario que subió el documento
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([category])
+  @@index([isPublic])
+  @@map("client_documents")
 }
 
 model LoyaltyPoints {
@@ -1008,8 +1037,9 @@ model ContentEmbedding {
 
 model TenantEmailConfig {
   id          String   @id @default(cuid())
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // tenantId ahora es opcional para soportar configuración global (sin tenant) administrada por SUPER_ADMIN
+  tenantId    String?
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   // Configuración SMTP
   smtpHost     String?
@@ -1035,6 +1065,168 @@ model TenantEmailConfig {
   @@map("tenant_email_configs")
 }
 
+model WidgetApiKey {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // API Key para autenticación
+  apiKey      String   @unique
+  name        String   // Nombre descriptivo (ej: "Sitio Web Principal")
+  description String?
+
+  // Configuración de seguridad
+  allowedOrigins String[] // Dominios permitidos para CORS
+  rateLimit    Int      @default(100) // Mensajes por minuto
+  isActive     Boolean  @default(true)
+
+  // Estadísticas
+  totalRequests Int      @default(0)
+  lastUsedAt   DateTime?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relaciones
+  conversations WidgetConversation[]
+
+  @@index([tenantId])
+  @@index([apiKey])
+  @@index([isActive])
+  @@map("widget_api_keys")
+}
+
+model WidgetConfig {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Configuración visual
+  logoUrl     String?
+  primaryColor String  @default("#007bff")
+  secondaryColor String @default("#6c757d")
+  position    String   @default("right") // 'left' | 'right'
+
+  // Configuración de comportamiento
+  welcomeMessage String @default("¡Hola! Soy tu asistente virtual. ¿En qué puedo ayudarte?")
+  offlineMessage String @default("Estamos fuera de línea. Déjanos tu mensaje y te contactaremos pronto.")
+  businessHours Json? // Horarios de atención
+
+  // Configuración avanzada
+  showTypingIndicator Boolean @default(true)
+  allowFileUpload    Boolean @default(true)
+  maxFileSize        Int      @default(5242880) // 5MB en bytes
+  autoOpenDelay      Int?     // Milisegundos para auto-abrir
+
+  // Información del negocio
+  businessName       String?
+  businessDescription String?
+  contactPhone       String?
+  contactEmail       String?
+
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([isActive])
+  @@map("widget_configs")
+}
+
+model WidgetConversation {
+  id          String   @id @default(cuid())
+  widgetApiKeyId String
+  widgetApiKey WidgetApiKey @relation(fields: [widgetApiKeyId], references: [id], onDelete: Cascade)
+
+  // Información del usuario
+  userId      String?  // ID único del usuario en el sitio web
+  userName    String?
+  userEmail   String?
+  userPhone   String?
+
+  // Información de la sesión
+  sessionId   String   @unique // ID único de la sesión del navegador
+  userAgent   String?
+  ipAddress   String?
+  referrer    String?  // URL de donde viene el usuario
+
+  // Estado de la conversación
+  status      String   @default("active") // 'active' | 'closed' | 'escalated'
+  isOnline    Boolean  @default(true)   // Si el operador está online
+
+  // Estadísticas
+  messageCount Int     @default(0)
+  lastMessageAt DateTime?
+  startedAt   DateTime @default(now())
+  endedAt     DateTime?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relaciones
+  messages    WidgetMessage[]
+
+  @@index([widgetApiKeyId])
+  @@index([sessionId])
+  @@index([status])
+  @@index([userId])
+  @@map("widget_conversations")
+}
+
+model WidgetMessage {
+  id          String   @id @default(cuid())
+  conversationId String
+  conversation WidgetConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  // Contenido del mensaje
+  content     String
+  messageType String   @default("text") // 'text' | 'file' | 'system'
+
+  // Metadatos del archivo (si es tipo file)
+  fileName    String?
+  fileSize    Int?
+  fileType    String?
+  fileUrl     String?
+
+  // Dirección del mensaje
+  direction   String   // 'inbound' | 'outbound' | 'system'
+
+  // Estado de entrega
+  status      String   @default("sent") // 'sent' | 'delivered' | 'read' | 'failed'
+
+  // Información adicional
+  metadata    Json     @default("{}")
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([conversationId])
+  @@index([direction])
+  @@index([createdAt])
+  @@map("widget_messages")
+}
+
+model Expense {
+  id          String        @id @default(cuid())
+  description String
+  amount      Decimal       @db.Decimal(10, 2)
+  category    ExpenseCategory
+  date        DateTime
+  isRecurring Boolean       @default(false)
+  frequency   String?       // 'monthly', 'weekly', 'yearly', etc.
+  notes       String?
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  tenantId    String
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([category])
+  @@index([date])
+  @@map("expenses")
+}
+
 enum EmailTemplateType {
   GLOBAL
   TENANT_BASE
@@ -1052,4 +1244,18 @@ enum ProductType {
   PRODUCT
   SERVICE
   PACKAGE
+}
+
+enum ExpenseCategory {
+  RENT
+  UTILITIES
+  SALARIES
+  MARKETING
+  EQUIPMENT
+  MAINTENANCE
+  INSURANCE
+  TAXES
+  SUPPLIES
+  TRANSPORTATION
+  OTHER
 }

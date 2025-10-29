@@ -5,10 +5,9 @@
 // correspondientes. Se puede ejecutar independientemente.
 // =========================================================================
 
-import { PrismaClient, RoleType } from '@prisma/client'
+import { RoleType } from '@prisma/client'
 import { roleManagementService, getDefaultPermissions } from '../src/lib/role-management'
-
-const prisma = new PrismaClient()
+import { prisma } from '../src/lib/prisma'
 
 // =========================================================================
 // DEFINICIÓN DE ROLES POR DEFECTO
@@ -102,8 +101,8 @@ async function seedDefaultRoles() {
         permissions: defaultPermissions,
       })
 
-      console.log(`  ✅ Rol creado exitosamente: ${newRole.name} (ID: ${newRole.id})`)
-      console.log(`  📊 Permisos creados: ${newRole.permissions.length}`)
+  console.log(`  ✅ Rol creado exitosamente: ${(newRole as any)?.name} (ID: ${(newRole as any)?.id})`)
+  console.log(`  📊 Permisos creados: ${((newRole as any)?.permissions || []).length}`)
     }
 
     console.log('\n🎉 Seed de roles completado exitosamente!')
@@ -121,23 +120,28 @@ async function showRolesSummary() {
   console.log('\n📊 RESUMEN DE ROLES EN EL SISTEMA:')
   console.log('=' .repeat(60))
 
-  const roles = await roleManagementService.listRoles({
+  // NOTE: roleManagementService.listRoles may return complex typed objects
+  // from the role service. For the purpose of this seed script we cast to
+  // `any[]` to avoid TS type mismatches between service return types and
+  // this script's quick logging. If you need stricter types, adapt the
+  // service return signature instead.
+  const roles = (await roleManagementService.listRoles({
     includeGlobal: true,
-  })
+  })) as any[]
 
   for (const role of roles) {
-    console.log(`\n🎭 ${role.name} (${role.type})`)
-    console.log(`   📝 Descripción: ${role.description || 'Sin descripción'}`)
-    console.log(`   🏢 Tenant: ${role.tenantId || 'Global'}`)
-    console.log(`   📊 Permisos: ${role._count.permissions}`)
-    console.log(`   👥 Usuarios asignados: ${role._count.userRoles}`)
-    console.log(`   ✅ Activo: ${role.isActive ? 'Sí' : 'No'}`)
+    console.log(`\n🎭 ${role?.name} (${role?.type})`)
+    console.log(`   📝 Descripción: ${role?.description || 'Sin descripción'}`)
+    console.log(`   🏢 Tenant: ${role?.tenantId || 'Global'}`)
+    console.log(`   📊 Permisos: ${role?._count?.permissions || 0}`)
+    console.log(`   👥 Usuarios asignados: ${role?._count?.userRoles || 0}`)
+    console.log(`   ✅ Activo: ${role?.isActive ? 'Sí' : 'No'}`)
     
     // Mostrar algunos permisos como ejemplo
-    if (role.permissions.length > 0) {
+    if (Array.isArray(role?.permissions) && role.permissions.length > 0) {
       console.log(`   🔐 Permisos principales:`)
-      role.permissions.slice(0, 5).forEach(permission => {
-        console.log(`      • ${permission.action} -> ${permission.resource}`)
+      role.permissions.slice(0, 5).forEach((permission: any) => {
+        console.log(`      • ${permission?.action} -> ${permission?.resource}`)
       })
       if (role.permissions.length > 5) {
         console.log(`      ... y ${role.permissions.length - 5} más`)

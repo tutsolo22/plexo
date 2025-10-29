@@ -11,7 +11,7 @@ interface Message {
   id: string
   content: string
   role: 'user' | 'assistant'
-  timestamp?: string // Cambiar a string para evitar problemas de hidratación
+  timestamp?: string
 }
 
 interface AIAgentProps {
@@ -25,8 +25,9 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
   const [isLoading, setIsLoading] = useState(false)
   const [isClient, setIsClient] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const initializedRef = useRef(false)
 
-  // Función para obtener timestamp formateado
   const getFormattedTime = () => {
     return new Date().toLocaleTimeString('es-ES', {
       hour: '2-digit',
@@ -34,22 +35,52 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
     })
   }
 
-  // Inicializar mensajes solo en el cliente para evitar problemas de hidratación
   useEffect(() => {
     setIsClient(true)
-    setMessages([
-      {
-        id: '1',
-        content: '¡Hola! Soy tu asistente de IA para Plexo. ¿En qué puedo ayudarte hoy? Puedo ayudarte con información sobre eventos, cotizaciones, clientes y más.',
-        role: 'assistant',
-        timestamp: getFormattedTime(),
-      },
-    ])
+
+    // Cargar mensajes previos desde localStorage si existen (evita reset en remounts en Dev StrictMode)
+    try {
+      const saved = localStorage.getItem('plexo_ai_messages')
+      if (saved) {
+        setMessages(JSON.parse(saved))
+      } else if (!initializedRef.current) {
+        // Solo inicializar saludo la primera vez
+        const greeting: Message = {
+          id: '1',
+          content: '¡Hola! Soy tu asistente de IA para Plexo. ¿En qué puedo ayudarte hoy? Puedo ayudarte con información sobre eventos, cotizaciones, clientes y más.',
+          role: 'assistant',
+          timestamp: getFormattedTime(),
+        }
+        setMessages([greeting])
+        initializedRef.current = true
+      }
+    } catch (e) {
+      // si localStorage falla, seguimos con saludo por defecto
+      if (!initializedRef.current) {
+        setMessages([
+          {
+            id: '1',
+            content: '¡Hola! Soy tu asistente de IA para Plexo. ¿En qué puedo ayudarte hoy? Puedo ayudarte con información sobre eventos, cotizaciones, clientes y más.',
+            role: 'assistant',
+            timestamp: getFormattedTime(),
+          },
+        ])
+        initializedRef.current = true
+      }
+    }
   }, [])
 
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
+    }
+    try {
+      // Persistir conversación para evitar pérdida en remounts de React StrictMode
+      if (isClient) {
+        localStorage.setItem('plexo_ai_messages', JSON.stringify(messages))
+      }
+    } catch (e) {
+      // ignore
     }
   }, [messages])
 
@@ -68,7 +99,6 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
     setIsLoading(true)
 
     try {
-      // Simular respuesta de IA (aquí conectarías con tu API de IA real)
       await new Promise(resolve => setTimeout(resolve, 1000))
       
       const assistantMessage: Message = {
@@ -90,6 +120,8 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
       setMessages(prev => [...prev, errorMessage])
     } finally {
       setIsLoading(false)
+      // Volver a enfocar el input para continuar la conversación
+      setTimeout(() => inputRef.current?.focus(), 50)
     }
   }
 
@@ -119,15 +151,14 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
     return 'Entiendo tu consulta. Como asistente de Plexo, puedo ayudarte con la gestión de eventos, cotizaciones, clientes y más. ¿Podrías ser más específico sobre lo que necesitas para poder asistirte mejor?'
   }
 
-  // No renderizar hasta que esté hidratado para evitar errores de hidratación
   if (!isClient) {
     return null
   }
 
   if (isMinimized) {
     return (
-      <Card className="fixed bottom-4 right-4 w-80 shadow-lg border-plexo-purple/20">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-plexo-purple to-plexo-purple/80 text-white">
+      <Card className="fixed bottom-4 right-4 w-80 shadow-lg border-primary/20">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-primary text-primary-foreground">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Bot size={16} />
             Asistente IA
@@ -136,7 +167,7 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
             variant="ghost"
             size="sm"
             onClick={onToggleMinimize}
-            className="h-6 w-6 p-0 text-white hover:bg-white/20"
+            className="h-6 w-6 p-0 text-primary-foreground hover:bg-black/20"
           >
             <Maximize2 size={14} />
           </Button>
@@ -151,8 +182,8 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
   }
 
   return (
-    <Card className="fixed bottom-4 right-4 w-96 h-96 shadow-lg border-plexo-purple/20 flex flex-col">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-plexo-purple to-plexo-purple/80 text-white">
+    <Card className="fixed bottom-4 right-4 w-96 h-96 shadow-lg border-primary/20 flex flex-col">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-primary text-primary-foreground">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Bot size={16} />
           Asistente IA de Plexo
@@ -161,7 +192,7 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
           variant="ghost"
           size="sm"
           onClick={onToggleMinimize}
-          className="h-6 w-6 p-0 text-white hover:bg-white/20"
+          className="h-6 w-6 p-0 text-primary-foreground hover:bg-black/20"
         >
           <Minimize2 size={14} />
         </Button>
@@ -173,34 +204,22 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex gap-3 ${
-                  message.role === 'user' ? 'justify-end' : 'justify-start'
-                }`}
+                className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`flex gap-2 max-w-[80%] ${
-                    message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
-                  }`}
+                  className={`flex gap-2 max-w-[80%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
                 >
                   <div
-                    className={`rounded-full p-1 ${
-                      message.role === 'user'
-                        ? 'bg-plexo-purple/10'
-                        : 'bg-plexo-volt/10'
-                    }`}
+                    className={`rounded-full p-1 ${message.role === 'user' ? 'bg-primary/10' : 'bg-accent/10'}`}
                   >
                     {message.role === 'user' ? (
-                      <User size={12} className="text-plexo-purple" />
+                      <User size={12} className="text-primary" />
                     ) : (
-                      <Bot size={12} className="text-plexo-volt" />
+                      <Bot size={12} className="text-accent" />
                     )}
                   </div>
                   <div
-                    className={`rounded-lg px-3 py-2 text-sm ${
-                      message.role === 'user'
-                        ? 'bg-plexo-purple text-white'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-                    }`}
+                    className={`rounded-lg px-3 py-2 text-sm ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}
                   >
                     <p className="whitespace-pre-wrap">{message.content}</p>
                     {isClient && message.timestamp && (
@@ -215,14 +234,14 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
             {isLoading && (
               <div className="flex gap-3 justify-start">
                 <div className="flex gap-2">
-                  <div className="rounded-full p-1 bg-plexo-volt/10">
-                    <Bot size={12} className="text-plexo-volt" />
+                  <div className="rounded-full p-1 bg-accent/10">
+                    <Bot size={12} className="text-accent" />
                   </div>
-                  <div className="bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2">
+                  <div className="bg-secondary rounded-lg px-3 py-2">
                     <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                     </div>
                   </div>
                 </div>
@@ -235,10 +254,11 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
       <CardFooter className="p-3 border-t">
         <div className="flex gap-2 w-full">
           <Input
+            ref={(el) => { inputRef.current = el }}
             placeholder="Escribe tu mensaje..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !(e as any).shiftKey) { e.preventDefault(); handleSendMessage() } }}
             disabled={isLoading}
             className="flex-1"
           />
@@ -246,7 +266,7 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
             onClick={handleSendMessage}
             disabled={!input.trim() || isLoading}
             size="sm"
-            className="bg-plexo-purple hover:bg-plexo-purple/90"
+            className="bg-primary hover:bg-primary/90"
           >
             <Send size={14} />
           </Button>

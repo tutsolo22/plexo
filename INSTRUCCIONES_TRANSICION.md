@@ -164,3 +164,28 @@ Al abrir la nueva ventana, deberías tener:
 ---
 
 ¡Listo para continuar con la Fase 2! 🚀
+
+## 📝 Notas rápidas - Cambios funcionales aplicados
+
+Se aplicaron dos pequeñas correcciones funcionales que facilitan la experiencia de desarrollo y prueba:
+
+- AI Agent (UI)
+   - Archivo: `src/components/ai-agent.tsx`
+   - Cambio: la conversación ahora se persiste en `localStorage` (clave `plexo_ai_messages`) y el saludo inicial no se re-inicializa en remounts de React (evita que la charla se borre tras 1-2 interacciones en modo desarrollo).
+   - UX: se usa `onKeyDown` para Enter y el input recupera foco tras enviar la respuesta del asistente.
+
+- Dashboard (sidebar)
+   - Archivo: `src/app/dashboard/layout.tsx`
+   - Cambio: el layout del dashboard ahora envuelve el contenido con el componente cliente `DashboardLayout` (renderiza la barra lateral) y las redirecciones apuntan a `/auth/signin`.
+
+Pruebas rápidas:
+
+1. Levanta el servidor de desarrollo:
+```
+npm run dev
+```
+2. En el navegador, inicia sesión con un usuario con rol ADMIN/SUPER_ADMIN.
+3. Abre el Dashboard y expande el Asistente IA. Envía 3–5 mensajes seguidos. Verifica que el input sigue activo y la conversación persiste después de recargar la página.
+4. Verifica que la barra lateral aparece en pantallas grandes y que el botón de menú la muestra en móvil.
+
+Nota: los cambios ya están en la rama `fix/ai-agent-sidebar` y hay un PR draft preparado con descripción y checklist.

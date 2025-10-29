@@ -1,16 +1,16 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { Suspense, useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { 
-  CheckCircle, 
-  Calendar, 
-  MapPin, 
-  Phone, 
-  Mail, 
+import {
+  CheckCircle,
+  Calendar,
+  MapPin,
+  Phone,
+  Mail,
   FileText,
   Heart,
   Star,
@@ -41,11 +41,11 @@ interface QuoteData {
   }
 }
 
-export default function QuoteAcceptedPage() {
+function QuoteAcceptedContent() {
   const searchParams = useSearchParams()
   const quoteId = searchParams.get('quote')
   const token = searchParams.get('token')
-  
+
   const [quoteData, setQuoteData] = useState<QuoteData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -96,10 +96,10 @@ export default function QuoteAcceptedPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando información...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-success mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Cargando información...</p>
         </div>
       </div>
     )
@@ -107,13 +107,13 @@ export default function QuoteAcceptedPage() {
 
   if (error || !quoteData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 to-pink-100 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="max-w-md mx-auto">
           <CardHeader>
-            <CardTitle className="text-red-600 text-center">Error</CardTitle>
+            <CardTitle className="text-destructive text-center">Error</CardTitle>
           </CardHeader>
           <CardContent className="text-center">
-            <p className="text-gray-600 mb-4">{error}</p>
+            <p className="text-muted-foreground mb-4">{error}</p>
             <Button onClick={() => window.location.href = '/'}>
               <Home className="h-4 w-4 mr-2" />
               Ir al Inicio
@@ -125,20 +125,19 @@ export default function QuoteAcceptedPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-100">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
-        
-        {/* Header de Agradecimiento */}
+
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
-            <CheckCircle className="h-12 w-12 text-green-600" />
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-success/10 rounded-full mb-4">
+            <CheckCircle className="h-12 w-12 text-success" />
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          <h1 className="text-4xl font-bold text-foreground mb-2">
             ¡Gracias por Elegirnos!
           </h1>
           <div className="flex items-center justify-center gap-2 mb-4">
             <Heart className="h-5 w-5 text-red-500" />
-            <p className="text-xl text-gray-600">
+            <p className="text-xl text-muted-foreground">
               Tu evento está en las mejores manos
             </p>
             <Heart className="h-5 w-5 text-red-500" />
@@ -146,11 +145,10 @@ export default function QuoteAcceptedPage() {
         </div>
 
         <div className="max-w-4xl mx-auto space-y-6">
-          
-          {/* Información del Evento */}
-          <Card className="border-green-200 bg-white/80 backdrop-blur-sm">
+
+          <Card className="border-success/20 bg-card/80 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-green-700">
+              <CardTitle className="flex items-center gap-2 text-success">
                 <Calendar className="h-5 w-5" />
                 Detalles de tu Evento
               </CardTitle>
@@ -159,7 +157,7 @@ export default function QuoteAcceptedPage() {
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <h3 className="font-semibold text-lg mb-2">{quoteData.event.title}</h3>
-                  <div className="space-y-2 text-gray-600">
+                  <div className="space-y-2 text-muted-foreground">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
                       <span>Inicio: {formatDate(quoteData.event.startDate)}</span>
@@ -176,13 +174,13 @@ export default function QuoteAcceptedPage() {
                     )}
                   </div>
                 </div>
-                <div className="bg-green-50 p-4 rounded-lg">
+                <div className="bg-success/10 p-4 rounded-lg">
                   <div className="text-center">
-                    <Badge className="bg-green-100 text-green-800 mb-2">
+                    <Badge className="bg-success/20 text-success-foreground mb-2">
                       Cotización Aceptada
                     </Badge>
-                    <p className="text-sm text-gray-600 mb-1">Cotización #{quoteData.quoteNumber}</p>
-                    <p className="text-2xl font-bold text-green-700">
+                    <p className="text-sm text-muted-foreground mb-1">Cotización #{quoteData.quoteNumber}</p>
+                    <p className="text-2xl font-bold text-success">
                       {formatCurrency(quoteData.total)}
                     </p>
                   </div>
@@ -191,10 +189,9 @@ export default function QuoteAcceptedPage() {
             </CardContent>
           </Card>
 
-          {/* Próximos Pasos */}
-          <Card className="border-blue-200 bg-white/80 backdrop-blur-sm">
+          <Card className="border-primary/20 bg-card/80 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-blue-700">
+              <CardTitle className="flex items-center gap-2 text-primary">
                 <FileText className="h-5 w-5" />
                 Próximos Pasos
               </CardTitle>
@@ -203,51 +200,51 @@ export default function QuoteAcceptedPage() {
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 font-semibold">1</span>
+                    <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                      <span className="text-primary font-semibold">1</span>
                     </div>
                     <div>
-                      <h4 className="font-semibold text-gray-900">Contacto Personal</h4>
-                      <p className="text-gray-600 text-sm">
+                      <h4 className="font-semibold text-foreground">Contacto Personal</h4>
+                      <p className="text-muted-foreground text-sm">
                         Nos pondremos en contacto contigo en las próximas 24 horas para coordinar los detalles finales.
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 font-semibold">2</span>
+                    <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                      <span className="text-primary font-semibold">2</span>
                     </div>
                     <div>
-                      <h4 className="font-semibold text-gray-900">Firma del Contrato</h4>
-                      <p className="text-gray-600 text-sm">
+                      <h4 className="font-semibold text-foreground">Firma del Contrato</h4>
+                      <p className="text-muted-foreground text-sm">
                         Firmaremos el contrato oficial, ya sea en nuestras instalaciones o a domicilio según tu preferencia.
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 font-semibold">3</span>
+                    <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                      <span className="text-primary font-semibold">3</span>
                     </div>
                     <div>
-                      <h4 className="font-semibold text-gray-900">Planificación Detallada</h4>
-                      <p className="text-gray-600 text-sm">
+                      <h4 className="font-semibold text-foreground">Planificación Detallada</h4>
+                      <p className="text-muted-foreground text-sm">
                         Trabajaremos juntos para perfeccionar cada detalle y hacer de tu evento algo inolvidable.
                       </p>
                     </div>
                   </div>
                 </div>
-                
-                <div className="bg-gradient-to-br from-yellow-50 to-amber-50 p-6 rounded-lg border border-amber-200">
+
+                <div className="bg-accent/10 p-6 rounded-lg border border-accent/20">
                   <div className="flex items-center gap-2 mb-3">
-                    <Star className="h-5 w-5 text-amber-500" />
-                    <h4 className="font-semibold text-amber-800">Promesa de Calidad</h4>
+                    <Star className="h-5 w-5 text-accent" />
+                    <h4 className="font-semibold text-accent">Promesa de Calidad</h4>
                   </div>
-                  <p className="text-amber-700 text-sm mb-4">
+                  <p className="text-accent/80 text-sm mb-4">
                     Nos comprometemos a brindarte un servicio excepcional y hacer de tu evento una experiencia memorable que supere tus expectativas.
                   </p>
-                  <div className="flex items-center gap-2 text-amber-600">
+                  <div className="flex items-center gap-2 text-accent/90">
                     <Users className="h-4 w-4" />
                     <span className="text-sm font-medium">Equipo {quoteData.businessIdentity.name}</span>
                   </div>
@@ -256,10 +253,9 @@ export default function QuoteAcceptedPage() {
             </CardContent>
           </Card>
 
-          {/* Información de Contacto */}
-          <Card className="border-gray-200 bg-white/80 backdrop-blur-sm">
+          <Card className="border bg-card/80 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-gray-700">
+              <CardTitle className="flex items-center gap-2 text-muted-foreground">
                 <Phone className="h-5 w-5" />
                 Información de Contacto
               </CardTitle>
@@ -267,8 +263,8 @@ export default function QuoteAcceptedPage() {
             <CardContent>
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <h4 className="font-semibold text-gray-900 mb-3">Datos del Cliente</h4>
-                  <div className="space-y-2 text-gray-600">
+                  <h4 className="font-semibold text-foreground mb-3">Datos del Cliente</h4>
+                  <div className="space-y-2 text-muted-foreground">
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4" />
                       <span>{quoteData.client.name}</span>
@@ -285,10 +281,10 @@ export default function QuoteAcceptedPage() {
                     )}
                   </div>
                 </div>
-                
+
                 <div>
-                  <h4 className="font-semibold text-gray-900 mb-3">Nuestros Datos</h4>
-                  <div className="space-y-2 text-gray-600">
+                  <h4 className="font-semibold text-foreground mb-3">Nuestros Datos</h4>
+                  <div className="space-y-2 text-muted-foreground">
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4" />
                       <span>{quoteData.businessIdentity.name}</span>
@@ -311,14 +307,13 @@ export default function QuoteAcceptedPage() {
             </CardContent>
           </Card>
 
-          {/* Footer de Agradecimiento */}
           <div className="text-center py-8">
-            <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 max-w-2xl mx-auto">
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+            <div className="bg-card/60 backdrop-blur-sm rounded-2xl p-6 max-w-2xl mx-auto">
+              <h3 className="text-2xl font-bold text-foreground mb-2">
                 ¡Gracias por Confiar en Nosotros!
               </h3>
-              <p className="text-gray-600 mb-4">
-                Estamos emocionados de ser parte de tu evento especial y nos comprometemos 
+              <p className="text-muted-foreground mb-4">
+                Estamos emocionados de ser parte de tu evento especial y nos comprometemos
                 a hacer que sea una experiencia inolvidable.
               </p>
               <div className="flex justify-center gap-2">
@@ -331,5 +326,13 @@ export default function QuoteAcceptedPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function QuoteAcceptedPage() {
+  return (
+    <Suspense fallback={<div>Cargando...</div>}>
+      <QuoteAcceptedContent />
+    </Suspense>
   )
 }

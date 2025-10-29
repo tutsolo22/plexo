@@ -1,0 +1,8 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/plexo-475822/plexo:latest', '-f', 'docker/cloud-run/Dockerfile', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/plexo-475822/plexo:latest']
+images:
+  - 'gcr.io/plexo-475822/plexo:latest'
+timeout: '1800s'

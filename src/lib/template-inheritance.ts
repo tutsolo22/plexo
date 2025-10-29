@@ -1,6 +1,5 @@
-import { PrismaClient, EmailTemplate, EmailCategory } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { EmailTemplate, EmailCategory } from '@prisma/client';
+import { prisma } from '../../src/lib/prisma';
 
 export interface TemplateInheritanceOptions {
   tenantId: string;

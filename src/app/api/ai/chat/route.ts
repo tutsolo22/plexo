@@ -1,7 +1,5 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
-import { agentCoordinator } from '@/lib/ai/agent-coordinator';
-import { conversationMemoryService } from '@/lib/ai/conversation-memory';
 import { withValidation } from '@/lib/api/middleware/validation';
 import { withErrorHandling } from '@/lib/api/middleware/error-handling';
 import { ApiResponses } from '@/lib/api/responses';
@@ -37,6 +35,10 @@ async function chatHandler(req: NextRequest) {
     // let conversationContext: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [];
 
     // Si no hay conversación, crear una nueva
+    // Cargar conversationMemoryService en tiempo de ejecución
+    const convMod = await import('@/lib/ai/conversation-memory');
+    const { conversationMemoryService } = convMod;
+
     if (!currentConversationId) {
       currentConversationId = await conversationMemoryService.createConversation({
         userId: session.user.id,
@@ -88,6 +90,8 @@ async function chatHandler(req: NextRequest) {
     };
 
     // Procesar con el coordinador de agentes (incluye CRM y WhatsApp)
+    const coordMod = await import('@/lib/ai/agent-coordinator');
+    const { agentCoordinator } = coordMod;
     const coordinatorResponse = await agentCoordinator.processMessage(
       messageData,
       session.user.tenantId
@@ -147,8 +151,12 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
     const userId = searchParams.get('userId');
 
     if (conversationId) {
-      // Obtener conversación específica
-      const conversation = await conversationMemoryService.getConversation(conversationId);
+        // Cargar conversationMemoryService en tiempo de ejecución
+        const convMod = await import('@/lib/ai/conversation-memory');
+        const { conversationMemoryService } = convMod;
+
+        // Obtener conversación específica
+        const conversation = await conversationMemoryService.getConversation(conversationId);
 
       if (!conversation) {
         return ApiResponses.notFound('Conversación no encontrada');
@@ -157,7 +165,9 @@ export const GET = withErrorHandling(async (req: NextRequest) => {
       return ApiResponses.success(conversation);
     } else if (userId) {
       // Obtener conversaciones del usuario
-      const conversations = await conversationMemoryService.getUserConversations(userId, 20);
+  const convMod = await import('@/lib/ai/conversation-memory');
+  const { conversationMemoryService } = convMod;
+  const conversations = await conversationMemoryService.getUserConversations(userId, 20);
       return ApiResponses.success(conversations);
     } else {
       return ApiResponses.badRequest('Se requiere conversationId o userId');
@@ -179,7 +189,9 @@ export const DELETE = withErrorHandling(async (req: NextRequest) => {
       return ApiResponses.badRequest('Se requiere conversationId');
     }
 
-    await conversationMemoryService.endConversation(conversationId, reason);
+  const convMod = await import('@/lib/ai/conversation-memory');
+  const { conversationMemoryService } = convMod;
+  await conversationMemoryService.endConversation(conversationId, reason);
 
     return ApiResponses.success({
       message: 'Conversación finalizada',

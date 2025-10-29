@@ -1,7 +1,6 @@
-import { PrismaClient, LegacyUserRole } from '@prisma/client'
+import { LegacyUserRole } from '@prisma/client'
 import bcrypt from 'bcryptjs'
-
-const prisma = new PrismaClient()
+import { prisma } from '../src/lib/prisma'
 
 async function main() {
   console.log('🌱 Iniciando seed limpio de producción...')
