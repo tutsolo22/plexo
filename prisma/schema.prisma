@@ -1037,8 +1037,9 @@ model ContentEmbedding {
 
 model TenantEmailConfig {
   id          String   @id @default(cuid())
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  // tenantId ahora es opcional para soportar configuración global (sin tenant) administrada por SUPER_ADMIN
+  tenantId    String?
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   // Configuración SMTP
   smtpHost     String?

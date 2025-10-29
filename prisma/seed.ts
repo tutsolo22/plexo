@@ -45,13 +45,19 @@ async function main() {
   // Crear único usuario super admin
   const adminUser = await prisma.user.upsert({
     where: { email: 'soporteapps@hexalux.mx' },
-    update: {},
+    update: {
+      isActive: true,
+      emailVerified: new Date(),
+    },
     create: {
       email: 'soporteapps@hexalux.mx',
       password: adminPasswordHash,
       name: 'Administrador Sistema',
       role: LegacyUserRole.SUPER_ADMIN,
       tenantId: mainTenant.id,
+      isActive: true,
+      // Marcar email verificado para evitar bucles de verificación en cuentas seed
+      emailVerified: new Date(),
     },
   })
 

@@ -2,255 +2,63 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  /* ===============================
-   * PLEXO - MODO CLARO ☀️
-   * Tu centro de operaciones para eventos inolvidables
-   * Autor: Manuel Antonio Tut Solorzano - MATS Hexalux
-   * =============================== */
+@layer base {
+  :root {
+    --background: 240 20% 98%; /* #F9FAFC */
+    --foreground: 240 10% 3.9%; /* #0A0A0A */
+    --card: 0 0% 100%; /* #FFFFFF */
+    --card-foreground: 240 10% 3.9%; /* #0A0A0A */
+    --popover: 0 0% 100%; /* #FFFFFF */
+    --popover-foreground: 240 10% 3.9%; /* #0A0A0A */
+    --primary: 262 84% 59%; /* #6A3FF4 */
+    --primary-foreground: 0 0% 100%; /* #FFFFFF */
+    --secondary: 240 4.8% 95.9%; /* #F4F4F5 */
+    --secondary-foreground: 240 5.9% 10%; /* #1A1A1A */
+    --muted: 240 4.8% 95.9%; /* #F4F4F5 */
+    --muted-foreground: 240 3.8% 46.1%; /* #71717A */
+    --accent: 142 71% 45%; /* #22C55E */
+    --accent-foreground: 0 0% 100%; /* #FFFFFF */
+    --destructive: 0 84.2% 60.2%; /* #F43F5E */
+    --destructive-foreground: 0 0% 98%; /* #FAFAFA */
+    --border: 240 5.9% 90%; /* #E4E4E7 */
+    --input: 240 5.9% 90%; /* #E4E4E7 */
+    --ring: 262 84% 59%; /* #6A3FF4 */
+    --radius: 0.5rem;
+    --success: 142 71% 45%; /* #22C55E */
+    --success-foreground: 0 0% 100%; /* #FFFFFF */
+  }
 
-  --radius: 0.625rem;
-
-  /* Paleta base Plexo - Modo Claro */
-  --plexo-primary: #5D38A2;           /* Púrpura principal */
-  --plexo-accent: #B8FF40;            /* Verde Volt (CTA, IA) */
-  --plexo-secondary: #8A817C;         /* Gris cálido */
-  
-  /* Fondos y superficies - Modo Claro */
-  --background: #F7F7F9;              /* Fondo principal */
-  --foreground: #242424;              /* Texto principal */
-  --card: #FFFFFF;                    /* Tarjetas y paneles */
-  --card-foreground: #242424;         /* Texto en tarjetas */
-  --popover: #FFFFFF;                 /* Popovers */
-  --popover-foreground: #242424;      /* Texto en popovers */
-
-  /* Colores principales */
-  --primary: #5D38A2;                 /* Púrpura para títulos y enlaces */
-  --primary-foreground: #FFFFFF;      /* Texto sobre púrpura */
-  --secondary: #F0EBF9;               /* Lavanda suave para etiquetas */
-  --secondary-foreground: #5D38A2;    /* Púrpura sobre lavanda */
-
-  /* Acento y estados */
-  --accent: #B8FF40;                  /* Verde Volt para botones CTA */
-  --accent-foreground: #242424;       /* Texto sobre verde volt */
-  --muted: #F0EBF9;                   /* Elementos sutiles */
-  --muted-foreground: #8A817C;        /* Texto secundario */
-  --destructive: #dc3545;             /* Error - modo claro */
-  --destructive-foreground: #FFFFFF;   /* Texto sobre error */
-
-  /* Bordes e inputs */
-  --border: #F0EBF9;                  /* Bordes sutiles */
-  --input: #FFFFFF;                   /* Inputs */
-  --ring: #5D38A2;                    /* Focus ring púrpura */
-
-  /* Charts con colores Plexo */
-  --chart-1: #5D38A2;                 /* Púrpura principal */
-  --chart-2: #B8FF40;                 /* Verde Volt */
-  --chart-3: #8A817C;                 /* Gris cálido */
-  --chart-4: #F0EBF9;                 /* Lavanda */
-  --chart-5: #28a745;                 /* Verde éxito */
-
-  /* Sidebar con tema Plexo */
-  --sidebar: #FFFFFF;                 /* Fondo sidebar */
-  --sidebar-foreground: #242424;      /* Texto sidebar */
-  --sidebar-primary: #5D38A2;         /* Púrpura sidebar */
-  --sidebar-primary-foreground: #FFFFFF; /* Texto sobre púrpura */
-  --sidebar-accent: #F0EBF9;          /* Acento sidebar */
-  --sidebar-accent-foreground: #5D38A2; /* Texto sobre acento */
-  --sidebar-border: #F0EBF9;          /* Borde sidebar */
-  --sidebar-ring: #5D38A2;            /* Focus sidebar */
-
-  /* Estados */
-  --success: #28a745;                 /* Verde éxito */
-  --warning: #ffc107;                 /* Amarillo advertencia */
-  --info: #5D38A2;                    /* Púrpura información */
-}
-
-.dark {
-  /* ===============================
-   * PLEXO - MODO OSCURO 🌙
-   * Sofisticado y moderno para enfocar en el calendario
-   * =============================== */
-
-  /* Fondos y superficies - Modo Oscuro */
-  --background: #19181B;              /* Gris carbón */
-  --foreground: #F0F0F0;              /* Blanco suave */
-  --card: #262529;                    /* Gris plomo para paneles */
-  --card-foreground: #F0F0F0;         /* Texto en tarjetas */
-  --popover: #262529;                 /* Popovers oscuros */
-  --popover-foreground: #F0F0F0;      /* Texto en popovers */
-
-  /* Colores principales - Modo Oscuro */
-  --primary: #A088D1;                 /* Lavanda brillante */
-  --primary-foreground: #19181B;      /* Texto sobre lavanda */
-  --secondary: #3E305C;               /* Púrpura oscuro para etiquetas */
-  --secondary-foreground: #A088D1;    /* Lavanda sobre púrpura oscuro */
-
-  /* Acento y estados - Modo Oscuro */
-  --accent: #B8FF40;                  /* Verde Volt (mantiene impacto) */
-  --accent-foreground: #242424;       /* Texto sobre verde volt */
-  --muted: #3E305C;                   /* Elementos sutiles */
-  --muted-foreground: #A19A93;        /* Gris cálido claro */
-  --destructive: #F85364;             /* Rojo brillante - modo oscuro */
-  --destructive-foreground: #F0F0F0;   /* Texto sobre error */
-
-  /* Bordes e inputs - Modo Oscuro */
-  --border: #3E305C;                  /* Bordes púrpura oscuro */
-  --input: #262529;                   /* Inputs oscuros */
-  --ring: #A088D1;                    /* Focus ring lavanda */
-
-  /* Charts modo oscuro */
-  --chart-1: #A088D1;                 /* Lavanda brillante */
-  --chart-2: #B8FF40;                 /* Verde Volt */
-  --chart-3: #A19A93;                 /* Gris cálido claro */
-  --chart-4: #3E305C;                 /* Púrpura oscuro */
-  --chart-5: #30C551;                 /* Verde brillante */
-
-  /* Sidebar modo oscuro */
-  --sidebar: #262529;                 /* Fondo sidebar oscuro */
-  --sidebar-foreground: #F0F0F0;      /* Texto sidebar claro */
-  --sidebar-primary: #A088D1;         /* Lavanda sidebar */
-  --sidebar-primary-foreground: #19181B; /* Texto sobre lavanda */
-  --sidebar-accent: #3E305C;          /* Acento sidebar oscuro */
-  --sidebar-accent-foreground: #A088D1; /* Texto sobre acento */
-  --sidebar-border: #3E305C;          /* Borde sidebar */
-  --sidebar-ring: #A088D1;            /* Focus sidebar */
-
-  /* Estados modo oscuro */
-  --success: #30C551;                 /* Verde brillante */
-  --warning: #FFD93D;                 /* Amarillo brillante */
-  --info: #A088D1;                    /* Lavanda información */
-}
-
-.dark {
-  /* ===============================
-   * CRM CASONA MARÍA V2.0 - MODO OSCURO 🌙
-   * Paleta adaptada para tema oscuro
-   * =============================== */
-
-  /* Fondos y superficies */
-  --background: oklch(0.1 0 0); /* #1A1A1D - Fondo principal oscuro */
-  --foreground: oklch(0.95 0 0); /* #F1F1F1 - Texto claro */
-  --card: oklch(0.15 0 0); /* #252529 - Tarjetas oscuras */
-  --card-foreground: oklch(0.95 0 0); /* #F1F1F1 */
-  --popover: oklch(0.15 0 0); /* #252529 */
-  --popover-foreground: oklch(0.95 0 0); /* #F1F1F1 */
-
-  /* Colores principales Casona María - Modo oscuro */
-  --primary: oklch(0.55 0.15 15); /* #E35336 - Terracota (destaca en oscuro) */
-  --primary-foreground: oklch(0.95 0 0); /* Texto claro sobre terracota */
-  --secondary: oklch(0.2 0 0); /* Gris oscuro para secundario */
-  --secondary-foreground: oklch(0.95 0 0); /* #F1F1F1 */
-
-  /* Acento y estados - Modo oscuro */
-  --accent: oklch(0.67 0.15 220); /* #59c4ff - Azul acento (mismo color) */
-  --accent-foreground: oklch(0.1 0 0); /* Texto oscuro sobre azul */
-  --muted: oklch(0.23 0 0); /* #3A3A3F - Elementos sutiles oscuros */
-  --muted-foreground: oklch(0.66 0 0); /* #A9A9A9 - Texto secundario claro */
-  --destructive: oklch(0.66 0.15 20); /* #F85364 - Error más claro */
-
-  /* Bordes e inputs - Modo oscuro */
-  --border: oklch(1 0 0 / 10%); /* Borde sutil transparente */
-  --input: oklch(1 0 0 / 15%); /* Input con transparencia */
-  --ring: oklch(0.55 0.15 15); /* #E35336 - Focus ring terracota */
-
-  /* Charts con colores Casona - Modo oscuro */
-  --chart-1: oklch(0.55 0.15 15); /* Terracota */
-  --chart-2: oklch(0.67 0.15 220); /* Azul brillante */
-  --chart-3: oklch(0.5 0.08 42); /* Beige oscurecido */
-  --chart-4: oklch(0.66 0 0); /* Gris claro */
-  --chart-5: oklch(0.66 0.15 20); /* Rojo claro */
-
-  /* Sidebar con tema Casona - Modo oscuro */
-  --sidebar: oklch(0.15 0 0); /* Fondo oscuro */
-  --sidebar-foreground: oklch(0.95 0 0); /* Texto claro */
-  --sidebar-primary: oklch(0.55 0.15 15); /* Terracota */
-  --sidebar-primary-foreground: oklch(0.95 0 0); /* Texto claro */
-  --sidebar-accent: oklch(0.2 0 0); /* Gris oscuro */
-  --sidebar-accent-foreground: oklch(0.95 0 0); /* Texto claro */
-  --sidebar-border: oklch(1 0 0 / 10%); /* Borde sutil */
-  --sidebar-ring: oklch(0.55 0.15 15); /* Focus terracota */
-
-  /* Colores de estado adaptados para modo oscuro */
-  --success: oklch(0.7 0.15 130); /* Verde más brillante */
-  --warning: oklch(0.75 0.15 85); /* Amarillo más luminoso */
-  --info: oklch(0.7 0.15 210); /* Azul información brillante */
+  .dark {
+    --background: 240 10% 3.9%; /* #0A0A0A */
+    --foreground: 0 0% 98%; /* #FAFAFA */
+    --card: 240 3.7% 15.9%; /* #27272A */
+    --card-foreground: 0 0% 98%; /* #FAFAFA */
+    --popover: 240 3.7% 15.9%; /* #27272A */
+    --popover-foreground: 0 0% 98%; /* #FAFAFA */
+    --primary: 262 84% 69%; /* #8B63F7 */
+    --primary-foreground: 240 10% 3.9%; /* #0A0A0A */
+    --secondary: 240 3.7% 15.9%; /* #27272A */
+    --secondary-foreground: 0 0% 98%; /* #FAFAFA */
+    --muted: 240 3.7% 15.9%; /* #27272A */
+    --muted-foreground: 240 5% 64.9%; /* #A1A1AA */
+    --accent: 142 71% 55%; /* #34D399 */
+    --accent-foreground: 240 10% 3.9%; /* #0A0A0A */
+    --destructive: 0 62.8% 30.6%; /* #991B1B */
+    --destructive-foreground: 0 0% 98%; /* #FAFAFA */
+    --border: 240 3.7% 15.9%; /* #27272A */
+    --input: 240 3.7% 15.9%; /* #27272A */
+    --ring: 262 84% 69%; /* #8B63F7 */
+    --success: 142 71% 55%; /* #34D399 */
+    --success-foreground: 240 10% 3.9%; /* #0A0A0A */
+  }
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings:
-      'rlig' 1,
-      'calt' 1;
-  }
-}
-
-/**
- * ===============================
- * CLASES UTILITARIAS CASONA MARÍA
- * ===============================
- */
-
-@layer components {
-  /* Botones con estilo Casona María */
-  .btn-casona-primary {
-    @apply rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 hover:shadow-md;
-  }
-
-  .btn-casona-secondary {
-    @apply rounded-md bg-accent px-4 py-2 font-medium text-accent-foreground shadow-sm transition-colors hover:bg-accent/90;
-  }
-
-  .btn-casona-outline {
-    @apply rounded-md border border-primary px-4 py-2 font-medium text-primary transition-colors hover:bg-primary hover:text-primary-foreground;
-  }
-
-  /* Cards con diseño Casona */
-  .card-casona {
-    @apply rounded-lg border bg-card text-card-foreground shadow-sm transition-shadow hover:shadow-md;
-  }
-
-  /* Navegación sidebar */
-  .nav-item-active {
-    @apply border-r-2 border-primary bg-primary/10 font-medium text-primary;
-  }
-
-  .nav-item-hover {
-    @apply transition-colors hover:bg-primary/5 hover:text-primary;
-  }
-
-  /* Badges de estado */
-  .badge-success {
-    @apply rounded-full border border-green-200 bg-green-100 px-2 py-1 text-xs font-medium text-green-800;
-  }
-
-  .badge-warning {
-    @apply rounded-full border border-yellow-200 bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800;
-  }
-
-  .badge-error {
-    @apply rounded-full border border-destructive/20 bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive;
-  }
-
-  .badge-info {
-    @apply rounded-full border border-blue-200 bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800;
-  }
-
-  /* Gradientes Casona */
-  .gradient-casona {
-    @apply bg-gradient-to-r from-primary to-accent;
-  }
-
-  .gradient-casona-subtle {
-    @apply bg-gradient-to-br from-primary/5 to-accent/5;
-  }
-
-  /* Input personalizado */
-  .input-casona {
-    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
