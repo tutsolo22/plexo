@@ -63,8 +63,11 @@ export class CRMAgentService {
     }
   ) {
     try {
+      console.log('🔍 CRM Agent v2: Procesando consulta:', { query, context });
+      
       // Analizar intent de la consulta
       const queryIntent = await this.analyzeQueryIntent(query);
+      console.log('📋 Intent analizado:', queryIntent);
 
       // Ejecutar búsqueda según el intent
       let searchResults = null;
@@ -115,12 +118,17 @@ export class CRMAgentService {
         timestamp: new Date(),
       };
     } catch (error) {
-      console.error('Error procesando consulta CRM:', error);
+      console.error('❌ Error procesando consulta CRM:', error);
+      console.error('Error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack?.split('\n').slice(0, 3) : undefined,
+      });
       return {
         query,
         intent: { type: 'error', confidence: 0 },
         results: null,
-        response: 'Lo siento, hubo un error procesando tu consulta. Intenta de nuevo.',
+        response: `Lo siento, hubo un error procesando tu consulta: ${error instanceof Error ? error.message : 'Error desconocido'}`,
         timestamp: new Date(),
       };
     }
