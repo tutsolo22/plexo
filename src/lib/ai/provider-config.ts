@@ -24,6 +24,13 @@ export async function detectServerProvider(): Promise<ProviderConfig> {
   const googleModel = process.env['GOOGLE_AI_MODEL'] || 'gemini-2.5-flash';
   const openaiModel = process.env['OPENAI_MODEL'] || 'gpt-4o-mini';
 
+  console.log('🔍 detectServerProvider: Verificando variables de entorno...', {
+    hasGoogleKey: !!googleApiKey,
+    googleKeyPrefix: googleApiKey ? `${googleApiKey.substring(0, 10)}...` : 'NO CONFIGURADA',
+    hasOpenAIKey: !!openaiApiKey,
+    openaiKeyPrefix: openaiApiKey ? `${openaiApiKey.substring(0, 10)}...` : 'NO CONFIGURADA',
+  });
+
   // Verificar qué proveedores están configurados
   const hasGoogle = !!googleApiKey;
   const hasOpenAI = !!openaiApiKey;
@@ -31,6 +38,7 @@ export async function detectServerProvider(): Promise<ProviderConfig> {
   // Intentar obtener preferencia guardada (esto requiere una llamada al API desde el cliente)
   // En el servidor, priorizamos Google si ambos están disponibles
   if (hasGoogle) {
+    console.log('✅ Google Gemini detectado como proveedor principal');
     return {
       provider: 'google',
       isConfigured: true,
@@ -40,6 +48,7 @@ export async function detectServerProvider(): Promise<ProviderConfig> {
   }
 
   if (hasOpenAI) {
+    console.log('✅ OpenAI detectado como proveedor principal');
     return {
       provider: 'openai',
       isConfigured: true,
@@ -48,6 +57,7 @@ export async function detectServerProvider(): Promise<ProviderConfig> {
     };
   }
 
+  console.error('❌ No se encontró ningún proveedor de IA configurado');
   return {
     provider: null,
     isConfigured: false,

@@ -47,27 +47,50 @@ export class UnifiedAIClient {
   private async initialize(): Promise<void> {
     if (this.activeProvider) return; // Ya inicializado
 
+    console.log('🔍 UnifiedAIClient: Inicializando cliente de IA...');
+
     // Si hay proveedor preferido, intentar usarlo primero
     if (this.config.preferredProvider) {
+      console.log(`🎯 Intentando usar proveedor preferido: ${this.config.preferredProvider}`);
       const providerConfig = getProviderConfig(this.config.preferredProvider);
+      console.log('📋 Configuración del proveedor:', {
+        provider: this.config.preferredProvider,
+        isConfigured: providerConfig?.isConfigured,
+        hasApiKey: !!providerConfig?.apiKey,
+        model: providerConfig?.model,
+      });
+      
       if (providerConfig?.isConfigured) {
         this.activeProvider = this.config.preferredProvider;
         this.initializeProvider(this.config.preferredProvider);
+        console.log(`✅ Proveedor ${this.config.preferredProvider} inicializado correctamente`);
         return;
+      } else {
+        console.warn(`⚠️ Proveedor preferido ${this.config.preferredProvider} no está configurado`);
       }
     }
 
     // Auto-detectar proveedor disponible
+    console.log('🔍 Auto-detectando proveedores disponibles...');
     const detectedConfig = await detectServerProvider();
+    console.log('📋 Proveedor detectado:', {
+      provider: detectedConfig.provider,
+      isConfigured: detectedConfig.isConfigured,
+    });
     
     if (!detectedConfig.isConfigured || !detectedConfig.provider) {
-      throw new Error(
-        'No hay un proveedor de IA configurado. Por favor configura GOOGLE_API_KEY o OPENAI_API_KEY en las variables de entorno.'
-      );
+      const errorMsg = 'No hay un proveedor de IA configurado. Por favor configura GOOGLE_API_KEY o OPENAI_API_KEY en las variables de entorno.';
+      console.error('❌', errorMsg);
+      console.error('Variables de entorno disponibles:', {
+        hasGoogleKey: !!(process.env['GOOGLE_API_KEY'] || process.env['GOOGLE_AI_API_KEY']),
+        hasOpenAIKey: !!process.env['OPENAI_API_KEY'],
+      });
+      throw new Error(errorMsg);
     }
 
     this.activeProvider = detectedConfig.provider;
     this.initializeProvider(detectedConfig.provider);
+    console.log(`✅ Proveedor ${detectedConfig.provider} inicializado por auto-detección`);
   }
 
   /**
