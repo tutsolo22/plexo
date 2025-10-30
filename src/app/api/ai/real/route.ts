@@ -126,7 +126,7 @@ function getRelevantData(message: string) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { message, sessionId } = body;
+    const { message, sessionId, history } = body;
     
     if (!message) {
       return NextResponse.json(
@@ -150,21 +150,41 @@ export async function POST(req: NextRequest) {
       relevantData,
       null,
       2
-    )}\n\nCONSULTA DEL USUARIO: ${message}`;
+    )}`;
 
-    // Llamar a OpenAI
+    // Construir array de mensajes incluyendo historial si está presente
+    const messagesForAPI: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+      {
+        role: 'system',
+        content: contextualPrompt,
+      }
+    ];
+
+    // Añadir historial previo si existe (últimos mensajes para mantener contexto)
+    if (history && Array.isArray(history)) {
+      history.forEach((msg: any) => {
+        if (msg.role === 'user' || msg.role === 'assistant') {
+          messagesForAPI.push({
+            role: msg.role,
+            content: msg.content
+          });
+        }
+      });
+    }
+
+    // Añadir el mensaje actual del usuario si no está ya en el historial
+    const lastMessage = history && history.length > 0 ? history[history.length - 1] : null;
+    if (!lastMessage || lastMessage.content !== message) {
+      messagesForAPI.push({
+        role: 'user',
+        content: message,
+      });
+    }
+
+    // Llamar a OpenAI con el historial completo
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: contextualPrompt,
-        },
-        {
-          role: 'user',
-          content: message,
-        },
-      ],
+      messages: messagesForAPI,
       temperature: 0.7,
       max_tokens: 1500,
     });
@@ -181,7 +201,8 @@ export async function POST(req: NextRequest) {
           model: 'gpt-4o-mini',
           timestamp: new Date().toISOString(),
           tokensUsed: response.usage?.total_tokens || 0,
-          relevantDataTypes: Object.keys(relevantData)
+          relevantDataTypes: Object.keys(relevantData),
+          historyLength: history ? history.length : 0
         }
       }
     });

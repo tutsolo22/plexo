@@ -434,7 +434,7 @@ export default function APIKeyTestPanel() {
                             {result.response && (
                               <div>
                                 <strong>Respuesta:</strong>
-                                <div className="bg-muted p-2 rounded text-xs mt-1">
+                                <div className="bg-muted p-2 rounded text-xs mt-1 max-h-48 overflow-y-auto">
                                   {result.response}
                                 </div>
                               </div>
@@ -443,7 +443,7 @@ export default function APIKeyTestPanel() {
                             {result.error && (
                               <div>
                                 <strong>Error:</strong>
-                                <div className="bg-red-50 text-red-700 p-2 rounded text-xs mt-1">
+                                <div className="bg-red-50 text-red-700 p-2 rounded text-xs mt-1 max-h-48 overflow-y-auto">
                                   {result.error}
                                 </div>
                               </div>
@@ -452,7 +452,7 @@ export default function APIKeyTestPanel() {
                             {result.details && (
                               <div>
                                 <strong>Detalles:</strong>
-                                <pre className="bg-muted p-2 rounded text-xs mt-1 overflow-x-auto">
+                                <pre className="bg-muted p-2 rounded text-xs mt-1 max-h-48 overflow-auto">
                                   {JSON.stringify(result.details, null, 2)}
                                 </pre>
                               </div>

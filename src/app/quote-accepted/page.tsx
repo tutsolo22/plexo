@@ -1,6 +1,6 @@
 'use client'
 
-import React, { Suspense, useState, useEffect } from 'react'
+import React, { Suspense, useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -50,16 +50,7 @@ function QuoteAcceptedContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (quoteId && token) {
-      fetchQuoteData()
-    } else {
-      setError('Enlace inválido o expirado')
-      setLoading(false)
-    }
-  }, [quoteId, token])
-
-  const fetchQuoteData = async () => {
+  const fetchQuoteData = useCallback(async () => {
     try {
       const response = await fetch(`/api/quotes/${quoteId}/public?token=${token}`)
       const data = await response.json()
@@ -74,7 +65,16 @@ function QuoteAcceptedContent() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [quoteId, token]);
+
+  useEffect(() => {
+    if (quoteId && token) {
+      fetchQuoteData()
+    } else {
+      setError('Enlace inválido o expirado')
+      setLoading(false)
+    }
+  }, [quoteId, token, fetchQuoteData])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-MX', {

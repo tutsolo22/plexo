@@ -1,11 +1,12 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Send, Bot, User, Minimize2, Maximize2 } from 'lucide-react'
+import { Send, Bot, User, Minimize2, Maximize2, GripVertical } from 'lucide-react'
 
 interface Message {
   id: string
@@ -20,13 +21,20 @@ interface AIAgentProps {
 }
 
 export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps) {
+  const { data: session } = useSession()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isClient, setIsClient] = useState(false)
-  const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const [provider, setProvider] = useState<'local' | 'google' | 'openai'>('local')
+  const scrollAreaRef = useRef<HTMLDivElement | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const lastMessageRef = useRef<HTMLDivElement | null>(null)
   const initializedRef = useRef(false)
+  const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
+  const [size, setSize] = useState<{ width: number; height: number }>({ width: 420, height: 520 })
+  const draggingRef = useRef<{ active: boolean; startX: number; startY: number; origLeft: number; origTop: number } | null>(null)
+  const resizingRef = useRef<{ active: boolean; startX: number; startY: number; origWidth: number; origHeight: number } | null>(null)
 
   const getFormattedTime = () => {
     return new Date().toLocaleTimeString('es-ES', {
@@ -45,13 +53,37 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
         setMessages(JSON.parse(saved))
       } else if (!initializedRef.current) {
         // Solo inicializar saludo la primera vez
-        const greeting: Message = {
+        const userName = session?.user?.name || 'Usuario'
+        const userRole = (session?.user as any)?.role || 'usuario'
+        
+        let greeting = `¡Hola ${userName}! Soy tu asistente de IA para Plexo. `
+        
+        // Personalizar el saludo según el rol
+        if (userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') {
+          greeting += `Como ${userRole === 'SUPER_ADMIN' ? 'Super Administrador' : 'Administrador'}, puedo ayudarte con:\n\n` +
+                     `• Gestión completa de eventos, clientes y cotizaciones\n` +
+                     `• Análisis de datos y reportes\n` +
+                     `• Configuración del sistema\n` +
+                     `• Gestión de usuarios y permisos\n\n` +
+                     `¿En qué puedo ayudarte hoy?`
+        } else if (userRole === 'MANAGER') {
+          greeting += `Como Manager, puedo ayudarte con:\n\n` +
+                     `• Gestión de eventos y cotizaciones\n` +
+                     `• Administración de clientes\n` +
+                     `• Reportes y estadísticas\n` +
+                     `• Supervisión de operaciones\n\n` +
+                     `¿Qué necesitas?`
+        } else {
+          greeting += `Puedo ayudarte con información sobre eventos, cotizaciones, clientes y más. ¿En qué puedo asistirte hoy?`
+        }
+        
+        const greetingMsg: Message = {
           id: '1',
-          content: '¡Hola! Soy tu asistente de IA para Plexo. ¿En qué puedo ayudarte hoy? Puedo ayudarte con información sobre eventos, cotizaciones, clientes y más.',
+          content: greeting,
           role: 'assistant',
           timestamp: getFormattedTime(),
         }
-        setMessages([greeting])
+        setMessages([greetingMsg])
         initializedRef.current = true
       }
     } catch (e) {
@@ -68,11 +100,74 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
         initializedRef.current = true
       }
     }
-  }, [])
+  }, [session])
+
+  // establecer posición inicial (bottom-right) una vez en cliente
+  useEffect(() => {
+    if (!isClient) return
+    if (position) return
+    const w = window.innerWidth
+    const h = window.innerHeight
+    const left = Math.max(12, w - size.width - 24)
+    const top = Math.max(80, h - size.height - 24)
+    setPosition({ left, top })
+  }, [isClient, position, size])
+
+  const startDrag = (e: React.MouseEvent) => {
+    if (!position) return
+    draggingRef.current = { active: true, startX: e.clientX, startY: e.clientY, origLeft: position.left, origTop: position.top }
+    window.addEventListener('mousemove', onDrag)
+    window.addEventListener('mouseup', endDrag)
+  }
+
+  const onDrag = (e: MouseEvent) => {
+    const d = draggingRef.current
+    if (!d || !position) return
+    const dx = e.clientX - d.startX
+    const dy = e.clientY - d.startY
+    setPosition({ left: Math.max(8, d.origLeft + dx), top: Math.max(8, d.origTop + dy) })
+  }
+
+  const endDrag = () => {
+    draggingRef.current = null
+    window.removeEventListener('mousemove', onDrag)
+    window.removeEventListener('mouseup', endDrag)
+  }
+
+  const startResize = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    resizingRef.current = { active: true, startX: e.clientX, startY: e.clientY, origWidth: size.width, origHeight: size.height }
+    window.addEventListener('mousemove', onResize)
+    window.addEventListener('mouseup', endResize)
+  }
+
+  const onResize = (e: MouseEvent) => {
+    const r = resizingRef.current
+    if (!r) return
+    const dx = e.clientX - r.startX
+    const dy = e.clientY - r.startY
+    const newWidth = Math.max(320, Math.min(800, r.origWidth + dx))
+    const newHeight = Math.max(400, Math.min(900, r.origHeight + dy))
+    setSize({ width: newWidth, height: newHeight })
+  }
+
+  const endResize = () => {
+    resizingRef.current = null
+    window.removeEventListener('mousemove', onResize)
+    window.removeEventListener('mouseup', endResize)
+  }
 
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
+    // Intentar desplazar el último mensaje a la vista
+    try {
+      if (lastMessageRef.current) {
+        lastMessageRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
+      } else if (scrollAreaRef.current) {
+        // fallback: desplazar el contenedor
+        (scrollAreaRef.current as any).scrollTop = (scrollAreaRef.current as any).scrollHeight
+      }
+    } catch (e) {
+      // ignore
     }
     try {
       // Persistir conversación para evitar pérdida en remounts de React StrictMode
@@ -94,16 +189,61 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
       timestamp: getFormattedTime(),
     }
 
-    setMessages(prev => [...prev, userMessage])
+    const newMessages = [...messages, userMessage]
+    setMessages(newMessages)
     setInput('')
     setIsLoading(true)
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Enviar historial completo (últimos 10 mensajes + el nuevo) para mantener contexto
+      const historyToSend = newMessages.slice(-10)
       
+      let assistantText = ''
+      
+      if (provider === 'google') {
+        // Llamar endpoint de Google con historial
+        try {
+          const res = await fetch('/api/ai/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              prompt: input,
+              history: historyToSend 
+            })
+          })
+          if (!res.ok) throw new Error('Google API error')
+          const data = await res.json()
+          assistantText = data?.data?.message || data?.text || 'Lo siento, no recibí respuesta del proveedor.'
+        } catch (e) {
+          console.error('Google provider error', e)
+          assistantText = 'Lo siento, hubo un error contactando al proveedor Google.'
+        }
+      } else if (provider === 'openai') {
+        // Llamar endpoint de OpenAI (real) con historial
+        try {
+          const res = await fetch('/api/ai/real', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              message: input,
+              history: historyToSend 
+            })
+          })
+          if (!res.ok) throw new Error('OpenAI API error')
+          const data = await res.json()
+          assistantText = data?.data?.message || 'Lo siento, no recibí respuesta del proveedor.'
+        } catch (e) {
+          console.error('OpenAI provider error', e)
+          assistantText = 'Lo siento, hubo un error contactando al proveedor OpenAI.'
+        }
+      } else {
+        // fallback local simple responder (sin llamada a servidor)
+        assistantText = generateAIResponse(input)
+      }
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: generateAIResponse(input),
+        content: assistantText,
         role: 'assistant',
         timestamp: getFormattedTime(),
       }
@@ -121,8 +261,28 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
     } finally {
       setIsLoading(false)
       // Volver a enfocar el input para continuar la conversación
-      setTimeout(() => inputRef.current?.focus(), 50)
+      setTimeout(() => {
+        try {
+          inputRef.current?.focus()
+        } catch (e) {
+          // ignore
+        }
+      }, 50)
     }
+  }
+
+  const clearConversation = () => {
+    try {
+      localStorage.removeItem('plexo_ai_messages')
+    } catch (e) {}
+    initializedRef.current = false
+    const greeting: Message = {
+      id: Date.now().toString(),
+      content: '¡Hola! Soy tu asistente de IA para Plexo. ¿En qué puedo ayudarte hoy? Puedo ayudarte con información sobre eventos, cotizaciones, clientes y más.',
+      role: 'assistant',
+      timestamp: getFormattedTime(),
+    }
+    setMessages([greeting])
   }
 
   const generateAIResponse = (userInput: string): string => {
@@ -156,54 +316,61 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
   }
 
   if (isMinimized) {
+    // minimized as a small draggable button to avoid covering UI
     return (
-      <Card className="fixed bottom-4 right-4 w-80 shadow-lg border-primary/20">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-primary text-primary-foreground">
+      <div style={position ? { position: 'fixed', left: position.left, top: position.top, zIndex: 60 } : { position: 'fixed', right: 16, bottom: 16, zIndex: 60 }}>
+        <div onMouseDown={startDrag} className="flex items-center gap-2 cursor-grab select-none bg-primary text-primary-foreground rounded-full shadow p-2">
+          <Bot size={16} />
+          <button onClick={(e)=>{ e.stopPropagation(); onToggleMinimize?.() }} aria-label="Maximize" className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center ml-2">
+            <Maximize2 size={14} />
+          </button>
+          <button onClick={(e)=>{ e.stopPropagation(); clearConversation() }} aria-label="Clear" className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center ml-2">
+            C
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={position ? { position: 'fixed', left: position.left, top: position.top, zIndex: 60, width: size.width, height: size.height } : { position: 'fixed', right: 16, bottom: 16, zIndex: 60, width: size.width, height: size.height }}>
+      <Card className="w-full h-full shadow-lg border-primary/20 flex flex-col relative">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-primary text-primary-foreground shrink-0">
+        <div onMouseDown={startDrag} className="flex-1 cursor-grab">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Bot size={16} />
-            Asistente IA
+            Asistente IA de Plexo
           </CardTitle>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Selector de proveedor */}
+          <select 
+            value={provider} 
+            onChange={(e) => setProvider(e.target.value as 'local' | 'google' | 'openai')}
+            className="h-6 px-2 text-xs rounded bg-primary-foreground/10 text-primary-foreground border-none outline-none cursor-pointer"
+          >
+            <option value="local">Local</option>
+            <option value="openai">OpenAI</option>
+            <option value="google">Google</option>
+          </select>
+          <Button variant="ghost" size="sm" onClick={clearConversation} className="h-6 w-6 p-0 text-primary-foreground hover:bg-black/20">C</Button>
           <Button
             variant="ghost"
             size="sm"
             onClick={onToggleMinimize}
             className="h-6 w-6 p-0 text-primary-foreground hover:bg-black/20"
           >
-            <Maximize2 size={14} />
+            <Minimize2 size={14} />
           </Button>
-        </CardHeader>
-        <CardContent className="p-3">
-          <p className="text-sm text-muted-foreground">
-            Haz clic para expandir y chatear conmigo
-          </p>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  return (
-    <Card className="fixed bottom-4 right-4 w-96 h-96 shadow-lg border-primary/20 flex flex-col">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-primary text-primary-foreground">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <Bot size={16} />
-          Asistente IA de Plexo
-        </CardTitle>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onToggleMinimize}
-          className="h-6 w-6 p-0 text-primary-foreground hover:bg-black/20"
-        >
-          <Minimize2 size={14} />
-        </Button>
+        </div>
       </CardHeader>
       
-      <CardContent className="flex-1 p-0">
-        <ScrollArea ref={scrollAreaRef} className="h-full p-4">
-          <div className="space-y-4">
-            {messages.map((message) => (
+      <CardContent className="flex-1 p-4 overflow-hidden flex flex-col">
+        <div ref={scrollAreaRef} className="space-y-4 flex-1 overflow-y-auto">
+            {messages.map((message, idx) => (
               <div
                 key={message.id}
+                ref={idx === messages.length - 1 ? lastMessageRef : null}
                 className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
@@ -247,8 +414,7 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
                 </div>
               </div>
             )}
-          </div>
-        </ScrollArea>
+        </div>
       </CardContent>
       
       <CardFooter className="p-3 border-t">
@@ -272,6 +438,16 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
           </Button>
         </div>
       </CardFooter>
+      
+      {/* Resize handle */}
+      <div 
+        onMouseDown={startResize}
+        className="absolute bottom-0 right-0 p-1 cursor-nwse-resize opacity-50 hover:opacity-100 transition-opacity"
+        title="Redimensionar"
+      >
+        <GripVertical size={16} className="text-muted-foreground" />
+      </div>
     </Card>
+    </div>
   )
 }

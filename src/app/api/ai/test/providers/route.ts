@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
 import { ApiResponses } from '@/lib/api/responses';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { OpenAI } from 'openai';
 import { z } from 'zod';
 
@@ -94,7 +93,7 @@ async function getProvidersInfoHandler(_req: NextRequest) {
           configured: googleConfigured,
           keyPreview: googleKeyPreview,
           envVar: 'GOOGLE_API_KEY',
-          models: ['gemini-1.5-flash', 'gemini-1.5-pro'],
+          models: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash', 'gemini-flash-latest'],
           status: googleConfigured ? 'configured' : 'missing',
         },
         openai: {
@@ -139,15 +138,39 @@ async function testGoogleAI(customKey?: string, testMessage?: string): Promise<P
   }
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'models/gemini-1.5-flash' });
+    // Usar directamente la API REST v1beta en lugar del SDK
+    const modelName = 'models/gemini-2.5-flash';
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`;
+    
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: testMessage || 'Responde solo con "OK" si recibes este mensaje'
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 500,
+        }
+      })
+    });
 
-    const result = await model.generateContent(
-      testMessage || 'Responde solo con "OK" si recibes este mensaje'
-    );
-    const response = result.response;
-    const text = response.text();
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+    }
 
+    const data = await response.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Sin respuesta';
     const responseTime = Date.now() - startTime;
 
     return {
@@ -158,9 +181,10 @@ async function testGoogleAI(customKey?: string, testMessage?: string): Promise<P
       response: text,
       responseTime,
       details: {
-        model: 'gemini-1.5-flash',
-        tokensUsed: 'No disponible en Gemini',
-        finishReason: response.candidates?.[0]?.finishReason || 'unknown',
+        model: modelName,
+        apiVersion: 'v1beta',
+        tokensUsed: 'No disponible en respuesta',
+        finishReason: data.candidates?.[0]?.finishReason || 'unknown',
       },
     };
   } catch (error: any) {

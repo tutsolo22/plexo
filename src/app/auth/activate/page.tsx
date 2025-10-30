@@ -3,6 +3,10 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import React from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
@@ -19,36 +23,66 @@ function ActivateContent() {
       setMessage('Token de activación no encontrado.');
       return;
     }
-
-    const activateAccount = async () => {
+    // Primero verificamos si el token es válido y si el usuario necesita establecer contraseña
+    const checkToken = async () => {
       try {
-        const response = await fetch('/api/auth/activate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token }),
-        });
-
-        const data = await response.json();
-        console.log('Activation response:', data);
-
-        if (response.ok) {
-          setStatus('success');
-          setMessage(data.message || '¡Cuenta activada exitosamente!');
-          setTimeout(() => {
-            router.push('/auth/login');
-          }, 3000);
-        } else {
-          setStatus('error');
-          setMessage(data.error || 'Error al activar la cuenta.');
+        const resp = await fetch(`/api/auth/activate?token=${encodeURIComponent(token)}`)
+        const json = await resp.json()
+        if (!resp.ok) {
+          setStatus('error')
+          setMessage(json.error || 'Token inválido')
+          return
         }
-      } catch (error) {
-        setStatus('error');
-        setMessage('Error de conexión. Inténtalo de nuevo.');
-      }
-    };
 
-    activateAccount();
+        // json.data puede contener { needsPassword: boolean }
+        if (json.data?.needsPassword) {
+          setStatus('needs_password')
+        } else {
+          // Si no necesita password, activar directamente
+          const response = await fetch('/api/auth/activate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token }),
+          })
+          const data = await response.json()
+          if (response.ok) {
+            setStatus('success')
+            setMessage(data.message || '¡Cuenta activada exitosamente!')
+            setTimeout(() => router.push('/auth/login'), 2500)
+          } else {
+            setStatus('error')
+            setMessage(data.error || 'Error al activar la cuenta.')
+          }
+        }
+      } catch (e) {
+        setStatus('error')
+        setMessage('Error de conexión. Inténtalo de nuevo.')
+      }
+    }
+
+    checkToken()
   }, [token, router]);
+
+  const [newPassword, setNewPassword] = useState('')
+  const submitPassword = async () => {
+    if (!token || newPassword.length < 6) return
+    setStatus('loading')
+    try {
+      const resp = await fetch('/api/auth/activate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, password: newPassword }) })
+      const json = await resp.json()
+      if (resp.ok) {
+        setStatus('success')
+        setMessage(json.message || 'Contraseña establecida. Redirigiendo al login...')
+        setTimeout(() => router.push('/auth/login'), 2500)
+      } else {
+        setStatus('error')
+        setMessage(json.error || 'Error estableciendo contraseña')
+      }
+    } catch (e) {
+      setStatus('error')
+      setMessage('Error de red')
+    }
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -75,6 +109,17 @@ function ActivateContent() {
               <XCircle className="h-4 w-4" />
               <AlertDescription>{message}</AlertDescription>
             </Alert>
+          )}
+          {status === 'needs_password' && (
+            <div className="space-y-4">
+              <div>
+                <Label>Crear contraseña</Label>
+                <Input type="password" value={newPassword} onChange={(e: React.ChangeEvent<HTMLInputElement>)=>setNewPassword(e.target.value)} placeholder="Mínimo 6 caracteres" />
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={submitPassword}>Establecer contraseña</Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

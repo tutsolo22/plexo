@@ -1,8 +1,5 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { prisma } from '@/lib/prisma';
-
-// Configuración de Gemini AI para embeddings
-const genAI = new GoogleGenerativeAI(process.env['GOOGLE_AI_API_KEY'] || '');
+import { GoogleAIClient } from './google-ai-client';
 
 export interface EmbeddingResult {
   embedding: number[];
@@ -28,29 +25,27 @@ export interface SearchOptions {
 }
 
 export class CRMEmbeddingService {
-  private model: any;
+  private aiClient: GoogleAIClient;
   private dimensions: number = 768; // Dimensiones estándar de Gemini embeddings
 
   constructor() {
-    // Usar el modelo de embeddings de Gemini
-    this.model = genAI.getGenerativeModel({ model: 'embedding-001' });
+    this.aiClient = new GoogleAIClient();
   }
 
   /**
-   * Genera embedding usando Gemini AI
+   * Genera embedding usando Google AI
    */
   async generateEmbedding(text: string): Promise<EmbeddingResult> {
     try {
-      const result = await this.model.embedContent(text);
-      const embedding = result.embedding.values;
+      const embedding = await this.aiClient.embedContent(text);
 
       return {
         embedding,
         dimensions: embedding.length,
       };
     } catch (error) {
-      console.error('Error generando embedding con Gemini:', error);
-      throw new Error('Failed to generate embedding with Gemini');
+      console.error('Error generando embedding con Google AI:', error);
+      throw new Error('Failed to generate embedding with Google AI');
     }
   }
 

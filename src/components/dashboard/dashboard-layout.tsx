@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { isAtLeast } from '@/lib/client/roles';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { signOut } from 'next-auth/react';
+
 import {
   Users,
   Calendar,
@@ -86,6 +86,15 @@ const adminNavGroup: NavGroup = {
   ]
 };
 
+const clientPortalNavGroup: NavGroup = {
+  title: 'Portal de Cliente',
+  items: [
+    { name: 'Inicio', href: '/client-portal', icon: Home },
+    { name: 'Mis Eventos', href: '/client-portal/events', icon: Calendar },
+    { name: 'Mis Cotizaciones', href: '/client-portal/quotes', icon: FileText },
+  ],
+};
+
 const systemNavGroup: NavGroup = {
   title: 'Sistema',
   items: [
@@ -110,9 +119,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const role = session?.user?.role as string | undefined;
   const isAdmin = isAtLeast(role, 'MANAGER');
 
-  const effectiveNavGroups = isAdmin
-    ? [...navigationGroups, adminNavGroup, systemNavGroup]
-    : [...navigationGroups, systemNavGroup];
+  const effectiveNavGroups = role === 'CLIENT_EXTERNAL'
+    ? [clientPortalNavGroup]
+    : isAdmin
+      ? [...navigationGroups, adminNavGroup, systemNavGroup]
+      : [...navigationGroups, systemNavGroup];
 
   useEffect(() => {
     const activeGroup = effectiveNavGroups.find(group => 
@@ -121,7 +132,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     if (activeGroup && !openGroups.includes(activeGroup.title)) {
       setOpenGroups(prev => [...prev, activeGroup.title]);
     }
-  }, [pathname, effectiveNavGroups]);
+  }, [pathname, effectiveNavGroups, openGroups]);
 
   const toggleGroup = (title: string) => {
     setOpenGroups(prev => 

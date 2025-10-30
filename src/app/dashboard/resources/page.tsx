@@ -1,4 +1,5 @@
 import { Metadata } from 'next'
+import ResourcesClient from '@/components/resources/ResourcesClient'
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 
@@ -25,8 +26,9 @@ export default async function ResourcesPage() {
       <p className="text-sm text-gray-600 mt-2">Gestión de recursos, archivos y configuraciones del sistema.</p>
 
       <div className="mt-6">
+        {/* Client component to manage tenant-specific configurations like WhatsApp and MercadoPago */}
         <div className="rounded border bg-card p-6 shadow-sm">
-          <p className="text-card-foreground">Panel de recursos (implementación pendiente)</p>
+          <ResourcesClient />
         </div>
       </div>
     </div>

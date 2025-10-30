@@ -24,8 +24,11 @@ export default function SignInPage() {
       } else {
         setError({ message: "Error al iniciar sesión. Intenta nuevamente." });
       }
-    } else if (result?.ok) {
-      router.push('/dashboard');
+    } else if (result?.ok || result?.url) {
+      // NextAuth v5 (beta) puede devolver `url` en lugar de `ok`.
+      const target = result?.url || '/dashboard';
+      // Redirigir al callbackUrl si existe, sino al dashboard
+      router.push(target);
       router.refresh();
     }
   };

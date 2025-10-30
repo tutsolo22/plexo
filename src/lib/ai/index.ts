@@ -85,8 +85,8 @@ export type {
 // Configuración por defecto
 export const AI_CONFIG = {
   models: {
-    crm: 'gemini-1.5-flash',
-    whatsapp: 'gemini-1.5-flash',
+    crm: 'gemini-2.5-flash',
+    whatsapp: 'gemini-2.5-flash',
     embeddings: 'text-embedding-004'
   },
   settings: {
