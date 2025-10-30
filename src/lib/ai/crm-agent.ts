@@ -152,7 +152,7 @@ Proporciona una respuesta clara, estructurada y útil usando estos datos.
       // Respuesta directa sin funciones - con historial
       const historyFormatted = history.map(msg => ({
         role: msg.role === 'user' ? 'user' as const : 'model' as const,
-        text: msg.parts[0].text
+        text: msg.parts[0]?.text || ''
       }));
       
       const result = await this.aiClient.generateContentWithHistory(message, historyFormatted);
