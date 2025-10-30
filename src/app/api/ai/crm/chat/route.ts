@@ -30,9 +30,9 @@ async function crmChatHandler(req: NextRequest) {
       return ApiResponses.unauthorized('Acceso no autorizado');
     }
 
-    const body = await req.json();
-    const { message, conversationId, sessionId, platform, userPhone } =
-      crmChatRequestSchema.parse(body);
+    // Obtener datos validados del middleware (no leer req.json() otra vez)
+    const validatedData = (req as any).validatedData;
+    const { message, conversationId, sessionId, platform, userPhone } = validatedData;
 
     // Usar sessionId como conversationId si no se proporciona conversationId
     let currentConversationId = conversationId || sessionId;
