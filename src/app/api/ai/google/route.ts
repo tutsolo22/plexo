@@ -18,18 +18,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verificar que la API key esté configurada
-    const apiKey = process.env['GOOGLE_API_KEY'];
+    // Verificar que la API key esté configurada (soporta ambas variables)
+    const apiKey = process.env['GOOGLE_API_KEY'] || process.env['GOOGLE_AI_API_KEY'];
     if (!apiKey) {
+      console.error('❌ Google API Key no encontrada. Variables verificadas:', {
+        GOOGLE_API_KEY: !!process.env['GOOGLE_API_KEY'],
+        GOOGLE_AI_API_KEY: !!process.env['GOOGLE_AI_API_KEY'],
+      });
       return NextResponse.json(
         { 
           success: false, 
           error: 'Google API Key no configurada',
-          message: 'Por favor configura GOOGLE_API_KEY en las variables de entorno'
+          message: 'Por favor configura GOOGLE_API_KEY o GOOGLE_AI_API_KEY en las variables de entorno'
         },
         { status: 500 }
       );
     }
+    
+    console.log('✅ Google API Key encontrada:', apiKey.substring(0, 10) + '...');
 
     // Usar el modelo configurado o el modelo por defecto (Gemini 2.5 Flash)
     let modelName = process.env['GOOGLE_AI_MODEL'] || 'gemini-2.5-flash';
