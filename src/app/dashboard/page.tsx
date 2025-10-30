@@ -18,6 +18,8 @@ export default function DashboardPage() {
     setMounted(true);
   }, []);
 
+  const showSecondAgent = process.env.NEXT_PUBLIC_ENABLE_SECOND_AI === 'true'
+
   return (
     <div className='space-y-8'>
       {/* Header */}
@@ -62,8 +64,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* AI Agent - Solo renderizar cuando esté montado */}
-      {mounted && (
+      {/* AI Agent - Solo renderizar cuando esté montado y la flag NEXT_PUBLIC_ENABLE_SECOND_AI=true */}
+      {mounted && showSecondAgent && (
         <AIAgent
           isMinimized={isAIMinimized}
           onToggleMinimize={() => setIsAIMinimized(!isAIMinimized)}

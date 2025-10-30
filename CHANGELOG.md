@@ -11,7 +11,15 @@ adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- � **Infraestructura de Producción Completa con Docker**: Despliegue production-ready
+- 🤖 **Actualización Agente IA con Google Gemini 2.5**: Mejoras al asistente flotante
+  - Componente redimensionable (320-800px x 400-900px) con scroll adaptativo
+  - Integración con NextAuth para contexto de usuario y saludos personalizados por rol
+  - Migración a Google Gemini 2.5 (gemini-2.5-flash como predeterminado)
+  - Cliente centralizado REST API directo (sin SDK) para control total de versiones
+  - Actualización de todos los agentes AI (WhatsApp, CRM, Embeddings) al nuevo modelo
+  - Ver detalles en: `ACTUALIZACION_AGENTE_IA_GOOGLE.md`
+
+- 🔄 **Infraestructura de Producción Completa con Docker**: Despliegue production-ready
   - `docker-compose.prod.yml`: Orquestación completa con app, PostgreSQL, Redis, Nginx
   - `nginx.conf`: Configuración de proxy reverso con SSL, rate limiting, headers de seguridad
   - Health checks automáticos y configuración de recursos

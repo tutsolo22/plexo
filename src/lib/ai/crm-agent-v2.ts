@@ -3,13 +3,10 @@
  * Agente especializado en operaciones CRM con IA integrada
  */
 
-import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
 import { prisma } from '@/lib/prisma';
 import { crmEmbeddingService, SearchOptions } from './crm-embeddings';
 import { Prisma } from '@prisma/client';
-
-// Configuración del modelo Gemini
-const genAI = new GoogleGenerativeAI(process.env['GEMINI_API_KEY']!);
+import { GoogleAIClient } from './google-ai-client';
 
 // Interfaces para parámetros de búsqueda
 export interface BaseCRMParams {
@@ -43,17 +40,14 @@ export interface SearchQuotesParams extends BaseCRMParams {
 
 // Servicio del agente CRM simplificado
 export class CRMAgentService {
-  private model: GenerativeModel;
+  private aiClient: GoogleAIClient;
 
   constructor() {
-    this.model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.8,
-        maxOutputTokens: 2048,
-      },
+    this.aiClient = new GoogleAIClient({
+      temperature: 0.7,
+      topK: 40,
+      topP: 0.8,
+      maxOutputTokens: 2048,
     });
   }
 
@@ -158,8 +152,8 @@ Guías:
 - general: para cualquier otra consulta
 `;
 
-      const result = await this.model.generateContent(prompt);
-      const response = result.response.text().trim();
+      const result = await this.aiClient.generateContent(prompt);
+      const response = result.text.trim();
 
       // Limpiar la respuesta para obtener solo el JSON
       const jsonMatch = response.match(/\{[\s\S]*\}/);
@@ -527,8 +521,8 @@ Instrucciones:
 Respuesta:
 `;
 
-      const result = await this.model.generateContent(prompt);
-      return result.response.text();
+      const result = await this.aiClient.generateContent(prompt);
+      return result.text;
     } catch (error) {
       console.error('Error generando respuesta:', error);
       return this.generateFallbackResponse(results);

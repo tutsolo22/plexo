@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const genAI = new GoogleGenerativeAI(process.env['GOOGLE_AI_API_KEY'] || '');
+import { googleAI } from '@/lib/ai/google-ai-client';
 
 // Datos de ejemplo que ya tienes en la base de datos
 const SAMPLE_DATA = {
@@ -192,14 +190,9 @@ CONSULTA DEL USUARIO: ${message}
 
 Por favor responde de manera profesional y útil basándote en los datos disponibles.`;
 
-    // Obtener el modelo Gemini (usando el modelo seleccionado o por defecto)
-    const selectedModel = model || "gemini-pro";
-    const geminiModel = genAI.getGenerativeModel({ model: selectedModel });
-
     // Llamar a Google AI
-    const result = await geminiModel.generateContent(contextualPrompt);
-    const response = await result.response;
-    const aiResponse = response.text();
+    const result = await googleAI.generateContent(contextualPrompt);
+    const aiResponse = result.text;
 
     return NextResponse.json({
       success: true,
@@ -208,7 +201,7 @@ Por favor responde de manera profesional y útil basándote en los datos disponi
         conversationId: sessionId || `gemini-ai-${Date.now()}`,
         platform: 'web',
         metadata: {
-          model: selectedModel,
+          model: model || 'gemini-2.5-flash',
           timestamp: new Date().toISOString(),
           provider: 'Google AI',
           relevantDataTypes: Object.keys(relevantData)
