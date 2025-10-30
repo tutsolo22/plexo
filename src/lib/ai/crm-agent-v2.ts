@@ -6,7 +6,7 @@
 import { prisma } from '@/lib/prisma';
 import { crmEmbeddingService, SearchOptions } from './crm-embeddings';
 import { Prisma } from '@prisma/client';
-import { GoogleAIClient } from './google-ai-client';
+import { UnifiedAIClient } from './unified-ai-client';
 
 // Interfaces para parámetros de búsqueda
 export interface BaseCRMParams {
@@ -40,10 +40,10 @@ export interface SearchQuotesParams extends BaseCRMParams {
 
 // Servicio del agente CRM simplificado
 export class CRMAgentService {
-  private aiClient: GoogleAIClient;
+  private aiClient: UnifiedAIClient;
 
   constructor() {
-    this.aiClient = new GoogleAIClient({
+    this.aiClient = new UnifiedAIClient({
       temperature: 0.7,
       topK: 40,
       topP: 0.8,
