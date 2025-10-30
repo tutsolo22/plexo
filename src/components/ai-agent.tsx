@@ -27,11 +27,11 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
   const [isLoading, setIsLoading] = useState(false)
   const [isClient, setIsClient] = useState(false)
   const [provider, setProvider] = useState<'google' | 'openai' | null>(null)
-  const [availableProvider, setAvailableProvider] = useState<'google' | 'openai' | null>(null)
   const scrollAreaRef = useRef<HTMLDivElement | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const lastMessageRef = useRef<HTMLDivElement | null>(null)
   const initializedRef = useRef(false)
+  const conversationIdRef = useRef<string | null>(null)
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
   const [size, setSize] = useState<{ width: number; height: number }>({ width: 420, height: 520 })
   const draggingRef = useRef<{ active: boolean; startX: number; startY: number; origLeft: number; origTop: number } | null>(null)
@@ -47,7 +47,8 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
   useEffect(() => {
     setIsClient(true)
 
-    // Detectar proveedor disponible desde localStorage o API
+    // Detectar proveedor configurado solo para mostrar el indicador visual
+    // El endpoint /api/ai/crm/chat maneja automáticamente qué proveedor usar
     const detectProvider = async () => {
       try {
         // Intentar obtener configuración guardada en localStorage
@@ -67,14 +68,13 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
             const result = data.data?.results?.[0]
             
             if (result?.status === 'success') {
-              // El proveedor guardado funciona, usarlo
-              setAvailableProvider(savedProvider as 'google' | 'openai')
+              // El proveedor guardado funciona, mostrar indicador
               setProvider(savedProvider as 'google' | 'openai')
-              console.log(`Proveedor ${savedProvider} configurado y funcionando`)
+              console.log(`✅ Indicador: Proveedor ${savedProvider} configurado`)
               return
             } else {
               // El proveedor guardado no funciona, limpiar y buscar alternativa
-              console.warn(`Proveedor guardado (${savedProvider}) no está disponible`)
+              console.warn(`⚠️ Proveedor guardado (${savedProvider}) no está disponible`)
               localStorage.removeItem('plexo_ai_provider')
             }
           }
@@ -94,27 +94,22 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
           const openaiResult = data.data?.results?.find((r: any) => r.provider === 'openai')
           
           if (googleResult?.status === 'success') {
-            setAvailableProvider('google')
             setProvider('google')
             localStorage.setItem('plexo_ai_provider', 'google')
-            console.log('Auto-detectado: Google Gemini')
+            console.log('✅ Auto-detectado: Google Gemini')
           } else if (openaiResult?.status === 'success') {
-            setAvailableProvider('openai')
             setProvider('openai')
             localStorage.setItem('plexo_ai_provider', 'openai')
-            console.log('Auto-detectado: OpenAI')
+            console.log('✅ Auto-detectado: OpenAI')
           } else {
-            // Si ninguno funciona, dejar null (sin proveedor)
+            // Si ninguno funciona, mostrar sin indicador
             setProvider(null)
-            setAvailableProvider(null)
-            console.warn('No hay proveedores de IA disponibles')
+            console.warn('⚠️ No hay proveedores de IA disponibles')
           }
         }
       } catch (error) {
-        console.error('Error detectando proveedor:', error)
-        // Fallback a null si hay error
+        console.error('❌ Error detectando proveedor:', error)
         setProvider(null)
-        setAvailableProvider(null)
       }
     }
 
@@ -184,7 +179,6 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
       if (e.key === 'plexo_ai_provider' && e.newValue) {
         const newProvider = e.newValue as 'google' | 'openai'
         console.log('Proveedor actualizado desde panel de test:', newProvider)
-        setAvailableProvider(newProvider)
         setProvider(newProvider)
       }
     }
@@ -295,63 +289,43 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
       
       let assistantText = ''
       
-      // Usar el proveedor detectado automáticamente
-      const activeProvider = availableProvider || provider
-      
-      if (activeProvider === 'google') {
-        // Llamar endpoint de Google con historial
-        try {
-          const res = await fetch('/api/ai/google', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              prompt: input,
-              history: historyToSend 
-            })
+      // Usar el agente CRM que tiene acceso real a la base de datos
+      // El endpoint detectará automáticamente el proveedor de IA configurado
+      try {
+        const res = await fetch('/api/ai/crm/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            message: input,
+            platform: 'web'
           })
-          
-          const data = await res.json()
-          
-          if (!res.ok) {
-            // Mostrar el error específico de la API
-            const errorMsg = data?.error || data?.message || 'Error desconocido'
-            console.error('Google API error:', errorMsg, data)
-            throw new Error(`Error de Google API: ${errorMsg}`)
-          }
-          
-          // Verificar que tengamos una respuesta válida
-          if (!data?.success || !data?.data?.message) {
-            console.error('Respuesta inválida de Google:', data)
-            throw new Error('Respuesta inválida del servidor')
-          }
-          
-          assistantText = data.data.message
-        } catch (e) {
-          console.error('Google provider error:', e)
-          const errorMessage = e instanceof Error ? e.message : 'Error desconocido'
-          assistantText = `❌ Error al contactar con Google Gemini:\n\n${errorMessage}\n\nPor favor verifica:\n• La API Key de Google esté configurada correctamente\n• El modelo Gemini esté disponible\n• Revisa la consola para más detalles`
+        })
+        
+        const data = await res.json()
+        
+        if (!res.ok) {
+          // Mostrar el error específico de la API
+          const errorMsg = data?.error || data?.message || 'Error desconocido'
+          console.error('CRM API error:', errorMsg, data)
+          throw new Error(`Error del CRM Agent: ${errorMsg}`)
         }
-      } else if (activeProvider === 'openai') {
-        // Llamar endpoint de OpenAI (real) con historial
-        try {
-          const res = await fetch('/api/ai/real', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              message: input,
-              history: historyToSend 
-            })
-          })
-          if (!res.ok) throw new Error('OpenAI API error')
-          const data = await res.json()
-          assistantText = data?.data?.message || 'Lo siento, no recibí respuesta del proveedor.'
-        } catch (e) {
-          console.error('OpenAI provider error', e)
-          assistantText = 'Lo siento, hubo un error contactando al proveedor OpenAI.'
+        
+        // Verificar que tengamos una respuesta válida
+        if (!data?.success || !data?.data?.message) {
+          console.error('Respuesta inválida del CRM:', data)
+          throw new Error('Respuesta inválida del servidor')
         }
-      } else {
-        // Sin proveedor configurado
-        assistantText = 'No hay proveedor de IA configurado. Por favor, configura Google AI o OpenAI en la página de administración (/dashboard/admin/ai-test).'
+        
+        assistantText = data.data.message
+        
+        // Actualizar conversationId si se creó uno nuevo
+        if (data.data.conversationId && !conversationIdRef.current) {
+          conversationIdRef.current = data.data.conversationId
+        }
+      } catch (e) {
+        console.error('CRM Agent error:', e)
+        const errorMessage = e instanceof Error ? e.message : 'Error desconocido'
+        assistantText = `❌ Error al procesar tu consulta:\n\n${errorMessage}\n\nPor favor verifica:\n• Que estés autenticado correctamente\n• Que la base de datos esté accesible\n• Revisa la consola para más detalles`
       }
 
       const assistantMessage: Message = {
@@ -388,6 +362,7 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
     try {
       localStorage.removeItem('plexo_ai_messages')
     } catch (e) {}
+    conversationIdRef.current = null // Limpiar conversationId
     initializedRef.current = false
     const greeting: Message = {
       id: Date.now().toString(),
@@ -431,10 +406,10 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
         </div>
         <div className="flex items-center gap-2">
           {/* Indicador de proveedor activo */}
-          {availableProvider && (
+          {provider && (
             <span className="h-6 px-2 text-xs rounded bg-primary-foreground/10 text-primary-foreground flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-green-400"></span>
-              {availableProvider === 'google' ? 'Gemini' : 'GPT'}
+              {provider === 'google' ? 'Gemini' : 'GPT'}
             </span>
           )}
           <Button variant="ghost" size="sm" onClick={clearConversation} className="h-6 w-6 p-0 text-primary-foreground hover:bg-black/20">C</Button>
