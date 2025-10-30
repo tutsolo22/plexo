@@ -89,11 +89,37 @@ Responde de manera profesional, útil y concisa.`;
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error?.message || `API Error: ${response.status} ${response.statusText}`);
+      const errorMsg = errorData.error?.message || `API Error: ${response.status} ${response.statusText}`;
+      console.error('Google API Error Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData,
+        modelName,
+        apiUrl: apiUrl.replace(apiKey, 'REDACTED')
+      });
+      throw new Error(errorMsg);
     }
 
     const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar respuesta';
+    
+    // Log de la respuesta para debugging
+    console.log('Google API Response:', {
+      hasCandidates: !!data.candidates,
+      candidatesLength: data.candidates?.length,
+      firstCandidate: data.candidates?.[0] ? {
+        hasContent: !!data.candidates[0].content,
+        hasParts: !!data.candidates[0].content?.parts,
+        finishReason: data.candidates[0].finishReason,
+        safetyRatings: data.candidates[0].safetyRatings
+      } : null
+    });
+    
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!text) {
+      console.error('No text in Google AI response:', JSON.stringify(data, null, 2));
+      throw new Error('No se recibió texto en la respuesta de Google AI');
+    }
 
     return NextResponse.json({
       success: true,

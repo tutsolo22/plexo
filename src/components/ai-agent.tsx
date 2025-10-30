@@ -309,12 +309,27 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
               history: historyToSend 
             })
           })
-          if (!res.ok) throw new Error('Google API error')
+          
           const data = await res.json()
-          assistantText = data?.data?.message || data?.text || 'Lo siento, no recibí respuesta del proveedor.'
+          
+          if (!res.ok) {
+            // Mostrar el error específico de la API
+            const errorMsg = data?.error || data?.message || 'Error desconocido'
+            console.error('Google API error:', errorMsg, data)
+            throw new Error(`Error de Google API: ${errorMsg}`)
+          }
+          
+          // Verificar que tengamos una respuesta válida
+          if (!data?.success || !data?.data?.message) {
+            console.error('Respuesta inválida de Google:', data)
+            throw new Error('Respuesta inválida del servidor')
+          }
+          
+          assistantText = data.data.message
         } catch (e) {
-          console.error('Google provider error', e)
-          assistantText = 'Lo siento, hubo un error contactando al proveedor Google.'
+          console.error('Google provider error:', e)
+          const errorMessage = e instanceof Error ? e.message : 'Error desconocido'
+          assistantText = `❌ Error al contactar con Google Gemini:\n\n${errorMessage}\n\nPor favor verifica:\n• La API Key de Google esté configurada correctamente\n• El modelo Gemini esté disponible\n• Revisa la consola para más detalles`
         }
       } else if (activeProvider === 'openai') {
         // Llamar endpoint de OpenAI (real) con historial
