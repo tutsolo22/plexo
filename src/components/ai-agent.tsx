@@ -52,13 +52,35 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
       try {
         // Intentar obtener configuración guardada en localStorage
         const savedProvider = localStorage.getItem('plexo_ai_provider')
+        
+        // Verificar que el proveedor guardado realmente funcione
         if (savedProvider && (savedProvider === 'google' || savedProvider === 'openai')) {
-          setAvailableProvider(savedProvider as 'google' | 'openai')
-          setProvider(savedProvider as 'google' | 'openai')
-          return
+          // Verificar si el proveedor guardado está disponible
+          const response = await fetch('/api/ai/test/providers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ provider: savedProvider })
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            const result = data.data?.results?.[0]
+            
+            if (result?.status === 'success') {
+              // El proveedor guardado funciona, usarlo
+              setAvailableProvider(savedProvider as 'google' | 'openai')
+              setProvider(savedProvider as 'google' | 'openai')
+              console.log(`Proveedor ${savedProvider} configurado y funcionando`)
+              return
+            } else {
+              // El proveedor guardado no funciona, limpiar y buscar alternativa
+              console.warn(`Proveedor guardado (${savedProvider}) no está disponible`)
+              localStorage.removeItem('plexo_ai_provider')
+            }
+          }
         }
 
-        // Si no hay preferencia guardada, detectar automáticamente
+        // Si no hay preferencia guardada o no funciona, detectar automáticamente
         const response = await fetch('/api/ai/test/providers', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -75,19 +97,24 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
             setAvailableProvider('google')
             setProvider('google')
             localStorage.setItem('plexo_ai_provider', 'google')
+            console.log('Auto-detectado: Google Gemini')
           } else if (openaiResult?.status === 'success') {
             setAvailableProvider('openai')
             setProvider('openai')
             localStorage.setItem('plexo_ai_provider', 'openai')
+            console.log('Auto-detectado: OpenAI')
           } else {
             // Si ninguno funciona, dejar null (sin proveedor)
             setProvider(null)
+            setAvailableProvider(null)
+            console.warn('No hay proveedores de IA disponibles')
           }
         }
       } catch (error) {
         console.error('Error detectando proveedor:', error)
         // Fallback a null si hay error
         setProvider(null)
+        setAvailableProvider(null)
       }
     }
 
@@ -148,6 +175,27 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
       }
     }
   }, [session])
+
+  // Listener para detectar cambios en el proveedor guardado (desde el panel de test)
+  useEffect(() => {
+    if (!isClient) return
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'plexo_ai_provider' && e.newValue) {
+        const newProvider = e.newValue as 'google' | 'openai'
+        console.log('Proveedor actualizado desde panel de test:', newProvider)
+        setAvailableProvider(newProvider)
+        setProvider(newProvider)
+      }
+    }
+
+    // Escuchar cambios en localStorage (entre pestañas/ventanas)
+    window.addEventListener('storage', handleStorageChange)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+    }
+  }, [isClient])
 
   // establecer posición inicial (bottom-right) una vez en cliente
   useEffect(() => {
