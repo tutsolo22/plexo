@@ -72,7 +72,47 @@ export class CRMAgentService {
       // Ejecutar búsqueda según el intent
       let searchResults = null;
 
-      if (queryIntent.type === 'searchEvents' || query.toLowerCase().includes('evento')) {
+      // Manejar consultas de conteo
+      if (queryIntent.type === 'countClients') {
+        const count = await prisma.client.count({
+          where: {
+            tenantId: context.tenantId,
+            ...(context.businessIdentityId && { businessIdentityId: context.businessIdentityId }),
+          },
+        });
+        searchResults = {
+          type: 'count',
+          entity: 'clients',
+          count,
+          message: `Tienes ${count} cliente${count !== 1 ? 's' : ''} registrado${count !== 1 ? 's' : ''} en el sistema.`,
+        };
+      } else if (queryIntent.type === 'countEvents') {
+        const count = await prisma.event.count({
+          where: {
+            tenantId: context.tenantId,
+            ...(context.businessIdentityId && { businessIdentityId: context.businessIdentityId }),
+          },
+        });
+        searchResults = {
+          type: 'count',
+          entity: 'events',
+          count,
+          message: `Tienes ${count} evento${count !== 1 ? 's' : ''} registrado${count !== 1 ? 's' : ''} en el sistema.`,
+        };
+      } else if (queryIntent.type === 'countQuotes') {
+        const count = await prisma.quote.count({
+          where: {
+            tenantId: context.tenantId,
+            ...(context.businessIdentityId && { businessIdentityId: context.businessIdentityId }),
+          },
+        });
+        searchResults = {
+          type: 'count',
+          entity: 'quotes',
+          count,
+          message: `Tienes ${count} cotizaci${count !== 1 ? 'ones' : 'ón'} registrada${count !== 1 ? 's' : ''} en el sistema.`,
+        };
+      } else if (queryIntent.type === 'searchEvents' || query.toLowerCase().includes('evento')) {
         const eventParams: SearchEventsParams = {
           query: queryIntent.params.query || query,
           tenantId: context.tenantId,
@@ -146,7 +186,7 @@ Consulta: "${query}"
 
 Responde SOLO con un JSON válido con esta estructura:
 {
-  "type": "searchEvents|searchClients|searchQuotes|general",
+  "type": "countClients|countEvents|countQuotes|searchEvents|searchClients|searchQuotes|general",
   "params": {
     "query": "texto relevante para búsqueda"
   },
@@ -154,10 +194,15 @@ Responde SOLO con un JSON válido con esta estructura:
 }
 
 Guías:
-- searchEvents: si menciona evento, celebración, reserva, fecha
-- searchClients: si menciona cliente, contacto, persona
-- searchQuotes: si menciona cotización, presupuesto, precio
+- countClients: si pregunta CUÁNTOS clientes (ej: "cuántos clientes", "total de clientes", "número de clientes")
+- countEvents: si pregunta CUÁNTOS eventos (ej: "cuántos eventos", "total de eventos")
+- countQuotes: si pregunta CUÁNTAS cotizaciones (ej: "cuántas cotizaciones", "total de cotizaciones")
+- searchEvents: si busca eventos específicos, celebración, reserva, fecha
+- searchClients: si busca clientes específicos, contacto, persona (NO es para contar)
+- searchQuotes: si busca cotizaciones específicas, presupuesto, precio
 - general: para cualquier otra consulta
+
+IMPORTANTE: Si la consulta tiene palabras como "cuántos", "cuántas", "total", "número de", es una consulta de CONTEO, no de búsqueda.
 `;
 
       const result = await this.aiClient.generateContent(prompt);
@@ -507,6 +552,11 @@ Guías:
    * Genera respuesta usando IA basada en los resultados
    */
   private async generateResponse(query: string, results: any, _context: any) {
+    // Si es una consulta de conteo, devolver el mensaje directo
+    if (results?.type === 'count') {
+      return results.message;
+    }
+
     if (!results || results.total === 0) {
       return this.generateEmptyResponse(query);
     }
