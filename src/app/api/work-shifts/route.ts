@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import authOptions from '@/lib/auth.config';
+import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { ApiResponses } from '@/lib/api/responses';
 import { z } from 'zod';
@@ -22,7 +21,7 @@ const createWorkShiftSchema = z.object({
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user) {
       return ApiResponses.unauthorized();
@@ -91,10 +90,14 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user) {
       return ApiResponses.unauthorized();
+    }
+
+    if (!session.user.tenantId) {
+      return ApiResponses.forbidden('No tienes un tenant asignado');
     }
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden crear turnos
@@ -148,7 +151,7 @@ export async function POST(request: NextRequest) {
         name: validatedData.name,
         startTime: new Date(`1970-01-01T${validatedData.startTime}:00`),
         endTime: new Date(`1970-01-01T${validatedData.endTime}:00`),
-        description: validatedData.description,
+        description: validatedData.description || null,
         isActive: validatedData.isActive,
         tenantId: session.user.tenantId,
       },
@@ -181,7 +184,7 @@ export async function POST(request: NextRequest) {
     return ApiResponses.created(formattedShift, 'Turno laboral creado exitosamente');
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return ApiResponses.badRequest(error.errors[0].message);
+      return ApiResponses.badRequest(error.errors[0]?.message || 'Error de validación');
     }
     
     console.error('Error al crear turno:', error);
