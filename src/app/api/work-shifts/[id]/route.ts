@@ -30,6 +30,10 @@ export async function GET(
       return ApiResponses.unauthorized();
     }
 
+    if (!session.user.tenantId) {
+      return ApiResponses.forbidden('No tienes un tenant asignado');
+    }
+
     const workShift = await prisma.workShift.findFirst({
       where: {
         id: params.id,
@@ -104,6 +108,10 @@ export async function PUT(
     
     if (!session?.user) {
       return ApiResponses.unauthorized();
+    }
+
+    if (!session.user.tenantId) {
+      return ApiResponses.forbidden('No tienes un tenant asignado');
     }
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden actualizar turnos
@@ -251,6 +259,10 @@ export async function DELETE(
       return ApiResponses.unauthorized();
     }
 
+    if (!session.user.tenantId) {
+      return ApiResponses.forbidden('No tienes un tenant asignado');
+    }
+
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden eliminar turnos
     if (!['SUPER_ADMIN', 'TENANT_ADMIN'].includes(session.user.role)) {
       return ApiResponses.forbidden('No tienes permisos para eliminar turnos laborales');
@@ -262,7 +274,9 @@ export async function DELETE(
         id: params.id,
         tenantId: session.user.tenantId,
       },
-      include: {
+      select: {
+        id: true,
+        name: true,
         _count: {
           select: {
             roomPricing: true,

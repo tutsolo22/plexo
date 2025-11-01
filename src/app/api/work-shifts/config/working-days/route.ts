@@ -31,6 +31,10 @@ export async function GET(request: NextRequest) {
       return ApiResponses.unauthorized();
     }
 
+    if (!session.user.tenantId) {
+      return ApiResponses.forbidden('No tienes un tenant asignado');
+    }
+
     const config = await prisma.configuration.findUnique({
       where: {
         tenantId_key: {
@@ -72,6 +76,10 @@ export async function PUT(request: NextRequest) {
     
     if (!session?.user) {
       return ApiResponses.unauthorized();
+    }
+
+    if (!session.user.tenantId) {
+      return ApiResponses.forbidden('No tienes un tenant asignado');
     }
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden actualizar la configuración
