@@ -139,9 +139,30 @@ export const authOptions: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60, // 30 días
   },
 
+  // Configuración de sesión
+  session: {
+    strategy: 'jwt',
+    maxAge: 24 * 60 * 60, // 24 horas (86400 segundos)
+    updateAge: 60 * 60, // Actualizar sesión cada 1 hora
+  },
+
+  // Configuración de cookies
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: undefined, // Cookie de sesión - expira al cerrar navegador
+      },
+    },
+  },
+
   // Configuración de JWT
   jwt: {
-    maxAge: 30 * 24 * 60 * 60, // 30 días
+    maxAge: 24 * 60 * 60, // 24 horas
   },
 
   // Callbacks para personalizar sesión y JWT

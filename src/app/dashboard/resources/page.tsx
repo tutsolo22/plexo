@@ -1,9 +1,15 @@
-import { Metadata } from 'next'
-import ResourcesClient from '@/components/resources/ResourcesClient'
-import { auth } from '@/lib/auth'
-import { redirect } from 'next/navigation'
+import { redirect } from 'next/navigation';import { Metadata } from 'next'
 
-export const metadata: Metadata = {
+import ResourcesClient from '@/components/resources/ResourcesClient'
+
+export default function ResourcesPage() {import { auth } from '@/lib/auth'
+
+  // Redirigir a la nueva ubicación de configuracionesimport { redirect } from 'next/navigation'
+
+  redirect('/dashboard/settings');
+
+}export const metadata: Metadata = {
+
   title: 'Recursos | Gestión de Eventos',
   description: 'Gestión de recursos y configuraciones del sistema',
 }
@@ -15,8 +21,9 @@ export default async function ResourcesPage() {
     redirect('/auth/signin')
   }
 
-  // Requerir verificación de correo
-  if (!session.user.emailVerified) {
+  // Solo TENANT_ADMIN y usuarios regulares requieren verificación
+  // SUPER_ADMIN puede acceder sin verificación
+  if (session.user.role !== 'SUPER_ADMIN' && !session.user.emailVerified) {
     redirect('/auth/verify-request')
   }
 
