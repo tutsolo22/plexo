@@ -5,6 +5,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { isAtLeast } from '@/lib/client/roles';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { AIAgent } from '@/components/ai-agent';
 
 import {
   Users,
@@ -115,6 +116,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [openGroups, setOpenGroups] = useState<string[]>([]);
+  const [aiMinimized, setAiMinimized] = useState(false);
 
   const role = session?.user?.role as string | undefined;
   const isAdmin = isAtLeast(role, 'MANAGER');
@@ -293,6 +295,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
         <main className='flex-1'>{children}</main>
       </div>
+
+      {/* Asistente IA flotante - solo visible para usuarios autenticados */}
+      <AIAgent isMinimized={aiMinimized} onToggleMinimize={() => setAiMinimized(v => !v)} />
     </div>
   );
 }
