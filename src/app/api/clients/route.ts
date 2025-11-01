@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth.config';
 import { prisma } from '@/lib/prisma';
 import { createClientSchema, clientFiltersSchema } from '@/lib/validations/client';
+import { ApiResponses } from '@/lib/api/response-builder';
 
 // GET /api/clients - Listar clientes con búsqueda avanzada
 export async function GET(request: NextRequest) {
@@ -104,6 +107,17 @@ export async function GET(request: NextRequest) {
 // POST /api/clients - Crear cliente
 export async function POST(request: NextRequest) {
   try {
+    // Verificar autenticación
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user) {
+      return ApiResponses.unauthorized('No autenticado');
+    }
+
+    if (!session.user.tenantId) {
+      return ApiResponses.unauthorized('Usuario sin tenant asignado');
+    }
+
     const body = await request.json();
     const validatedData = createClientSchema.parse(body);
 
@@ -112,22 +126,18 @@ export async function POST(request: NextRequest) {
       const existingClient = await prisma.client.findFirst({
         where: {
           email: validatedData.email,
-          deletedAt: null, // Solo verificar clientes no eliminados
-          // tenantId: session.user.tenantId // TODO: Habilitar cuando se implemente auth
+          tenantId: session.user.tenantId,
+          deletedAt: null,
         },
       });
 
       if (existingClient) {
-        return NextResponse.json(
-          { success: false, error: 'Ya existe un cliente con ese email' },
-          { status: 400 }
-        );
+        return ApiResponses.badRequest('Ya existe un cliente con ese email');
       }
     }
 
     const createData = {
-      tenantId: 'test-tenant', // VALOR TEMPORAL PARA PRUEBAS
-      // userId: session.user.id, // TODO: Habilitar cuando se implemente auth
+      tenantId: session.user.tenantId,
       name: validatedData.name,
       email: validatedData.email,
       phone: validatedData.phone || null,
@@ -136,15 +146,13 @@ export async function POST(request: NextRequest) {
       type: validatedData.type,
       discountPercent: validatedData.discountPercent || null,
       notes: validatedData.notes || null,
+      priceListId: validatedData.priceListId || null,
     };
 
     const client = await prisma.client.create({
       data: createData,
       include: {
         priceList: true,
-        user: {
-          select: { id: true, name: true, email: true },
-        },
         _count: {
           select: {
             events: true,
@@ -155,26 +163,20 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: client,
-        message: 'Cliente creado exitosamente',
-      },
-      { status: 201 }
-    );
+    console.log('✅ Cliente creado exitosamente:', client.id);
+
+    return ApiResponses.created({
+      client,
+      message: 'Cliente creado exitosamente',
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { success: false, error: 'Datos inválidos', details: (error as z.ZodError).errors },
-        { status: 400 }
-      );
+      return ApiResponses.badRequest('Datos inválidos', error.errors);
     }
 
     console.error('Error al crear cliente:', error);
-    return NextResponse.json(
-      { success: false, error: 'Error interno del servidor' },
-      { status: 500 }
+    return ApiResponses.internalError(
+      error instanceof Error ? error.message : 'Error interno del servidor'
     );
   }
 }

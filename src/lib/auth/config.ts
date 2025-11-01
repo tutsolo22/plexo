@@ -86,9 +86,14 @@ export const authOptions: NextAuthOptions = {
             throw new Error('Tu cuenta está inactiva. Contacta al administrador.')
           }
 
-          // Validar que el tenant esté activo
-          if (!user.tenant?.isActive) {
-            throw new Error('La organización está inactiva. Contacta al administrador.')
+          // Validar que el tenant esté activo (solo si NO es SUPER_ADMIN)
+          if (user.role !== 'SUPER_ADMIN') {
+            if (!user.tenant) {
+              throw new Error('Usuario sin organización asignada. Contacta al administrador.')
+            }
+            if (!user.tenant.isActive) {
+              throw new Error('La organización está inactiva. Contacta al administrador.')
+            }
           }
 
           // Validar email verificado (solo para usuarios no SUPER_ADMIN)
@@ -116,8 +121,8 @@ export const authOptions: NextAuthOptions = {
             email: user.email,
             name: user.name,
             role: user.role,
-            tenantId: user.tenantId,
-            tenantName: user.tenant?.name || '',
+            tenantId: user.tenantId || null, // SUPER_ADMIN puede no tener tenant
+            tenantName: user.tenant?.name || null,
             emailVerified: user.emailVerified
           }
         } catch (error) {
@@ -149,13 +154,13 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         const extendedUser = user as User & {
           role: UserRole;
-          tenantId: string;
-          tenantName: string;
+          tenantId: string | null; // SUPER_ADMIN puede no tener tenant
+          tenantName: string | null;
           emailVerified: Date | null;
         };
         token.role = extendedUser.role
-        token.tenantId = extendedUser.tenantId
-        token.tenantName = extendedUser.tenantName
+        token.tenantId = extendedUser.tenantId || null
+        token.tenantName = extendedUser.tenantName || null
         token.emailVerified = extendedUser.emailVerified
       }
       return token
@@ -170,15 +175,15 @@ export const authOptions: NextAuthOptions = {
         const extendedSession = session as Session & {
           user: User & {
             role: UserRole;
-            tenantId: string;
-            tenantName: string;
+            tenantId: string | null; // SUPER_ADMIN puede no tener tenant
+            tenantName: string | null;
             emailVerified: Date | null;
           };
         };
         extendedSession.user.id = token.sub!
         extendedSession.user.role = token.role as UserRole
-        extendedSession.user.tenantId = token.tenantId as string
-        extendedSession.user.tenantName = token.tenantName as string
+        extendedSession.user.tenantId = (token.tenantId as string | null) || null
+        extendedSession.user.tenantName = (token.tenantName as string | null) || null
         extendedSession.user.emailVerified = (token.emailVerified as Date | null | undefined) ?? null
       }
       return session

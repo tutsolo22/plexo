@@ -193,6 +193,7 @@ model Tenant {
   payments           Payment[]
   priceLists         PriceList[]
   products           Product[]
+  queryExamples      QueryExample[]
   quoteTemplates     QuoteTemplate[]
   quotes             Quote[]
   roles              Role[]
@@ -1258,4 +1259,26 @@ enum ExpenseCategory {
   SUPPLIES
   TRANSPORTATION
   OTHER
+}
+
+// RAG Learning System - Almacena ejemplos de consultas exitosas con embeddings
+model QueryExample {
+  id         String   @id @default(cuid())
+  userQuery  String   // Consulta original del usuario
+  intent     String   // Intención detectada (count, search, filter, etc.)
+  action     String   // Acción ejecutada (count_clients, search_events, etc.)
+  entity     String?  // Entidad consultada (Client, Event, Quote, etc.)
+  filters    Json?    // Filtros aplicados en formato JSON
+  response   String   // Respuesta generada
+  success    Boolean  @default(true) // Si la consulta fue exitosa
+  embedding  Unsupported("vector(768)")? // Embedding del userQuery para búsqueda semántica
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([intent])
+  @@index([entity])
+  @@index([success])
+  @@map("query_examples")
 }

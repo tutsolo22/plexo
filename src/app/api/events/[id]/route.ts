@@ -4,9 +4,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import authOptions from '@/lib/auth.config';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { EventStatus } from '@prisma/client';
+import { ApiResponses } from '@/lib/api/responses';
 
 // Esquema de validación para actualización
 const UpdateEventSchema = z.object({
@@ -27,17 +30,24 @@ const UpdateEventSchema = z.object({
  */
 export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { id } = params;
-
-    if (!id) {
-      return NextResponse.json(
-        { success: false, error: 'ID de evento requerido' },
-        { status: 400 }
-      );
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return ApiResponses.unauthorized('No autenticado');
     }
 
-    const event = await prisma.event.findUnique({
-      where: { id },
+    const { id } = params;
+    const tenantId = session.user.tenantId;
+
+    if (!id) {
+      return ApiResponses.badRequest('ID de evento requerido');
+    }
+
+    const event = await prisma.event.findFirst({
+      where: { 
+        id,
+        tenantId, // ✅ Autenticación habilitada
+        status: { not: EventStatus.CANCELLED }, // Excluir cancelados (no hay deletedAt)
+      },
       include: {
         client: {
           select: {
@@ -75,22 +85,13 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
     });
 
     if (!event) {
-      return NextResponse.json({ success: false, error: 'Evento no encontrado' }, { status: 404 });
+      return ApiResponses.notFound('Evento no encontrado');
     }
 
-    return NextResponse.json({
-      success: true,
-      data: event,
-    });
+    return ApiResponses.success({ event });
   } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Error interno del servidor',
-        details: error instanceof Error ? error.message : 'Error desconocido',
-      },
-      { status: 500 }
-    );
+    console.error('Error obteniendo evento:', error);
+    return ApiResponses.internalError('Error obteniendo evento');
   }
 }
 
@@ -99,18 +100,25 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
  */
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { id } = params;
-
-    if (!id) {
-      return NextResponse.json(
-        { success: false, error: 'ID de evento requerido' },
-        { status: 400 }
-      );
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return ApiResponses.unauthorized('No autenticado');
     }
 
-    // Verificar que el evento existe
-    const existingEvent = await prisma.event.findUnique({
-      where: { id },
+    const { id } = params;
+    const tenantId = session.user.tenantId;
+
+    if (!id) {
+      return ApiResponses.badRequest('ID de evento requerido');
+    }
+
+    // Verificar que el evento existe y pertenece al tenant
+    const existingEvent = await prisma.event.findFirst({
+      where: { 
+        id,
+        tenantId, // ✅ Autenticación habilitada
+        status: { not: EventStatus.CANCELLED }, // Excluir cancelados
+      },
     });
 
     if (!existingEvent) {
@@ -279,87 +287,75 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      data: updatedEvent,
+    console.log('✅ Evento actualizado:', updatedEvent.id);
+
+    return ApiResponses.success({
+      event: updatedEvent,
       message: 'Evento actualizado exitosamente',
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Datos de entrada inválidos',
-          details: error.errors,
-        },
-        { status: 400 }
-      );
+      return ApiResponses.badRequest('Datos de entrada inválidos', error.errors);
     }
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Error interno del servidor',
-        details: error instanceof Error ? error.message : 'Error desconocido',
-      },
-      { status: 500 }
-    );
+    console.error('Error actualizando evento:', error);
+    return ApiResponses.internalError('Error actualizando evento');
   }
 }
 
 /**
- * DELETE /api/events/[id] - Eliminar evento específico
+ * DELETE /api/events/[id] - Eliminar evento específico (soft delete)
  */
 export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { id } = params;
-
-    if (!id) {
-      return NextResponse.json(
-        { success: false, error: 'ID de evento requerido' },
-        { status: 400 }
-      );
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return ApiResponses.unauthorized('No autenticado');
     }
 
-    // Verificar que el evento existe
-    const existingEvent = await prisma.event.findUnique({
-      where: { id },
+    const { id } = params;
+    const tenantId = session.user.tenantId;
+
+    if (!id) {
+      return ApiResponses.badRequest('ID de evento requerido');
+    }
+
+    // Verificar que el evento existe y pertenece al tenant
+    const existingEvent = await prisma.event.findFirst({
+      where: { 
+        id,
+        tenantId, // ✅ Autenticación habilitada
+        status: { not: EventStatus.CANCELLED }, // Excluir cancelados
+      },
       include: {
-        quote: true,
+        quote: true, // quote singular, no quotes
       },
     });
 
     if (!existingEvent) {
-      return NextResponse.json({ success: false, error: 'Evento no encontrado' }, { status: 404 });
+      return ApiResponses.notFound('Evento no encontrado o no tienes permisos');
     }
 
-    // Verificar si el evento puede ser eliminado
+    // Verificar si el evento puede ser eliminado (cambiar a CANCELLED)
     if (existingEvent.status === EventStatus.CONFIRMED && existingEvent.startDate > new Date()) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'No se puede eliminar un evento confirmado. Considere cancelarlo en su lugar.',
-        },
-        { status: 400 }
+      return ApiResponses.badRequest(
+        'No se puede eliminar un evento confirmado futuro. Considere cancelarlo.'
       );
     }
 
-    await prisma.event.delete({
+    // "Eliminar" cambiando status a CANCELLED (Event no tiene deletedAt)
+    await prisma.event.update({
       where: { id },
+      data: { status: EventStatus.CANCELLED },
     });
 
-    return NextResponse.json({
-      success: true,
-      message: 'Evento eliminado exitosamente',
+    console.log('🗑️ Evento cancelado:', id);
+
+    return ApiResponses.success({
+      message: 'Evento cancelado exitosamente',
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Error interno del servidor',
-        details: error instanceof Error ? error.message : 'Error desconocido',
-      },
-      { status: 500 }
-    );
+    console.error('Error eliminando evento:', error);
+    return ApiResponses.internalError('Error eliminando evento');
   }
 }

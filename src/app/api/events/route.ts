@@ -5,7 +5,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { auth } from '@/lib/auth';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth.config';
+import { ApiResponses } from '@/lib/api/response-builder';
 import { z } from 'zod';
 import { EventStatus } from '@prisma/client';
 
@@ -192,9 +194,18 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verificar autenticación (temporalmente usando fallback para pruebas)
-    const session = await auth();
-    const tenantId = session?.user?.tenantId || 'cm2nqrb370001v3ajgdvkjlm2'; // Fallback al tenant del seed
+    // Verificar autenticación
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user) {
+      return ApiResponses.unauthorized('No autenticado');
+    }
+
+    if (!session.user.tenantId) {
+      return ApiResponses.unauthorized('Usuario sin tenant asignado');
+    }
+
+    const tenantId = session.user.tenantId;
 
     const body = await request.json();
     const validatedData = CreateEventSchema.parse(body);
@@ -204,28 +215,22 @@ export async function POST(request: NextRequest) {
     const endDate = new Date(validatedData.endDate);
 
     if (startDate >= endDate) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'La fecha de inicio debe ser anterior a la fecha de fin',
-        },
-        { status: 400 }
+      return ApiResponses.badRequest(
+        'La fecha de inicio debe ser anterior a la fecha de fin'
       );
     }
 
-    // Verificar que el cliente existe
-    const client = await prisma.client.findUnique({
-      where: { id: validatedData.clientId },
+    // Verificar que el cliente existe y pertenece al tenant
+    const client = await prisma.client.findFirst({
+      where: { 
+        id: validatedData.clientId,
+        tenantId,
+        deletedAt: null,
+      },
     });
 
     if (!client) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Cliente no encontrado',
-        },
-        { status: 404 }
-      );
+      return ApiResponses.notFound('Cliente no encontrado');
     }
 
     // Verificar disponibilidad de room/venue si se especifica
