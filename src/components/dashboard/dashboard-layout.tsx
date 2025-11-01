@@ -6,6 +6,7 @@ import { isAtLeast } from '@/lib/client/roles';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AIAgent } from '@/components/ai-agent';
+import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
 
 import {
   Users,
@@ -295,6 +296,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
         <main className='flex-1'>{children}</main>
       </div>
+
+      {/* Onboarding wizard - solo para TENANT_ADMIN y usuarios nuevos */}
+      {role === 'TENANT_ADMIN' && <OnboardingWizard />}
 
       {/* Asistente IA flotante - solo visible para usuarios autenticados */}
       <AIAgent isMinimized={aiMinimized} onToggleMinimize={() => setAiMinimized(v => !v)} />
