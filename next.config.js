@@ -87,6 +87,15 @@ const nextConfig = {
 
     return config;
   },
+  async redirects() {
+    return [
+      {
+        source: '/dashboard/resources',
+        destination: '/dashboard/settings',
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     const apiCors = {
       source: '/api/:path*',
