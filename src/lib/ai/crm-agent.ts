@@ -3,9 +3,9 @@ import { crmEmbeddingService, SearchOptions } from './crm-embeddings';
 import { SYSTEM_PROMPTS, RESPONSE_TEMPLATES } from './prompt-templates';
 import { EventStatus, QuoteStatus, LegacyUserRole } from '@prisma/client';
 import { ClientAnalysis, GeneratedQuote } from './types';
-import { GoogleAIClient } from './google-ai-client';
+import { UnifiedAIClient } from './unified-ai-client';
 
-// Cliente para llamadas a Google AI
+// Cliente unificado para llamadas a IA (Google o OpenAI según configuración)
 
 export interface AgentMessage {
   role: 'user' | 'model';
@@ -63,11 +63,11 @@ export interface SearchRoomsParams extends CRMSearchParams {
 }
 
 export class CRMAgentService {
-  private aiClient: GoogleAIClient;
+  private aiClient: UnifiedAIClient;
   private defaultTenantId: string;
 
   constructor(tenantId?: string) {
-    this.aiClient = new GoogleAIClient({
+    this.aiClient = new UnifiedAIClient({
       temperature: 0.7,
       topK: 40,
       topP: 0.9,
@@ -152,7 +152,7 @@ Proporciona una respuesta clara, estructurada y útil usando estos datos.
       // Respuesta directa sin funciones - con historial
       const historyFormatted = history.map(msg => ({
         role: msg.role === 'user' ? 'user' as const : 'model' as const,
-        text: msg.parts[0].text
+        text: msg.parts[0]?.text || ''
       }));
       
       const result = await this.aiClient.generateContentWithHistory(message, historyFormatted);

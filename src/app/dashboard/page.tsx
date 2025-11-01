@@ -18,7 +18,7 @@ export default function DashboardPage() {
     setMounted(true);
   }, []);
 
-  const showSecondAgent = process.env.NEXT_PUBLIC_ENABLE_SECOND_AI === 'true'
+  const showSecondAgent = process.env['NEXT_PUBLIC_ENABLE_SECOND_AI'] === 'true'
 
   return (
     <div className='space-y-8'>

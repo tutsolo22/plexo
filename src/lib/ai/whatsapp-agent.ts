@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { crmAgentService } from './crm-agent';
 import { RESPONSE_TEMPLATES } from './prompt-templates';
-import { GoogleAIClient } from './google-ai-client';
+import { UnifiedAIClient } from './unified-ai-client';
 
 // ===============================
 // TIPOS E INTERFACES
@@ -89,10 +89,10 @@ export interface WhatsAppAction {
 
 export class WhatsAppAgentService {
   private conversationTimeout = 30 * 60 * 1000; // 30 minutos
-  private aiClient: GoogleAIClient;
+  private aiClient: UnifiedAIClient;
 
   constructor() {
-    this.aiClient = new GoogleAIClient({
+    this.aiClient = new UnifiedAIClient({
       temperature: 0.8,
       topK: 40,
       topP: 0.9,

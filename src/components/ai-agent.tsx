@@ -26,11 +26,12 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isClient, setIsClient] = useState(false)
-  const [provider, setProvider] = useState<'local' | 'google' | 'openai'>('local')
+  const [provider, setProvider] = useState<'google' | 'openai' | null>(null)
   const scrollAreaRef = useRef<HTMLDivElement | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const lastMessageRef = useRef<HTMLDivElement | null>(null)
   const initializedRef = useRef(false)
+  const conversationIdRef = useRef<string | null>(null)
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
   const [size, setSize] = useState<{ width: number; height: number }>({ width: 420, height: 520 })
   const draggingRef = useRef<{ active: boolean; startX: number; startY: number; origLeft: number; origTop: number } | null>(null)
@@ -45,6 +46,74 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
 
   useEffect(() => {
     setIsClient(true)
+
+    // Detectar proveedor configurado solo para mostrar el indicador visual
+    // El endpoint /api/ai/crm/chat maneja automáticamente qué proveedor usar
+    const detectProvider = async () => {
+      try {
+        // Intentar obtener configuración guardada en localStorage
+        const savedProvider = localStorage.getItem('plexo_ai_provider')
+        
+        // Verificar que el proveedor guardado realmente funcione
+        if (savedProvider && (savedProvider === 'google' || savedProvider === 'openai')) {
+          // Verificar si el proveedor guardado está disponible
+          const response = await fetch('/api/ai/test/providers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ provider: savedProvider })
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            const result = data.data?.results?.[0]
+            
+            if (result?.status === 'success') {
+              // El proveedor guardado funciona, mostrar indicador
+              setProvider(savedProvider as 'google' | 'openai')
+              console.log(`✅ Indicador: Proveedor ${savedProvider} configurado`)
+              return
+            } else {
+              // El proveedor guardado no funciona, limpiar y buscar alternativa
+              console.warn(`⚠️ Proveedor guardado (${savedProvider}) no está disponible`)
+              localStorage.removeItem('plexo_ai_provider')
+            }
+          }
+        }
+
+        // Si no hay preferencia guardada o no funciona, detectar automáticamente
+        const response = await fetch('/api/ai/test/providers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: 'both' })
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          // Buscar el primer proveedor que funcione (preferencia: google > openai)
+          const googleResult = data.data?.results?.find((r: any) => r.provider === 'google')
+          const openaiResult = data.data?.results?.find((r: any) => r.provider === 'openai')
+          
+          if (googleResult?.status === 'success') {
+            setProvider('google')
+            localStorage.setItem('plexo_ai_provider', 'google')
+            console.log('✅ Auto-detectado: Google Gemini')
+          } else if (openaiResult?.status === 'success') {
+            setProvider('openai')
+            localStorage.setItem('plexo_ai_provider', 'openai')
+            console.log('✅ Auto-detectado: OpenAI')
+          } else {
+            // Si ninguno funciona, mostrar sin indicador
+            setProvider(null)
+            console.warn('⚠️ No hay proveedores de IA disponibles')
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error detectando proveedor:', error)
+        setProvider(null)
+      }
+    }
+
+    detectProvider()
 
     // Cargar mensajes previos desde localStorage si existen (evita reset en remounts en Dev StrictMode)
     try {
@@ -101,6 +170,26 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
       }
     }
   }, [session])
+
+  // Listener para detectar cambios en el proveedor guardado (desde el panel de test)
+  useEffect(() => {
+    if (!isClient) return
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'plexo_ai_provider' && e.newValue) {
+        const newProvider = e.newValue as 'google' | 'openai'
+        console.log('Proveedor actualizado desde panel de test:', newProvider)
+        setProvider(newProvider)
+      }
+    }
+
+    // Escuchar cambios en localStorage (entre pestañas/ventanas)
+    window.addEventListener('storage', handleStorageChange)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+    }
+  }, [isClient])
 
   // establecer posición inicial (bottom-right) una vez en cliente
   useEffect(() => {
@@ -200,45 +289,43 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
       
       let assistantText = ''
       
-      if (provider === 'google') {
-        // Llamar endpoint de Google con historial
-        try {
-          const res = await fetch('/api/ai/google', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              prompt: input,
-              history: historyToSend 
-            })
+      // Usar el agente CRM que tiene acceso real a la base de datos
+      // El endpoint detectará automáticamente el proveedor de IA configurado
+      try {
+        const res = await fetch('/api/ai/crm/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            message: input,
+            platform: 'web'
           })
-          if (!res.ok) throw new Error('Google API error')
-          const data = await res.json()
-          assistantText = data?.data?.message || data?.text || 'Lo siento, no recibí respuesta del proveedor.'
-        } catch (e) {
-          console.error('Google provider error', e)
-          assistantText = 'Lo siento, hubo un error contactando al proveedor Google.'
+        })
+        
+        const data = await res.json()
+        
+        if (!res.ok) {
+          // Mostrar el error específico de la API
+          const errorMsg = data?.error || data?.message || 'Error desconocido'
+          console.error('CRM API error:', errorMsg, data)
+          throw new Error(`Error del CRM Agent: ${errorMsg}`)
         }
-      } else if (provider === 'openai') {
-        // Llamar endpoint de OpenAI (real) con historial
-        try {
-          const res = await fetch('/api/ai/real', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              message: input,
-              history: historyToSend 
-            })
-          })
-          if (!res.ok) throw new Error('OpenAI API error')
-          const data = await res.json()
-          assistantText = data?.data?.message || 'Lo siento, no recibí respuesta del proveedor.'
-        } catch (e) {
-          console.error('OpenAI provider error', e)
-          assistantText = 'Lo siento, hubo un error contactando al proveedor OpenAI.'
+        
+        // Verificar que tengamos una respuesta válida
+        if (!data?.success || !data?.data?.message) {
+          console.error('Respuesta inválida del CRM:', data)
+          throw new Error('Respuesta inválida del servidor')
         }
-      } else {
-        // fallback local simple responder (sin llamada a servidor)
-        assistantText = generateAIResponse(input)
+        
+        assistantText = data.data.message
+        
+        // Actualizar conversationId si se creó uno nuevo
+        if (data.data.conversationId && !conversationIdRef.current) {
+          conversationIdRef.current = data.data.conversationId
+        }
+      } catch (e) {
+        console.error('CRM Agent error:', e)
+        const errorMessage = e instanceof Error ? e.message : 'Error desconocido'
+        assistantText = `❌ Error al procesar tu consulta:\n\n${errorMessage}\n\nPor favor verifica:\n• Que estés autenticado correctamente\n• Que la base de datos esté accesible\n• Revisa la consola para más detalles`
       }
 
       const assistantMessage: Message = {
@@ -275,6 +362,7 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
     try {
       localStorage.removeItem('plexo_ai_messages')
     } catch (e) {}
+    conversationIdRef.current = null // Limpiar conversationId
     initializedRef.current = false
     const greeting: Message = {
       id: Date.now().toString(),
@@ -283,32 +371,6 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
       timestamp: getFormattedTime(),
     }
     setMessages([greeting])
-  }
-
-  const generateAIResponse = (userInput: string): string => {
-    const lowerInput = userInput.toLowerCase()
-    
-    if (lowerInput.includes('evento') || lowerInput.includes('eventos')) {
-      return 'Puedo ayudarte con la gestión de eventos en Plexo. Puedes crear nuevos eventos, ver el calendario, gestionar cotizaciones y mucho más. ¿Qué necesitas hacer específicamente con los eventos?'
-    }
-    
-    if (lowerInput.includes('cliente') || lowerInput.includes('clientes')) {
-      return 'En Plexo puedes gestionar toda la información de tus clientes, crear nuevos registros, ver su historial de eventos y cotizaciones. ¿Te gustaría que te ayude con algo específico sobre los clientes?'
-    }
-    
-    if (lowerInput.includes('cotización') || lowerInput.includes('cotizaciones') || lowerInput.includes('presupuesto')) {
-      return 'Las cotizaciones en Plexo te permiten crear presupuestos detallados para tus eventos. Puedes incluir servicios, costos, descuentos y generar documentos profesionales. ¿Necesitas ayuda creando una cotización?'
-    }
-    
-    if (lowerInput.includes('dashboard') || lowerInput.includes('panel')) {
-      return 'El dashboard de Plexo te da una vista completa de tu negocio: eventos próximos, cotizaciones pendientes, estadísticas de ventas y más. ¿Qué información específica te gustaría ver?'
-    }
-    
-    if (lowerInput.includes('ayuda') || lowerInput.includes('help')) {
-      return 'Estoy aquí para ayudarte con todo lo relacionado a Plexo. Puedo asistirte con:\n\n• Gestión de eventos y calendario\n• Creación y seguimiento de cotizaciones\n• Administración de clientes\n• Configuración del sistema\n• Reportes y estadísticas\n\n¿Con qué te gustaría empezar?'
-    }
-    
-    return 'Entiendo tu consulta. Como asistente de Plexo, puedo ayudarte con la gestión de eventos, cotizaciones, clientes y más. ¿Podrías ser más específico sobre lo que necesitas para poder asistirte mejor?'
   }
 
   if (!isClient) {
@@ -343,16 +405,13 @@ export function AIAgent({ isMinimized = false, onToggleMinimize }: AIAgentProps)
           </CardTitle>
         </div>
         <div className="flex items-center gap-2">
-          {/* Selector de proveedor */}
-          <select 
-            value={provider} 
-            onChange={(e) => setProvider(e.target.value as 'local' | 'google' | 'openai')}
-            className="h-6 px-2 text-xs rounded bg-primary-foreground/10 text-primary-foreground border-none outline-none cursor-pointer"
-          >
-            <option value="local">Local</option>
-            <option value="openai">OpenAI</option>
-            <option value="google">Google</option>
-          </select>
+          {/* Indicador de proveedor activo */}
+          {provider && (
+            <span className="h-6 px-2 text-xs rounded bg-primary-foreground/10 text-primary-foreground flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-green-400"></span>
+              {provider === 'google' ? 'Gemini' : 'GPT'}
+            </span>
+          )}
           <Button variant="ghost" size="sm" onClick={clearConversation} className="h-6 w-6 p-0 text-primary-foreground hover:bg-black/20">C</Button>
           <Button
             variant="ghost"

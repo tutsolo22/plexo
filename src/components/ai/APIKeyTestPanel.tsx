@@ -76,10 +76,17 @@ export default function APIKeyTestPanel() {
   const [customGoogleKey, setCustomGoogleKey] = useState('');
   const [customOpenAIKey, setCustomOpenAIKey] = useState('');
   const [showCustomKeys, setShowCustomKeys] = useState(false);
+  const [preferredProvider, setPreferredProvider] = useState<'google' | 'openai' | null>(null);
+  const [savingPreference, setSavingPreference] = useState(false);
 
   // Cargar información inicial
   useEffect(() => {
     loadProvidersInfo();
+    // Cargar preferencia guardada
+    const saved = localStorage.getItem('plexo_ai_provider');
+    if (saved === 'google' || saved === 'openai') {
+      setPreferredProvider(saved);
+    }
   }, []);
 
   const loadProvidersInfo = async () => {
@@ -139,6 +146,26 @@ export default function APIKeyTestPanel() {
     }
   };
 
+  const saveProviderPreference = async (provider: 'google' | 'openai') => {
+    try {
+      setSavingPreference(true);
+      // Guardar en localStorage
+      localStorage.setItem('plexo_ai_provider', provider);
+      setPreferredProvider(provider);
+      
+      // Opcional: guardar en servidor
+      await fetch('/api/ai/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider })
+      });
+    } catch (error) {
+      console.error('Error guardando preferencia:', error);
+    } finally {
+      setSavingPreference(false);
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'success':
@@ -160,8 +187,10 @@ export default function APIKeyTestPanel() {
         return <Badge variant="destructive">Error</Badge>;
       case 'not_configured':
         return <Badge variant="secondary">No configurado</Badge>;
+      case 'configured':
+        return <Badge variant="default" className="bg-blue-100 text-blue-800">Conectado</Badge>;
       default:
-        return <Badge variant="outline">Desconocido</Badge>;
+        return <Badge variant="outline">Conectado</Badge>;
     }
   };
 
@@ -392,6 +421,59 @@ export default function APIKeyTestPanel() {
                   Probar Ambos
                 </Button>
               </div>
+
+              {/* Selector de proveedor preferido */}
+              <Card className="bg-blue-50/50 dark:bg-blue-950/20">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Proveedor Predeterminado para el Asistente IA</CardTitle>
+                  <CardDescription>
+                    Selecciona qué proveedor usar en el asistente flotante de IA
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-3 flex-wrap items-center">
+                    <Button
+                      onClick={() => saveProviderPreference('google')}
+                      disabled={savingPreference || !providersInfo?.providers.google.configured}
+                      variant={preferredProvider === 'google' ? 'default' : 'outline'}
+                      className={preferredProvider === 'google' ? 'bg-blue-600' : ''}
+                    >
+                      {savingPreference && preferredProvider === 'google' ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : preferredProvider === 'google' ? (
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                      ) : null}
+                      Usar Google Gemini
+                    </Button>
+                    <Button
+                      onClick={() => saveProviderPreference('openai')}
+                      disabled={savingPreference || !providersInfo?.providers.openai.configured}
+                      variant={preferredProvider === 'openai' ? 'default' : 'outline'}
+                      className={preferredProvider === 'openai' ? 'bg-blue-600' : ''}
+                    >
+                      {savingPreference && preferredProvider === 'openai' ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : preferredProvider === 'openai' ? (
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                      ) : null}
+                      Usar OpenAI GPT
+                    </Button>
+                    {preferredProvider && (
+                      <Badge variant="secondary" className="ml-2">
+                        Activo: {preferredProvider === 'google' ? 'Gemini' : 'GPT'}
+                      </Badge>
+                    )}
+                  </div>
+                  {!providersInfo?.providers.google.configured && !providersInfo?.providers.openai.configured && (
+                    <Alert className="mt-3">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription className="text-sm">
+                        Configura al menos un proveedor para poder seleccionarlo
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
 
               {/* Resultados de pruebas */}
               {testResults && (

@@ -4,9 +4,10 @@ Este documento explica cómo configurar y usar los diferentes proveedores de IA 
 
 ## Proveedores Disponibles
 
-1. **Local** - Respuestas predefinidas sin llamadas externas (no requiere configuración)
+1. **Google Gemini** - Usa Gemini 2.5 Flash a través de `/api/ai/google`
 2. **OpenAI** - Usa GPT-4o-mini a través de `/api/ai/real`
-3. **Google** - Usa Gemini 2.5 Flash a través de `/api/ai/google`
+
+**Nota**: Se requiere al menos un proveedor configurado para que el asistente funcione.
 
 ## Variables de Entorno Requeridas
 
@@ -45,18 +46,34 @@ NEXT_PUBLIC_ENABLE_SECOND_AI=true
 
 ## Características Implementadas
 
-### Historial Compartido
-- **El historial de conversación se mantiene** cuando cambias de proveedor
-- Los últimos 10 mensajes se envían como contexto en cada llamada
-- Esto permite que cada modelo "continúe" la conversación anterior
+### Detección Automática de Proveedor
+- **El asistente detecta automáticamente** qué proveedor está configurado y funcionando
+- Al cargar por primera vez, hace una llamada a `/api/ai/test/providers` para verificar disponibilidad
+- Preferencia: Google Gemini > OpenAI
+- La preferencia se guarda en `localStorage` (key: `plexo_ai_provider`)
+- **Si ningún proveedor está configurado**, el asistente mostrará un mensaje solicitando configuración
 
-### Selector de Proveedor
-- En el header del asistente hay un selector dropdown
-- Puedes cambiar entre Local/OpenAI/Google en cualquier momento
-- El cambio es inmediato sin perder el historial
+### Indicador de Proveedor Activo
+- En el header del asistente se muestra un indicador con el proveedor en uso
+- **🟢 Gemini** = Google AI activo
+- **🟢 GPT** = OpenAI activo
+- Sin indicador = ningún proveedor configurado (requiere configuración)
+
+### Configuración Manual del Proveedor Preferido
+Para cambiar manualmente el proveedor preferido:
+1. Ve a la página de configuración: **`/dashboard/admin/ai-test`**
+2. En la pestaña **"Probar APIs"**, encontrarás la sección **"Proveedor Predeterminado para el Asistente IA"**
+3. Haz clic en el botón del proveedor que desees usar (**Usar Google Gemini** o **Usar OpenAI GPT**)
+4. La configuración se guarda automáticamente y se aplicará de inmediato en el asistente
+
+### Historial Compartido
+- **El historial de conversación se mantiene** entre recargas
+- Los últimos 10 mensajes se envían como contexto en cada llamada
+- Esto permite que cada modelo mantenga el contexto de la conversación
 
 ### Persistencia en Cliente
 - Toda la conversación se guarda en `localStorage` (key: `plexo_ai_messages`)
+- La preferencia de proveedor se guarda en `localStorage` (key: `plexo_ai_provider`)
 - Sobrevive a recargas de página y cambios de ruta
 - Puedes limpiar la conversación con el botón "C"
 

@@ -18,18 +18,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verificar que la API key esté configurada
-    const apiKey = process.env['GOOGLE_API_KEY'];
+    // Verificar que la API key esté configurada (soporta ambas variables)
+    const apiKey = process.env['GOOGLE_API_KEY'] || process.env['GOOGLE_AI_API_KEY'];
     if (!apiKey) {
+      console.error('❌ Google API Key no encontrada. Variables verificadas:', {
+        GOOGLE_API_KEY: !!process.env['GOOGLE_API_KEY'],
+        GOOGLE_AI_API_KEY: !!process.env['GOOGLE_AI_API_KEY'],
+      });
       return NextResponse.json(
         { 
           success: false, 
           error: 'Google API Key no configurada',
-          message: 'Por favor configura GOOGLE_API_KEY en las variables de entorno'
+          message: 'Por favor configura GOOGLE_API_KEY o GOOGLE_AI_API_KEY en las variables de entorno'
         },
         { status: 500 }
       );
     }
+    
+    console.log('✅ Google API Key encontrada:', apiKey.substring(0, 10) + '...');
 
     // Usar el modelo configurado o el modelo por defecto (Gemini 2.5 Flash)
     let modelName = process.env['GOOGLE_AI_MODEL'] || 'gemini-2.5-flash';
@@ -89,11 +95,37 @@ Responde de manera profesional, útil y concisa.`;
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error?.message || `API Error: ${response.status} ${response.statusText}`);
+      const errorMsg = errorData.error?.message || `API Error: ${response.status} ${response.statusText}`;
+      console.error('Google API Error Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData,
+        modelName,
+        apiUrl: apiUrl.replace(apiKey, 'REDACTED')
+      });
+      throw new Error(errorMsg);
     }
 
     const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar respuesta';
+    
+    // Log de la respuesta para debugging
+    console.log('Google API Response:', {
+      hasCandidates: !!data.candidates,
+      candidatesLength: data.candidates?.length,
+      firstCandidate: data.candidates?.[0] ? {
+        hasContent: !!data.candidates[0].content,
+        hasParts: !!data.candidates[0].content?.parts,
+        finishReason: data.candidates[0].finishReason,
+        safetyRatings: data.candidates[0].safetyRatings
+      } : null
+    });
+    
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!text) {
+      console.error('No text in Google AI response:', JSON.stringify(data, null, 2));
+      throw new Error('No se recibió texto en la respuesta de Google AI');
+    }
 
     return NextResponse.json({
       success: true,
