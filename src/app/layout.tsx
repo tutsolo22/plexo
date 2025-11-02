@@ -14,20 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang='es' suppressHydrationWarning>
-      <head>
-        <script 
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                const theme = localStorage.getItem('theme') || 'light'
-                if (theme === 'dark') {
-                  document.documentElement.classList.add('dark')
-                }
-              })()
-            `
-          }}
-        />
-      </head>
+      <head />
       <body className="bg-background text-foreground transition-colors duration-200">
         <Providers>{children}</Providers>
       </body>

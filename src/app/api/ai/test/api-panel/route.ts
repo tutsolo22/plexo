@@ -28,7 +28,7 @@ export async function GET(_req: NextRequest) {
           status: googleConfigured ? 'Configurado' : 'No configurado',
           statusColor: googleConfigured ? 'green' : 'red',
           envVar: 'GOOGLE_API_KEY',
-          models: ['gemini-1.5-flash', 'gemini-pro'],
+          models: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'],
           docs: 'https://aistudio.google.com/',
           testEndpoint: '/api/ai/test/providers',
           testBody: {

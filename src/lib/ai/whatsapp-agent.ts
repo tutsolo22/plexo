@@ -1,10 +1,7 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { prisma } from '@/lib/prisma';
 import { crmAgentService } from './crm-agent';
 import { RESPONSE_TEMPLATES } from './prompt-templates';
-
-// Inicializar Gemini AI
-const genAI = new GoogleGenerativeAI(process.env['GOOGLE_AI_API_KEY'] || '');
+import { UnifiedAIClient } from './unified-ai-client';
 
 // ===============================
 // TIPOS E INTERFACES
@@ -91,19 +88,24 @@ export interface WhatsAppAction {
 // ===============================
 
 export class WhatsAppAgentService {
-  private model: any;
   private conversationTimeout = 30 * 60 * 1000; // 30 minutos
+  private aiClient: UnifiedAIClient;
 
   constructor() {
-    this.model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-      generationConfig: {
-        temperature: 0.8,
-        topK: 40,
-        topP: 0.9,
-        maxOutputTokens: 1024,
-      },
+    this.aiClient = new UnifiedAIClient({
+      temperature: 0.8,
+      topK: 40,
+      topP: 0.9,
+      maxOutputTokens: 1024,
     });
+  }
+
+  /**
+   * Realiza una llamada al modelo de IA
+   */
+  private async callAI(prompt: string): Promise<string> {
+    const response = await this.aiClient.generateContent(prompt);
+    return response.text;
   }
 
   /**
@@ -218,8 +220,7 @@ RESPONDE EN FORMATO JSON:
 `;
 
     try {
-      const result = await this.model.generateContent(intentPrompt);
-      const response = result.response.text();
+      const response = await this.callAI(intentPrompt);
 
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
@@ -629,8 +630,7 @@ RESPONDE EN FORMATO JSON:
 `;
 
     try {
-      const result = await this.model.generateContent(responsePrompt);
-      const response = result.response.text();
+      const response = await this.callAI(responsePrompt);
 
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (jsonMatch) {

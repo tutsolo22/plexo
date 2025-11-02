@@ -30,9 +30,9 @@ async function crmChatHandler(req: NextRequest) {
       return ApiResponses.unauthorized('Acceso no autorizado');
     }
 
-    const body = await req.json();
-    const { message, conversationId, sessionId, platform, userPhone } =
-      crmChatRequestSchema.parse(body);
+    // Obtener datos validados del middleware (no leer req.json() otra vez)
+    const validatedData = (req as any).validatedData;
+    const { message, conversationId, sessionId, platform, userPhone } = validatedData;
 
     // Usar sessionId como conversationId si no se proporciona conversationId
     let currentConversationId = conversationId || sessionId;
@@ -74,9 +74,22 @@ async function crmChatHandler(req: NextRequest) {
     // Procesar mensaje con el agente CRM v2 especializado (sin coordinador)
     const crmMod = await import('@/lib/ai/crm-agent-v2');
     const { crmAgentService } = crmMod;
+    
+    console.log('🤖 Procesando consulta con CRM Agent v2:', {
+      message,
+      tenantId: session.user.tenantId,
+      userRole: session.user.role,
+    });
+    
     const agentResponse = await crmAgentService.processQuery(message, {
       tenantId: session.user.tenantId,
       userRole: typeof session.user.role === 'string' ? session.user.role : 'USER',
+    });
+    
+    console.log('✅ Respuesta del CRM Agent:', {
+      intent: agentResponse.intent,
+      hasResults: !!agentResponse.results,
+      responseLength: agentResponse.response?.length,
     });
 
     // Guardar respuesta del agente CRM
@@ -108,8 +121,15 @@ async function crmChatHandler(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error en CRM chat:', error);
-    return ApiResponses.internalError('Error procesando mensaje CRM');
+    console.error('❌ Error en CRM chat:', error);
+    console.error('Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return ApiResponses.internalError(
+      error instanceof Error ? error.message : 'Error procesando mensaje CRM'
+    );
   }
 }
 

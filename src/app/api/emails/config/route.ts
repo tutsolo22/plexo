@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 // GET /api/emails/config - Obtener configuración de email del tenant actual
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await auth();
 
@@ -11,13 +12,25 @@ export async function GET() {
       return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 });
     }
 
+    // Obtener tenantId de query si viene (p. ej. ?tenantId=...)
+    const qTenantId = request.nextUrl.searchParams.get('tenantId') || undefined;
+
+    // Determinar tenantId objetivo: usar tenant de la sesión si existe.
+    // Si el actor es SUPER_ADMIN puede pasar ?tenantId= para operar sobre un tenant específico.
+    // Si no existe tenantId en sesión y no se pasó query, and the actor is SUPER_ADMIN, usaremos targetTenantId = null (configuración global).
+    let targetTenantId: string | null | undefined = session.user.tenantId as string | undefined;
+    if (!targetTenantId && session.user.role === 'SUPER_ADMIN') {
+      targetTenantId = qTenantId ?? null; // puede ser null para indicar configuración global
+    }
+
     // Obtener configuración específica del tenant
-    const config = await prisma.tenantEmailConfig.findFirst({
-      where: {
-        tenantId: session.user.tenantId,
-        isActive: true,
-      },
-    });
+    const whereGet: Prisma.TenantEmailConfigWhereInput = { isActive: true };
+    if (typeof targetTenantId !== 'undefined') {
+      // cuando targetTenantId === null buscamos configuración global (tenantId IS NULL)
+      whereGet.tenantId = targetTenantId as string | null;
+    }
+
+    const config = await prisma.tenantEmailConfig.findFirst({ where: whereGet });
 
     if (!config) {
       // Si no hay configuración específica, devolver configuración por defecto
@@ -56,6 +69,12 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Error loading email configuration:', error);
+    if (process.env.NODE_ENV === 'development') {
+      return NextResponse.json(
+        { success: false, error: String((error as Error).message), stack: (error as Error).stack },
+        { status: 500 }
+      );
+    }
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },
       { status: 500 }
@@ -71,7 +90,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 });
     }
 
-    const config = await request.json();
+  const config = await request.json();
 
     // Validar campos requeridos
     if (
@@ -103,12 +122,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Normalizar puerto
+    const smtpPort = Number(config.smtpPort) || 587;
+
+    // Determinar tenant objetivo: usar tenant de la sesión si existe, o permitir que SUPER_ADMIN indique tenantId en el body.
+    // Si el actor es SUPER_ADMIN y no se especifica tenantId, permitimos crear/actualizar la configuración global (tenantId == null).
+    let targetTenantId: string | null | undefined = session.user.tenantId as string | undefined;
+    if (!targetTenantId && session.user.role === 'SUPER_ADMIN') {
+      // permitir que el body incluya tenantId cuando el actor es SUPER_ADMIN
+      if (config.tenantId && typeof config.tenantId === 'string') {
+        targetTenantId = config.tenantId;
+      } else {
+        // explícitamente permitimos targetTenantId = null para configuración global
+        targetTenantId = null;
+      }
+    }
+
     // Guardar o actualizar configuración en la base de datos
-    const existingConfig = await prisma.tenantEmailConfig.findFirst({
-      where: {
-        tenantId: session.user.tenantId,
-      },
-    });
+    const whereFind: Prisma.TenantEmailConfigWhereInput = {};
+    if (typeof targetTenantId !== 'undefined') {
+      whereFind.tenantId = targetTenantId as string | null;
+    }
+    const existingConfig = await prisma.tenantEmailConfig.findFirst({ where: whereFind });
 
     if (existingConfig) {
       // Actualizar configuración existente
@@ -116,7 +151,7 @@ export async function POST(request: NextRequest) {
         where: { id: existingConfig.id },
         data: {
           smtpHost: config.smtpHost,
-          smtpPort: parseInt(config.smtpPort),
+          smtpPort: smtpPort,
           smtpSecure: Boolean(config.smtpSecure),
           smtpUser: config.smtpUser,
           smtpPassword: config.smtpPassword,
@@ -129,21 +164,27 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Crear nueva configuración
-      await prisma.tenantEmailConfig.create({
-        data: {
-          tenantId: session.user.tenantId,
-          smtpHost: config.smtpHost,
-          smtpPort: parseInt(config.smtpPort),
-          smtpSecure: Boolean(config.smtpSecure),
-          smtpUser: config.smtpUser,
-          smtpPassword: config.smtpPassword,
-          fromEmail: config.fromEmail,
-          fromName: config.fromName || null,
-          replyToEmail: config.replyToEmail || null,
-          provider: config.provider || 'smtp',
-          isActive: true,
-        },
-      });
+      // Build data object and include tenantId only when defined (avoid undefined assignment)
+      const createData: Prisma.TenantEmailConfigCreateInput = {
+        smtpHost: config.smtpHost,
+        smtpPort: smtpPort,
+        smtpSecure: Boolean(config.smtpSecure),
+        smtpUser: config.smtpUser,
+        smtpPassword: config.smtpPassword,
+        fromEmail: config.fromEmail,
+        fromName: config.fromName || null,
+        replyToEmail: config.replyToEmail || null,
+        provider: config.provider || 'smtp',
+        isActive: true,
+      } as Prisma.TenantEmailConfigCreateInput;
+
+      // tenantId is optional in the model now; set it only when explicitly provided (or null for global)
+      if (typeof targetTenantId !== 'undefined') {
+        // assign as string | null
+        (createData as any).tenantId = targetTenantId as string | null;
+      }
+
+      await prisma.tenantEmailConfig.create({ data: createData });
     }
 
     return NextResponse.json({
@@ -152,6 +193,12 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error saving email configuration:', error);
+    if (process.env.NODE_ENV === 'development') {
+      return NextResponse.json(
+        { success: false, error: String((error as Error).message), stack: (error as Error).stack },
+        { status: 500 }
+      );
+    }
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },
       { status: 500 }
@@ -160,14 +207,28 @@ export async function POST(request: NextRequest) {
 }
 
 // Función helper para obtener la configuración actual de un tenant
-export async function getTenantSMTPConfig(tenantId: string) {
+export async function getTenantSMTPConfig(tenantId?: string | null) {
   try {
-    const config = await prisma.tenantEmailConfig.findFirst({
-      where: {
-        tenantId,
-        isActive: true,
-      },
-    });
+    // Primero intentar configuración específica del tenant (si se pasó tenantId)
+    let config = null as any | null;
+    if (tenantId) {
+      config = await prisma.tenantEmailConfig.findFirst({
+        where: {
+          tenantId,
+          isActive: true,
+        },
+      });
+    }
+
+    // Si no hay config específica, intentar configuración global (tenantId == null)
+    if (!config) {
+      config = await prisma.tenantEmailConfig.findFirst({
+        where: {
+          tenantId: null,
+          isActive: true,
+        },
+      });
+    }
 
     if (config) {
       return {
@@ -186,10 +247,10 @@ export async function getTenantSMTPConfig(tenantId: string) {
     console.error('Error loading tenant SMTP config:', error);
   }
 
-  // Fallback a configuración por defecto
+  // Fallback a configuración por defecto (env)
   return {
     smtpHost: process.env['SMTP_HOST'] || '',
-    smtpPort: parseInt(process.env['SMTP_PORT'] || '587'),
+    smtpPort: Number(process.env['SMTP_PORT'] || '587'),
     smtpSecure: process.env['SMTP_SECURE'] === 'true',
     smtpUser: process.env['SMTP_USER'] || '',
     smtpPassword: process.env['SMTP_PASSWORD'] || '',

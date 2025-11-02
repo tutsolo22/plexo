@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Save, User, Building, Bell, Palette } from 'lucide-react';
+import { Save, User, Building, Bell, Palette, Clock, DollarSign, ChevronRight, Plug, MapPin } from 'lucide-react';
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState({
@@ -46,6 +47,91 @@ export default function SettingsPage() {
         <p className='mt-2 text-gray-600 dark:text-gray-300'>
           Gestiona las configuraciones de tu cuenta y preferencias del sistema
         </p>
+      </div>
+
+      {/* Navegación Rápida a Configuraciones Especiales */}
+      <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3'>
+        <Link href='/dashboard/settings/branding'>
+          <Card className='cursor-pointer transition-all hover:border-plexo-purple hover:shadow-md'>
+            <CardHeader>
+              <CardTitle className='flex items-center gap-2 text-lg'>
+                <Palette className='h-5 w-5 text-plexo-purple' />
+                Personalización
+                <ChevronRight className='ml-auto h-5 w-5 text-gray-400' />
+              </CardTitle>
+              <CardDescription>
+                Logo, eslogan, colores y redes sociales de tu negocio
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+
+        <Link href='/dashboard/settings/locations'>
+          <Card className='cursor-pointer transition-all hover:border-plexo-purple hover:shadow-md'>
+            <CardHeader>
+              <CardTitle className='flex items-center gap-2 text-lg'>
+                <MapPin className='h-5 w-5 text-plexo-purple' />
+                Lugares y Salas
+                <ChevronRight className='ml-auto h-5 w-5 text-gray-400' />
+              </CardTitle>
+              <CardDescription>
+                Gestiona las ubicaciones y salas disponibles para eventos
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+
+        <Link href='/dashboard/settings/work-shifts'>
+          <Card className='cursor-pointer transition-all hover:border-plexo-purple hover:shadow-md'>
+            <CardHeader>
+              <CardTitle className='flex items-center gap-2 text-lg'>
+                <Clock className='h-5 w-5 text-plexo-purple' />
+                Turnos Laborales
+                <ChevronRight className='ml-auto h-5 w-5 text-gray-400' />
+              </CardTitle>
+              <CardDescription>
+                Configura los horarios de trabajo, turnos y días laborables de tu negocio
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+
+        <Link href='/dashboard/settings/price-lists'>
+          <Card className='cursor-pointer transition-all hover:border-plexo-purple hover:shadow-md'>
+            <CardHeader>
+              <CardTitle className='flex items-center gap-2 text-lg'>
+                <DollarSign className='h-5 w-5 text-plexo-purple' />
+                Listas de Precios
+                <ChevronRight className='ml-auto h-5 w-5 text-gray-400' />
+              </CardTitle>
+              <CardDescription>
+                Administra tus listas de precios y tarifas por turno y sala
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+
+        <Link href='/dashboard/settings/integrations'>
+          <Card className='cursor-pointer transition-all hover:border-plexo-purple hover:shadow-md'>
+            <CardHeader>
+              <CardTitle className='flex items-center gap-2 text-lg'>
+                <Plug className='h-5 w-5 text-plexo-purple' />
+                Integraciones
+                <ChevronRight className='ml-auto h-5 w-5 text-gray-400' />
+              </CardTitle>
+              <CardDescription>
+                Configura WhatsApp, MercadoPago y otras integraciones de servicios externos
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+      </div>
+
+      {/* Separador */}
+      <div className='border-t pt-6'>
+        <h2 className='text-xl font-semibold text-gray-900 dark:text-white mb-4'>
+          Configuración General
+        </h2>
       </div>
 
       <div className='grid grid-cols-1 gap-6 lg:grid-cols-2'>

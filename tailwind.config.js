@@ -17,32 +17,6 @@ module.exports = {
   	},
   	extend: {
   		colors: {
-        // Paleta de colores Plexo
-        plexo: {
-          primary: '#5D38A2',      // Púrpura principal
-          accent: '#B8FF40',       // Verde Volt (CTA y IA)
-          secondary: '#8A817C',    // Gris cálido
-          light: {
-            background: '#F7F7F9',   // Fondo principal (modo claro)
-            card: '#FFFFFF',         // Fondo paneles/tarjetas
-            text: '#242424',         // Texto principal
-            'text-secondary': '#8A817C', // Texto secundario
-            lavender: '#F0EBF9',     // Secundario (etiquetas)
-          },
-          dark: {
-            background: '#19181B',   // Fondo principal (modo oscuro)
-            card: '#262529',         // Fondo paneles/tarjetas
-            text: '#F0F0F0',         // Texto principal
-            'text-secondary': '#A19A93', // Texto secundario
-            lavender: '#A088D1',     // Primario claro
-            purple: '#3E305C',       // Púrpura oscuro (etiquetas)
-          },
-          success: '#28a745',        // Verde éxito (modo claro)
-          'success-dark': '#30C551', // Verde éxito (modo oscuro)
-          error: '#dc3545',          // Rojo error (modo claro)
-          'error-dark': '#F85364',   // Rojo error (modo oscuro)
-        },
-        // Mantener compatibilidad con shadcn/ui
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
@@ -76,58 +50,10 @@ module.exports = {
   				DEFAULT: 'hsl(var(--card))',
   				foreground: 'hsl(var(--card-foreground))'
   			},
-  			brand: {
-  				'50': '#fef7ee',
-  				'100': '#fdead7',
-  				'200': '#fad2ae',
-  				'300': '#f6b17a',
-  				'400': '#f08544',
-  				'500': '#eb6420',
-  				'600': '#dc4a16',
-  				'700': '#b73614',
-  				'800': '#922c17',
-  				'900': '#762516',
-  				'950': '#40100a'
-  			},
-  			success: {
-  				'50': '#f0fdf4',
-  				'100': '#dcfce7',
-  				'200': '#bbf7d0',
-  				'300': '#86efac',
-  				'400': '#4ade80',
-  				'500': '#22c55e',
-  				'600': '#16a34a',
-  				'700': '#15803d',
-  				'800': '#166534',
-  				'900': '#14532d',
-  				'950': '#052e16'
-  			},
-  			warning: {
-  				'50': '#fffbeb',
-  				'100': '#fef3c7',
-  				'200': '#fde68a',
-  				'300': '#fcd34d',
-  				'400': '#fbbf24',
-  				'500': '#f59e0b',
-  				'600': '#d97706',
-  				'700': '#b45309',
-  				'800': '#92400e',
-  				'900': '#78350f',
-  				'950': '#451a03'
-  			},
-  			error: {
-  				'50': '#fef2f2',
-  				'100': '#fee2e2',
-  				'200': '#fecaca',
-  				'300': '#fca5a5',
-  				'400': '#f87171',
-  				'500': '#ef4444',
-  				'600': '#dc2626',
-  				'700': '#b91c1c',
-  				'800': '#991b1b',
-  				'900': '#7f1d1d',
-  				'950': '#450a0a'
-  			},
+        success: {
+          DEFAULT: 'hsl(var(--success))',
+          foreground: 'hsl(var(--success-foreground))'
+        },
   			chart: {
   				'1': 'hsl(var(--chart-1))',
   				'2': 'hsl(var(--chart-2))',

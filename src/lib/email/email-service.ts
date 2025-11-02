@@ -1,8 +1,9 @@
 import nodemailer from 'nodemailer';
 import { getTenantSMTPConfig } from '@/app/api/emails/config/route';
 
-// Configuración del transportador de email
-const createTransporter = () => {
+// Configuración del transportador de email por defecto (basado en env).
+// Nota: si existe una configuración global en BD (tenantId == null), la usaremos para inicializar el transportador por defecto en tiempo de ejecución.
+const createTransporterFromEnv = () => {
   // En desarrollo, usar Ethereal Email para testing
   if (process.env.NODE_ENV === 'development') {
     return nodemailer.createTransport({
@@ -16,13 +17,13 @@ const createTransporter = () => {
     });
   }
 
-  // En producción, usar configuración real
+  // En producción, usar configuración real desde env
   const emailService = process.env['EMAIL_SERVICE'] || 'gmail';
 
   if (emailService === 'smtp') {
     return nodemailer.createTransport({
       host: process.env['SMTP_HOST'],
-      port: parseInt(process.env['SMTP_PORT'] || '587'),
+      port: Number(process.env['SMTP_PORT'] || '587'),
       secure: process.env['SMTP_SECURE'] === 'true',
       auth: {
         user: process.env['SMTP_USER'],
@@ -65,9 +66,10 @@ export class EmailService {
   private transporter: nodemailer.Transporter;
   private defaultFrom: string;
   private tenantTransporters: Map<string, nodemailer.Transporter> = new Map();
+  private defaultInitialized = false;
 
   constructor() {
-    this.transporter = createTransporter();
+    this.transporter = createTransporterFromEnv();
     this.defaultFrom =
       process.env['EMAIL_FROM'] || 'Gestión de Eventos <noreply@gestiondeeventos.com>';
   }
@@ -138,6 +140,41 @@ export class EmailService {
   }
 
   /**
+   * Asegura que el transportador por defecto use la configuración global (tenantId == null)
+   * si existe en la base de datos. Llama a getTenantSMTPConfig(undefined) para buscar la config global.
+   */
+  private async ensureDefaultTransporter(): Promise<nodemailer.Transporter> {
+    if (this.defaultInitialized) return this.transporter;
+
+    try {
+      const globalConfig = await getTenantSMTPConfig(undefined);
+      // Si la configuración global viene de env (sin smtpHost) la dejamos como está
+      if (globalConfig && globalConfig.smtpHost) {
+        const smtpConfig = {
+          host: globalConfig.smtpHost,
+          port: globalConfig.smtpPort,
+          secure: globalConfig.smtpSecure,
+          auth:
+            globalConfig.smtpUser && globalConfig.smtpPassword
+              ? { user: globalConfig.smtpUser, pass: globalConfig.smtpPassword }
+              : undefined,
+        } as any;
+
+        this.transporter = nodemailer.createTransport(smtpConfig);
+        if (globalConfig.fromEmail) {
+          this.defaultFrom = globalConfig.fromName ? `${globalConfig.fromName} <${globalConfig.fromEmail}>` : globalConfig.fromEmail;
+        }
+      }
+    } catch (error) {
+      console.error('Error cargando configuración global de email:', error);
+    } finally {
+      this.defaultInitialized = true;
+    }
+
+    return this.transporter;
+  }
+
+  /**
    * Obtiene la dirección 'from' específica del tenant
    */
   private async getTenantFromAddress(tenantId: string): Promise<string> {
@@ -158,7 +195,7 @@ export class EmailService {
       // Determinar qué transportador usar
       const transporter = options.tenantId
         ? await this.getTenantTransporter(options.tenantId)
-        : this.transporter;
+        : await this.ensureDefaultTransporter();
 
       // Determinar la dirección 'from'
       const fromAddress = options.tenantId

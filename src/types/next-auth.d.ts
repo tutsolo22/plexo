@@ -6,8 +6,8 @@ declare module "next-auth" {
     user: {
       id: string
       role: LegacyUserRole
-      tenantId: string
-      tenantName: string
+      tenantId: string | null // SUPER_ADMIN puede no tener tenant
+      tenantName: string | null
       emailVerified: Date | null
     } & DefaultSession["user"]
   }
@@ -15,8 +15,8 @@ declare module "next-auth" {
   interface User {
     id: string
     role: LegacyUserRole
-    tenantId: string
-    tenantName: string
+    tenantId: string | null // SUPER_ADMIN puede no tener tenant
+    tenantName: string | null
     emailVerified: Date | null
   }
 }
@@ -25,8 +25,8 @@ declare module "next-auth/jwt" {
   interface JWT {
     sub?: string
     role?: LegacyUserRole
-    tenantId?: string
-    tenantName?: string
+    tenantId?: string | null // SUPER_ADMIN puede no tener tenant
+    tenantName?: string | null
     emailVerified?: Date | null
   }
 }

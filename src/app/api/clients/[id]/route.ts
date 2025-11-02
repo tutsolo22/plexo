@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { getServerSession } from 'next-auth/next';
+import authOptions from '@/lib/auth.config';
 import { prisma } from '@/lib/prisma';
 import { updateClientSchema } from '@/lib/validations/client';
+import { ApiResponses } from '@/lib/api/responses';
 
 // GET /api/clients/[id] - Obtener cliente por ID
 export async function GET(
@@ -9,11 +12,18 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return ApiResponses.unauthorized('No autenticado');
+    }
+
+    const tenantId = session.user.tenantId;
+
     const client = await prisma.client.findFirst({
       where: {
         id: params.id,
-        deletedAt: null, // Solo mostrar no eliminados
-        // tenantId: session.user.tenantId // TODO: Habilitar cuando se implemente auth
+        tenantId, // ✅ Autenticación habilitada
+        deletedAt: null,
       },
       include: {
         priceList: true,
@@ -65,23 +75,14 @@ export async function GET(
     });
 
     if (!client) {
-      return NextResponse.json(
-        { success: false, error: 'Cliente no encontrado' },
-        { status: 404 }
-      );
+      return ApiResponses.notFound('Cliente no encontrado');
     }
 
-    return NextResponse.json({
-      success: true,
-      data: client
-    });
+    return ApiResponses.success({ client });
 
   } catch (error) {
     console.error('Error al obtener cliente:', error);
-    return NextResponse.json(
-      { success: false, error: 'Error interno del servidor' },
-      { status: 500 }
-    );
+    return ApiResponses.internalError('Error obteniendo cliente');
   }
 }
 
@@ -91,23 +92,26 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return ApiResponses.unauthorized('No autenticado');
+    }
+
+    const tenantId = session.user.tenantId;
     const body = await request.json();
     const validatedData = updateClientSchema.parse(body);
 
-    // Verificar que el cliente existe
+    // Verificar que el cliente existe y pertenece al tenant
     const existingClient = await prisma.client.findFirst({
       where: {
         id: params.id,
-        deletedAt: null, // Solo actualizar no eliminados
-        // tenantId: session.user.tenantId // TODO: Habilitar cuando se implemente auth
+        tenantId, // ✅ Autenticación habilitada
+        deletedAt: null,
       }
     });
 
     if (!existingClient) {
-      return NextResponse.json(
-        { success: false, error: 'Cliente no encontrado' },
-        { status: 404 }
-      );
+      return ApiResponses.notFound('Cliente no encontrado o no tienes permisos');
     }
 
     // Verificar email único si se está actualizando
@@ -115,17 +119,14 @@ export async function PUT(
       const emailExists = await prisma.client.findFirst({
         where: {
           email: validatedData.email,
+          tenantId, // ✅ Autenticación habilitada
           deletedAt: null,
-          // tenantId: session.user.tenantId,
           id: { not: params.id }
         }
       });
 
       if (emailExists) {
-        return NextResponse.json(
-          { success: false, error: 'Ya existe un cliente con ese email' },
-          { status: 400 }
-        );
+        return ApiResponses.badRequest('Ya existe un cliente con ese email');
       }
     }
 
@@ -159,25 +160,20 @@ export async function PUT(
       }
     });
 
-    return NextResponse.json({
-      success: true,
-      data: updatedClient,
-      message: 'Cliente actualizado exitosamente'
+    console.log('✅ Cliente actualizado:', updatedClient.id);
+
+    return ApiResponses.success({
+      client: updatedClient,
+      message: 'Cliente actualizado exitosamente',
     });
 
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { success: false, error: 'Datos inválidos', details: (error as z.ZodError).errors },
-        { status: 400 }
-      );
+      return ApiResponses.badRequest('Datos inválidos', (error as z.ZodError).errors);
     }
 
     console.error('Error al actualizar cliente:', error);
-    return NextResponse.json(
-      { success: false, error: 'Error interno del servidor' },
-      { status: 500 }
-    );
+    return ApiResponses.internalError('Error actualizando cliente');
   }
 }
 
@@ -187,12 +183,19 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Verificar que el cliente existe
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return ApiResponses.unauthorized('No autenticado');
+    }
+
+    const tenantId = session.user.tenantId;
+
+    // Verificar que el cliente existe y pertenece al tenant
     const client = await prisma.client.findFirst({
       where: {
         id: params.id,
-        deletedAt: null, // Solo eliminar no eliminados
-        // tenantId: session.user.tenantId // TODO: Habilitar cuando se implemente auth
+        tenantId, // ✅ Autenticación habilitada
+        deletedAt: null,
       },
       include: {
         _count: {
@@ -205,10 +208,7 @@ export async function DELETE(
     });
 
     if (!client) {
-      return NextResponse.json(
-        { success: false, error: 'Cliente no encontrado' },
-        { status: 404 }
-      );
+      return ApiResponses.notFound('Cliente no encontrado o no tienes permisos');
     }
 
     // Soft delete - marcar como eliminado
@@ -220,16 +220,14 @@ export async function DELETE(
       }
     });
 
-    return NextResponse.json({
-      success: true,
-      message: 'Cliente eliminado exitosamente'
+    console.log('🗑️ Cliente eliminado (soft delete):', params.id);
+
+    return ApiResponses.success({
+      message: 'Cliente eliminado exitosamente',
     });
 
   } catch (error) {
     console.error('Error al eliminar cliente:', error);
-    return NextResponse.json(
-      { success: false, error: 'Error interno del servidor' },
-      { status: 500 }
-    );
+    return ApiResponses.internalError('Error eliminando cliente');
   }
 }
