@@ -7,12 +7,17 @@ import { z } from 'zod';
 const createUserSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
   email: z.string().email('Email inválido'),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  // password NO se usa en creación - el usuario la establece al activar su cuenta
+  password: z.string().optional(), // Ignorado, solo por compatibilidad
   role: z
     .enum(['SUPER_ADMIN', 'TENANT_ADMIN', 'MANAGER', 'USER', 'CLIENT_EXTERNAL'])
     .default('USER'),
   phone: z.string().optional(),
   isActive: z.boolean().default(true),
+  // Campos opcionales para tenant (solo usados al crear TENANT_ADMIN)
+  tenantId: z.string().optional(), // Si se proporciona, se usa ese tenant existente
+  tenantName: z.string().optional(), // Si se proporciona, se usa este nombre para el tenant auto-creado
+  tenantDomain: z.string().optional(), // Si se proporciona, se usa este dominio para el tenant auto-creado
 });
 
 // const updateUserSchema = z.object({
@@ -151,26 +156,157 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Hash de la contraseña
-    const { hashPassword } = await import('@/lib/auth/password');
-    const hashedPassword = await hashPassword(validatedData.password);
+    // Hash de la contraseña si fue proporcionada (NO guardar, solo para validación futura)
+    const { generateVerificationToken } = await import('@/lib/auth/password');
+    
+    // Siempre generar token de activación para verificación de email
+    // No guardar password hasta que el usuario active su cuenta
+    const activationCode = generateVerificationToken()
 
-    // Determinar tenant
-    let tenantId = (session.user as any).tenantId || null;
-    if (userRole === 'SUPER_ADMIN' && validatedData.role === 'SUPER_ADMIN') {
-      tenantId = null; // SUPER_ADMIN puede no pertenecer a un tenant específico
+    // Determinar tenant según rol y permisos
+    // LÓGICA DE MULTI-TENANCY:
+    // 1. SUPER_ADMIN: NO tiene tenantId (gestiona toda la plataforma)
+    //    - Puede crear otros SUPER_ADMIN (sin tenant)
+    //    - Puede crear TENANT_ADMIN (se crea automáticamente un nuevo tenant)
+    // 2. TENANT_ADMIN: SÍ tiene tenantId (gestiona SU organización)
+    //    - Crea MANAGER/USER automáticamente en SU tenant
+    // 3. MANAGER: SÍ tiene tenantId (pertenece a organización)
+    //    - Crea USER automáticamente en SU tenant
+    
+    let tenantId: string | null = null;
+    const userTenantId = (session.user as any).tenantId;
+    
+    if (validatedData.role === 'SUPER_ADMIN') {
+      // SUPER_ADMIN nunca tiene tenantId
+      tenantId = null;
+      
+      // Solo SUPER_ADMIN puede crear otros SUPER_ADMIN
+      if (userRole !== 'SUPER_ADMIN') {
+        return NextResponse.json(
+          { success: false, error: 'Solo SUPER_ADMIN puede crear otros SUPER_ADMIN' },
+          { status: 403 }
+        );
+      }
+    } else if (validatedData.role === 'TENANT_ADMIN') {
+      // TENANT_ADMIN requiere tenantId
+      
+      if (userRole === 'SUPER_ADMIN') {
+        // SUPER_ADMIN creando TENANT_ADMIN: crear automáticamente un nuevo tenant
+        
+        // Validar que se proporcione información del tenant
+        if (!validatedData.tenantId) {
+          // Si no se proporciona tenantId, se crea un nuevo tenant automáticamente
+          // Prioridad: 1) tenantName/tenantDomain proporcionados, 2) derivados del usuario
+          
+          const tenantName = validatedData.tenantName || validatedData.name || validatedData.email.split('@')[0];
+          
+          // Generar dominio único
+          let baseDomain = validatedData.tenantDomain || 
+                          validatedData.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '-');
+          let domain = baseDomain;
+          let counter = 1;
+          
+          // Verificar que el dominio sea único
+          while (await prisma.tenant.findFirst({ where: { domain } })) {
+            domain = `${baseDomain}-${counter}`;
+            counter++;
+          }
+          
+          // Crear el nuevo tenant
+          const newTenant = await prisma.tenant.create({
+            data: {
+              name: tenantName,
+              domain: domain,
+              isActive: true
+            }
+          });
+          
+          tenantId = newTenant.id;
+          
+          console.log('✅ Tenant creado automáticamente:', newTenant.id, 'Nombre:', newTenant.name, 'Dominio:', newTenant.domain);
+        } else {
+          // Si se proporciona tenantId, usar ese tenant existente
+          tenantId = validatedData.tenantId;
+          
+          // Validar que el tenant existe y está activo
+          const tenant = await prisma.tenant.findUnique({
+            where: { id: tenantId },
+            select: { id: true, isActive: true, name: true }
+          });
+          
+          if (!tenant) {
+            return NextResponse.json(
+              { success: false, error: 'El tenant especificado no existe' },
+              { status: 400 }
+            );
+          }
+          
+          if (!tenant.isActive) {
+            return NextResponse.json(
+              { success: false, error: 'El tenant especificado no está activo' },
+              { status: 400 }
+            );
+          }
+        }
+      } else {
+        // Solo SUPER_ADMIN puede crear TENANT_ADMIN
+        return NextResponse.json(
+          { success: false, error: 'Solo SUPER_ADMIN puede crear TENANT_ADMIN' },
+          { status: 403 }
+        );
+      }
+    } else {
+      // MANAGER, USER, CLIENT_EXTERNAL: heredan el tenant del usuario que los crea
+      
+      if (userRole === 'SUPER_ADMIN') {
+        // SUPER_ADMIN no puede crear estos roles directamente (no tiene tenant)
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'SUPER_ADMIN no puede crear usuarios de tipo MANAGER/USER. Estos roles deben ser creados por TENANT_ADMIN o MANAGER dentro de su organización.' 
+          },
+          { status: 403 }
+        );
+      }
+      
+      // TENANT_ADMIN o MANAGER creando usuarios en SU tenant
+      if (!userTenantId) {
+        return NextResponse.json(
+          { success: false, error: 'Usuario sin tenant asociado no puede crear usuarios de organización' },
+          { status: 400 }
+        );
+      }
+      
+      tenantId = userTenantId; // Heredar tenant del creador
+      
+      // Validar permisos según rol
+      if (validatedData.role === 'MANAGER' && !['TENANT_ADMIN'].includes(userRole)) {
+        return NextResponse.json(
+          { success: false, error: 'Solo TENANT_ADMIN puede crear MANAGER' },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Crear usuario con o sin tenant según corresponda
+    const userData: any = {
+      name: validatedData.name,
+      email: validatedData.email,
+      password: null, // No guardar password hasta activación
+      role: validatedData.role,
+      isActive: validatedData.isActive,
+      // Email NO verificado hasta que confirme por correo
+      emailVerified: null,
+      activationCode: activationCode,
+    };
+
+    // Solo agregar tenantId si NO es SUPER_ADMIN
+    if (tenantId !== null) {
+      userData.tenantId = tenantId;
     }
 
     const user = await prisma.user.create({
-      data: {
-        name: validatedData.name,
-        email: validatedData.email,
-        password: hashedPassword,
-        role: validatedData.role,
-        isActive: validatedData.isActive,
-        tenantId,
-        emailVerified: new Date(), // Auto-verificar en creación administrativa
-      },
+      data: userData,
       select: {
         id: true,
         name: true,
@@ -179,15 +315,36 @@ export async function POST(request: NextRequest) {
         isActive: true,
         emailVerified: true,
         createdAt: true,
-        tenant: {
-          select: {
-            id: true,
-            name: true,
-            domain: true,
+        tenantId: true,
+        ...(tenantId !== null && {
+          tenant: {
+            select: {
+              id: true,
+              name: true,
+              domain: true,
+            },
           },
-        },
+        }),
       },
     });
+
+    console.log('✅ Usuario creado:', user.id, 'Rol:', user.role, 'TenantId:', user.tenantId || 'null (SUPER_ADMIN)');
+
+    // Siempre enviar email de activación/verificación
+    if (activationCode) {
+      try {
+        const emailService = new (await import('@/lib/email/email-service')).EmailService()
+        const activationLink = `${process.env['NEXTAUTH_URL'] || ''}/auth/activate?token=${activationCode}`
+        const subject = 'Activación de cuenta - Gestión de Eventos'
+        const html = `<p>Hola ${user.name},</p><p>Para activar tu cuenta y crear tu contraseña haz clic en el siguiente enlace:</p><p><a href="${activationLink}">Activar cuenta</a></p>`
+        
+        // Para SUPER_ADMIN no hay tenant, usar undefined
+        const emailTenantId = user.tenantId || undefined;
+        await emailService.sendEmail({ to: user.email, subject, html, tenantId: emailTenantId }).catch(e => console.error(e))
+      } catch (e) {
+        console.error('Error enviando email de activación:', e)
+      }
+    }
 
     return NextResponse.json(
       {

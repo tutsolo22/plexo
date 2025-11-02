@@ -1,12 +1,11 @@
-import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
 import { prisma } from '@/lib/prisma';
 import { crmEmbeddingService, SearchOptions } from './crm-embeddings';
 import { SYSTEM_PROMPTS, RESPONSE_TEMPLATES } from './prompt-templates';
 import { EventStatus, QuoteStatus, LegacyUserRole } from '@prisma/client';
 import { ClientAnalysis, GeneratedQuote } from './types';
+import { UnifiedAIClient } from './unified-ai-client';
 
-// Inicializar Gemini AI
-const genAI = new GoogleGenerativeAI(process.env['GOOGLE_AI_API_KEY'] || '');
+// Cliente unificado para llamadas a IA (Google o OpenAI según configuración)
 
 export interface AgentMessage {
   role: 'user' | 'model';
@@ -64,18 +63,15 @@ export interface SearchRoomsParams extends CRMSearchParams {
 }
 
 export class CRMAgentService {
-  private model: GenerativeModel;
+  private aiClient: UnifiedAIClient;
   private defaultTenantId: string;
 
   constructor(tenantId?: string) {
-    this.model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.9,
-        maxOutputTokens: 2048,
-      },
+    this.aiClient = new UnifiedAIClient({
+      temperature: 0.7,
+      topK: 40,
+      topP: 0.9,
+      maxOutputTokens: 2048,
     });
     this.defaultTenantId = tenantId || '';
   }
@@ -138,11 +134,10 @@ Responde a la pregunta del usuario: "${message}"
 Proporciona una respuesta clara, estructurada y útil usando estos datos.
 `;
 
-        const result = await this.model.generateContent(prompt);
-        const response = result.response;
+        const result = await this.aiClient.generateContent(prompt);
 
         return {
-          message: response.text(),
+          message: result.text,
           functionCalls: [
             {
               name: needsFunctionCall.function || '',
@@ -154,13 +149,16 @@ Proporciona una respuesta clara, estructurada y útil usando estos datos.
         };
       }
 
-      // Respuesta directa sin funciones
-      const chat = this.model.startChat({ history });
-      const result = await chat.sendMessage(message);
-      const response = result.response;
+      // Respuesta directa sin funciones - con historial
+      const historyFormatted = history.map(msg => ({
+        role: msg.role === 'user' ? 'user' as const : 'model' as const,
+        text: msg.parts[0]?.text || ''
+      }));
+      
+      const result = await this.aiClient.generateContentWithHistory(message, historyFormatted);
 
       return {
-        message: response.text(),
+        message: result.text,
         ...(conversationId && { conversationId }),
       };
     } catch (error) {
@@ -206,8 +204,8 @@ Responde SOLO con formato JSON:
 `;
 
     try {
-      const result = await this.model.generateContent(detectionPrompt);
-      const response = result.response.text();
+      const result = await this.aiClient.generateContent(detectionPrompt);
+      const response = result.text;
 
       // Extraer JSON de la respuesta
       const jsonMatch = response.match(/\{[\s\S]*\}/);
@@ -913,8 +911,8 @@ RESPONDE EN FORMATO JSON:
 }
 `;
 
-      const result = await this.model.generateContent(analysisPrompt);
-      const aiResponse = result.response.text();
+      const result = await this.aiClient.generateContent(analysisPrompt);
+      const aiResponse = result.text;
 
       // Extraer JSON de la respuesta
       const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
@@ -1092,8 +1090,8 @@ RESPONDE EN FORMATO JSON:
 }
 `;
 
-      const result = await this.model.generateContent(analysisPrompt);
-      const aiResponse = result.response.text();
+      const result = await this.aiClient.generateContent(analysisPrompt);
+      const aiResponse = result.text;
 
       // Extraer JSON de la respuesta
       const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
@@ -1293,8 +1291,8 @@ RESPONDE EN FORMATO JSON:
 }
 `;
 
-      const result = await this.model.generateContent(upgradePrompt);
-      const aiResponse = result.response.text();
+      const result = await this.aiClient.generateContent(upgradePrompt);
+      const aiResponse = result.text;
 
       // Extraer JSON de la respuesta
       const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);

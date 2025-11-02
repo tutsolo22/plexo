@@ -60,7 +60,7 @@ src/lib/prisma.ts           ✅ Cliente Prisma configurado
 ```
 src/lib/auth.config.ts      ✅ Configuración NextAuth
 src/lib/auth.ts             ✅ Exports NextAuth
-src/middleware.ts           ✅ Middleware de protección
+src/proxy.ts                ✅ Proxy de Next 16 (reemplaza middleware) y protecciones ahora implementadas en server layouts (/app/*/layout.tsx)
 src/types/next-auth.d.ts    ✅ Tipos extendidos
 src/app/api/auth/[...nextauth]/route.ts ✅ API Routes
 ```

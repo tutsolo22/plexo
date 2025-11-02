@@ -18,13 +18,15 @@ export default function DashboardPage() {
     setMounted(true);
   }, []);
 
+  const showSecondAgent = process.env['NEXT_PUBLIC_ENABLE_SECOND_AI'] === 'true'
+
   return (
     <div className='space-y-8'>
       {/* Header */}
       <div className='flex items-center justify-between'>
         <div>
-          <h1 className='text-3xl font-bold text-gray-900'>Dashboard</h1>
-          <p className='mt-2 text-gray-600'>
+          <h1 className='text-3xl font-bold text-foreground'>Dashboard</h1>
+          <p className='mt-2 text-muted-foreground'>
             Bienvenido al sistema de gestión de eventos - Vista general del negocio
           </p>
         </div>
@@ -32,7 +34,7 @@ export default function DashboardPage() {
         {/* Toggle para Analytics Avanzados */}
         <button
           onClick={() => setShowAdvancedAnalytics(!showAdvancedAnalytics)}
-          className='rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700'
+          className='rounded-lg bg-primary px-4 py-2 text-primary-foreground transition-colors hover:bg-primary/90'
         >
           {showAdvancedAnalytics ? 'Vista Simple' : 'Analytics Avanzados'}
         </button>
@@ -43,7 +45,7 @@ export default function DashboardPage() {
 
       {/* Conditional Advanced Analytics */}
       {showAdvancedAnalytics && (
-        <div className='rounded-lg border bg-white p-6 shadow-sm'>
+        <div className='rounded-lg border bg-card p-6 shadow-sm'>
           <h2 className='mb-4 text-xl font-semibold'>📊 Analytics Avanzados</h2>
           <LazyAnalyticsDashboard />
         </div>
@@ -62,8 +64,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* AI Agent - Solo renderizar cuando esté montado */}
-      {mounted && (
+      {/* AI Agent - Solo renderizar cuando esté montado y la flag NEXT_PUBLIC_ENABLE_SECOND_AI=true */}
+      {mounted && showSecondAgent && (
         <AIAgent
           isMinimized={isAIMinimized}
           onToggleMinimize={() => setIsAIMinimized(!isAIMinimized)}

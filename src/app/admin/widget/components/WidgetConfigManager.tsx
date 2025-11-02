@@ -239,7 +239,7 @@ export function WidgetConfigManager() {
           <div className="border rounded-lg p-4 bg-gray-50">
             <div className="max-w-sm mx-auto">
               {/* Simulación del widget */}
-              <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+              <div className="bg-card rounded-lg shadow-lg overflow-hidden">
                 {/* Header */}
                 <div
                   className="p-3 text-white flex items-center justify-between text-sm"

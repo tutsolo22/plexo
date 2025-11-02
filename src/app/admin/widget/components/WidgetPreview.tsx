@@ -58,7 +58,7 @@ export function WidgetPreview() {
           width: '100%',
           maxWidth: '1200px',
           height: '600px',
-          border: '1px solid #e5e7eb',
+          border: '1px solid hsl(var(--border))',
           borderRadius: '8px',
           position: 'relative' as const
         };
@@ -156,41 +156,41 @@ export function WidgetPreview() {
         </CardHeader>
         <CardContent>
           <div
-            className="mx-auto bg-white overflow-hidden"
+            className="mx-auto bg-background overflow-hidden"
             style={getDeviceStyles()}
           >
             {/* Barra de navegación simulada */}
-            <div className="bg-gray-100 px-4 py-3 border-b">
+            <div className="bg-secondary/60 px-4 py-3 border-b">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <div className="w-8 h-8 bg-blue-500 rounded"></div>
+                  <div className="w-8 h-8 bg-primary rounded"></div>
                   <div className="hidden sm:block">
-                    <div className="w-32 h-4 bg-gray-300 rounded"></div>
-                    <div className="w-24 h-3 bg-gray-200 rounded mt-1"></div>
+                    <div className="w-32 h-4 bg-secondary rounded"></div>
+                    <div className="w-24 h-3 bg-secondary/80 rounded mt-1"></div>
                   </div>
                 </div>
                 <div className="flex space-x-2">
-                  <div className="w-6 h-6 bg-gray-300 rounded"></div>
-                  <div className="w-6 h-6 bg-gray-300 rounded"></div>
-                  <div className="w-6 h-6 bg-gray-300 rounded"></div>
+                  <div className="w-6 h-6 bg-secondary rounded"></div>
+                  <div className="w-6 h-6 bg-secondary rounded"></div>
+                  <div className="w-6 h-6 bg-secondary rounded"></div>
                 </div>
               </div>
             </div>
 
             {/* Contenido del sitio web simulado */}
             <div className="p-6 space-y-4">
-              <div className="w-full h-32 bg-gradient-to-r from-blue-400 to-purple-500 rounded-lg flex items-center justify-center">
+              <div className="w-full h-32 bg-gradient-to-r from-primary to-purple-500 rounded-lg flex items-center justify-center">
                 <h2 className="text-white text-xl font-bold">Contenido del Sitio Web</h2>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="h-24 bg-gray-200 rounded"></div>
-                <div className="h-24 bg-gray-200 rounded"></div>
-                <div className="h-24 bg-gray-200 rounded"></div>
+                <div className="h-24 bg-secondary rounded"></div>
+                <div className="h-24 bg-secondary rounded"></div>
+                <div className="h-24 bg-secondary rounded"></div>
               </div>
 
-              <div className="w-full h-16 bg-gray-100 rounded flex items-center justify-center">
-                <p className="text-gray-600">Más contenido aquí...</p>
+              <div className="w-full h-16 bg-secondary/60 rounded flex items-center justify-center">
+                <p className="text-muted-foreground">Más contenido aquí...</p>
               </div>
             </div>
 
@@ -221,7 +221,7 @@ export function WidgetPreview() {
                 {/* Ventana del chat */}
                 {isWidgetOpen && (
                   <div
-                    className={`absolute ${getPositionClasses()} w-80 h-96 bg-white rounded-lg shadow-2xl z-50 flex flex-col overflow-hidden`}
+                    className={`absolute ${getPositionClasses()} w-80 h-96 bg-card rounded-lg shadow-2xl z-50 flex flex-col overflow-hidden`}
                     style={{ pointerEvents: 'auto' }}
                   >
                     {/* Header */}
@@ -246,7 +246,7 @@ export function WidgetPreview() {
                       </div>
                       <button
                         onClick={() => setIsWidgetOpen(false)}
-                        className="text-white hover:bg-white/20 rounded-full p-1 transition-colors"
+                        className="text-white hover:bg-black/20 rounded-full p-1 transition-colors"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -256,7 +256,7 @@ export function WidgetPreview() {
 
                     {/* Mensajes */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                      <div className="text-center text-gray-500 text-sm">
+                      <div className="text-center text-muted-foreground text-sm">
                         <p>{config.welcomeMessage}</p>
                       </div>
 
@@ -295,7 +295,7 @@ export function WidgetPreview() {
                         <input
                           type="text"
                           placeholder="Escribe tu mensaje..."
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
                           style={{ '--tw-ring-color': config.primaryColor } as any}
                         />
                         <button
@@ -325,14 +325,14 @@ export function WidgetPreview() {
           <div className="space-y-4">
             <div>
               <h4 className="font-semibold mb-2">Código de Integración:</h4>
-              <div className="bg-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+              <div className="bg-secondary p-4 rounded-lg font-mono text-sm overflow-x-auto">
                 &lt;script src=&quot;https://tu-dominio.com/widget.js&quot; data-api-key=&quot;TU_API_KEY&quot;&gt;&lt;/script&gt;
               </div>
             </div>
 
             <div>
               <h4 className="font-semibold mb-2">Integración Programática:</h4>
-              <div className="bg-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+              <div className="bg-secondary p-4 rounded-lg font-mono text-sm overflow-x-auto">
 {`window.ChatWidget.init({
   apiKey: 'TU_API_KEY',
   position: '${position}',

@@ -35,7 +35,7 @@ const AnalyticsLoading = () => (
 
 // Skeleton para Notificaciones
 const NotificationsLoading = () => (
-  <div className="w-80 bg-white border rounded-lg shadow-lg p-4">
+  <div className="w-80 bg-card border rounded-lg shadow-lg p-4">
     <div className="space-y-3">
       {[...Array(3)].map((_, i) => (
         <div key={i} className="flex space-x-3">

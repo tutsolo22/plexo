@@ -163,7 +163,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
 
       {/* Ventana del chat */}
       {isOpen && (
-        <div className={`fixed ${getPositionClasses()} w-80 h-96 bg-white rounded-lg shadow-2xl z-50 flex flex-col overflow-hidden`}>
+        <div className={`fixed ${getPositionClasses()} w-80 h-96 bg-card rounded-lg shadow-2xl z-50 flex flex-col overflow-hidden`}>
           {/* Header */}
           <div
             className="p-4 text-white flex items-center justify-between"
@@ -186,7 +186,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="text-white hover:bg-white/20 rounded-full p-1 transition-colors"
+              className="text-white hover:bg-black/20 rounded-full p-1 transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -197,7 +197,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
           {/* Mensajes */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {messages.length === 0 && (
-              <div className="text-center text-gray-500 text-sm">
+              <div className="text-center text-muted-foreground text-sm">
                 <p>¡Hola! Soy el asistente de {config.businessName}.</p>
                 <p>¿En qué puedo ayudarte hoy?</p>
               </div>
@@ -209,13 +209,10 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
-                    message.role === 'user'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}
+                  className={`max-w-xs px-3 py-2 rounded-lg text-sm`}
                   style={{
-                    backgroundColor: message.role === 'user' ? primaryColor : secondaryColor
+                    backgroundColor: message.role === 'user' ? primaryColor : secondaryColor,
+                    color: message.role === 'user' ? 'white' : 'inherit'
                   }}
                 >
                   {message.content}
@@ -225,11 +222,11 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
 
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-gray-100 px-3 py-2 rounded-lg text-sm text-gray-800">
+                <div className="bg-secondary px-3 py-2 rounded-lg text-sm text-card-foreground">
                   <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                   </div>
                 </div>
               </div>
@@ -247,7 +244,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Escribe tu mensaje..."
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className="flex-1 px-3 py-2 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
                 disabled={isLoading}
               />
               <button
