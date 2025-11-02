@@ -16,6 +16,7 @@ function ActivateContent() {
   const token = searchParams.get('token');
   const [status, setStatus] = useState('loading');
   const [message, setMessage] = useState('Activando tu cuenta...');
+  const [userInfo, setUserInfo] = useState<{ email?: string; name?: string } | null>(null);
 
   useEffect(() => {
     if (!token) {
@@ -23,7 +24,7 @@ function ActivateContent() {
       setMessage('Token de activación no encontrado.');
       return;
     }
-    // Primero verificamos si el token es válido y si el usuario necesita establecer contraseña
+    // Verificar si el token es válido
     const checkToken = async () => {
       try {
         const resp = await fetch(`/api/auth/activate?token=${encodeURIComponent(token)}`)
@@ -34,26 +35,10 @@ function ActivateContent() {
           return
         }
 
-        // json.data puede contener { needsPassword: boolean }
-        if (json.data?.needsPassword) {
-          setStatus('needs_password')
-        } else {
-          // Si no necesita password, activar directamente
-          const response = await fetch('/api/auth/activate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token }),
-          })
-          const data = await response.json()
-          if (response.ok) {
-            setStatus('success')
-            setMessage(data.message || '¡Cuenta activada exitosamente!')
-            setTimeout(() => router.push('/auth/login'), 2500)
-          } else {
-            setStatus('error')
-            setMessage(data.error || 'Error al activar la cuenta.')
-          }
-        }
+        // Siempre mostrar formulario de contraseña
+        setStatus('needs_password')
+        setMessage('Por favor, crea tu contraseña para activar tu cuenta')
+        setUserInfo({ email: json.data?.email, name: json.data?.name })
       } catch (e) {
         setStatus('error')
         setMessage('Error de conexión. Inténtalo de nuevo.')
@@ -112,12 +97,32 @@ function ActivateContent() {
           )}
           {status === 'needs_password' && (
             <div className="space-y-4">
+              {userInfo && (
+                <div className="mb-4 p-4 bg-blue-50 rounded-md">
+                  <p className="text-sm text-gray-700">
+                    <strong>Nombre:</strong> {userInfo.name || 'Usuario'}
+                  </p>
+                  <p className="text-sm text-gray-700">
+                    <strong>Email:</strong> {userInfo.email}
+                  </p>
+                </div>
+              )}
               <div>
-                <Label>Crear contraseña</Label>
-                <Input type="password" value={newPassword} onChange={(e: React.ChangeEvent<HTMLInputElement>)=>setNewPassword(e.target.value)} placeholder="Mínimo 6 caracteres" />
+                <Label htmlFor="password">Crear contraseña</Label>
+                <Input 
+                  id="password"
+                  type="password" 
+                  value={newPassword} 
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>)=>setNewPassword(e.target.value)} 
+                  placeholder="Mínimo 6 caracteres"
+                  minLength={6}
+                />
+                <p className="text-xs text-gray-500 mt-1">La contraseña debe tener al menos 6 caracteres</p>
               </div>
               <div className="flex justify-end">
-                <Button onClick={submitPassword}>Establecer contraseña</Button>
+                <Button onClick={submitPassword} disabled={newPassword.length < 6}>
+                  Activar cuenta y establecer contraseña
+                </Button>
               </div>
             </div>
           )}
