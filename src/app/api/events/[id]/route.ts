@@ -4,8 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import authOptions from '@/lib/auth.config';
+import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { EventStatus } from '@prisma/client';
@@ -30,7 +29,7 @@ const UpdateEventSchema = z.object({
  */
 export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       return ApiResponses.unauthorized('No autenticado');
     }
@@ -100,7 +99,7 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
  */
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       return ApiResponses.unauthorized('No autenticado');
     }
@@ -308,7 +307,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
  */
 export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       return ApiResponses.unauthorized('No autenticado');
     }
