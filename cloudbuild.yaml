@@ -1,8 +1,34 @@
 steps:
+  # Step 1: Compilar imagen Docker
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'gcr.io/plexo-475822/plexo:latest', '-f', 'docker/cloud-run/Dockerfile', '.']
+    id: 'build-image'
+  
+  # Step 2: Push a Container Registry
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/plexo-475822/plexo:latest']
+    id: 'push-image'
+    waitFor: ['build-image']
+  
+  # Step 3: Ejecutar migraciones de Prisma
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        docker run --rm \
+          -e DATABASE_URL="$$DATABASE_URL" \
+          gcr.io/plexo-475822/plexo:latest \
+          npx prisma migrate deploy
+    secretEnv: ['DATABASE_URL']
+    waitFor: ['push-image']
+
 images:
   - 'gcr.io/plexo-475822/plexo:latest'
+
+# Variables secretas desde Secret Manager
+secrets:
+  - versionName: projects/plexo-475822/secrets/database-url-prod/versions/latest
+    env: 'DATABASE_URL'
+
 timeout: '1800s'
