@@ -1,7 +1,7 @@
 import { prisma } from './prisma';
 import crypto from 'crypto';
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'your-encryption-key-32-chars-long!';
+const ENCRYPTION_KEY = (process.env['ENCRYPTION_KEY'] as string) || 'your-encryption-key-32-chars-long!';
 
 // Desencriptar API key
 function decryptApiKey(encrypted: string): string {
@@ -84,7 +84,7 @@ export async function getOpenAiKey(tenantId: string): Promise<string | null> {
   if (key) return key;
 
   // Fallback a variable de entorno
-  return process.env.OPENAI_API_KEY || null;
+  return (process.env['OPENAI_API_KEY'] as string) || null;
 }
 
 /**
@@ -95,5 +95,5 @@ export async function getGoogleAiKey(tenantId: string): Promise<string | null> {
   if (key) return key;
 
   // Fallback a variable de entorno
-  return process.env.GOOGLE_API_KEY || null;
+  return (process.env['GOOGLE_API_KEY'] as string) || null;
 }

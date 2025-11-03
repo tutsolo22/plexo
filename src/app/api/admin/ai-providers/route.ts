@@ -6,7 +6,7 @@ import { ApiResponses } from '@/lib/api/response-builder';
 import { validateTenantSession } from '@/lib/utils';
 import crypto from 'crypto';
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'your-encryption-key-32-chars-long!';
+const ENCRYPTION_KEY = (process.env['ENCRYPTION_KEY'] as string) || 'your-encryption-key-32-chars-long!';
 
 // Validar que sea admin
 async function validateAdmin(session: any) {
