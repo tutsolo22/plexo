@@ -8,7 +8,7 @@ import { ApiResponses } from '@/lib/api/responses';
 // GET /api/clients/[id] - Obtener cliente por ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string | null } }
 ) {
   try {
     const session = await auth();
@@ -17,6 +17,10 @@ export async function GET(
     }
 
     const tenantId = session.user.tenantId;
+    
+    if (!params.id || typeof params.id !== 'string') {
+      return ApiResponses.badRequest('ID de cliente requerido');
+    }
 
     const client = await prisma.client.findFirst({
       where: {
@@ -88,7 +92,7 @@ export async function GET(
 // PUT /api/clients/[id] - Actualizar cliente
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string | null } }
 ) {
   try {
     const session = await auth();
@@ -97,6 +101,11 @@ export async function PUT(
     }
 
     const tenantId = session.user.tenantId;
+    
+    if (!params.id || typeof params.id !== 'string') {
+      return ApiResponses.badRequest('ID de cliente requerido');
+    }
+    
     const body = await request.json();
     const validatedData = updateClientSchema.parse(body);
 
@@ -179,7 +188,7 @@ export async function PUT(
 // DELETE /api/clients/[id] - Soft delete cliente
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string | null } }
 ) {
   try {
     const session = await auth();
@@ -188,6 +197,10 @@ export async function DELETE(
     }
 
     const tenantId = session.user.tenantId;
+    
+    if (!params.id || typeof params.id !== 'string') {
+      return ApiResponses.badRequest('ID de cliente requerido');
+    }
 
     // Verificar que el cliente existe y pertenece al tenant
     const client = await prisma.client.findFirst({

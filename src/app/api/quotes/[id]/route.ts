@@ -8,7 +8,7 @@ import { QuoteStatus } from '@prisma/client';
 // GET /api/quotes/[id] - Obtener cotización por ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string | null } }
 ) {
   try {
     const session = await auth();
@@ -18,6 +18,10 @@ export async function GET(
 
     const { id } = params;
     const tenantId = session.user.tenantId;
+    
+    if (!id || typeof id !== 'string') {
+      return ApiResponses.badRequest('ID de cotización requerido');
+    }
 
     const quote = await prisma.quote.findFirst({
       where: {
@@ -71,7 +75,7 @@ export async function GET(
 // PUT /api/quotes/[id] - Actualizar cotización
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string | null } }
 ) {
   try {
     const session = await auth();
@@ -81,6 +85,11 @@ export async function PUT(
 
     const { id } = params;
     const tenantId = session.user.tenantId;
+    
+    if (!id || typeof id !== 'string') {
+      return ApiResponses.badRequest('ID de cotización requerido');
+    }
+    
     const body = await request.json();
 
     // Validar con Zod
@@ -204,7 +213,7 @@ export async function DELETE(
     }
 
     // Verificar que no esté aceptada
-    if (existingQuote.status === QuoteStatus.ACCEPTED) {
+    if (existingQuote.status === QuoteStatus.ACCEPTED_BY_CLIENT) {
       return ApiResponses.badRequest('No se puede eliminar una cotización aceptada');
     }
 

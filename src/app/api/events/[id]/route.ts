@@ -27,7 +27,7 @@ const UpdateEventSchema = z.object({
 /**
  * GET /api/events/[id] - Obtener evento específico
  */
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_request: NextRequest, { params }: { params: { id: string | null } }) {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -37,7 +37,7 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
     const { id } = params;
     const tenantId = session.user.tenantId;
 
-    if (!id) {
+    if (!id || typeof id !== 'string') {
       return ApiResponses.badRequest('ID de evento requerido');
     }
 
@@ -97,7 +97,7 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
 /**
  * PUT /api/events/[id] - Actualizar evento específico
  */
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: { id: string | null } }) {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -107,7 +107,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const { id } = params;
     const tenantId = session.user.tenantId;
 
-    if (!id) {
+    if (!id || typeof id !== 'string') {
       return ApiResponses.badRequest('ID de evento requerido');
     }
 
@@ -305,7 +305,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 /**
  * DELETE /api/events/[id] - Eliminar evento específico (soft delete)
  */
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_request: NextRequest, { params }: { params: { id: string | null } }) {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -315,7 +315,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
     const { id } = params;
     const tenantId = session.user.tenantId;
 
-    if (!id) {
+    if (!id || typeof id !== 'string') {
       return ApiResponses.badRequest('ID de evento requerido');
     }
 

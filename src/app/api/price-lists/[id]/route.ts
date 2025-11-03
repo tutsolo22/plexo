@@ -19,13 +19,17 @@ const updatePriceListSchema = z.object({
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string | null } }
 ) {
   try {
     const session = await auth();
     
     if (!session?.user) {
       return ApiResponses.unauthorized();
+    }
+    
+    if (!params.id || typeof params.id !== 'string') {
+      return ApiResponses.badRequest('ID de lista de precios requerido');
     }
 
     const priceList = await prisma.priceList.findFirst({
@@ -48,10 +52,7 @@ export async function GET(
           },
         },
         roomPricing: {
-          select: {
-            id: true,
-            price: true,
-            isActive: true,
+          include: {
             room: {
               select: {
                 id: true,
@@ -115,13 +116,17 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string | null } }
 ) {
   try {
     const session = await auth();
     
     if (!session?.user) {
       return ApiResponses.unauthorized();
+    }
+    
+    if (!params.id || typeof params.id !== 'string') {
+      return ApiResponses.badRequest('ID de lista de precios requerido');
     }
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden actualizar listas de precios
@@ -201,13 +206,17 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string | null } }
 ) {
   try {
     const session = await auth();
     
     if (!session?.user) {
       return ApiResponses.unauthorized();
+    }
+    
+    if (!params.id || typeof params.id !== 'string') {
+      return ApiResponses.badRequest('ID de lista de precios requerido');
     }
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden eliminar listas de precios
@@ -221,7 +230,16 @@ export async function DELETE(
         id: params.id,
         tenantId: session.user.tenantId,
       },
-      include: {
+    });
+
+    if (!existingList) {
+      return ApiResponses.notFound('Lista de precios no encontrada');
+    }
+
+    // Verificar si hay clientes o precios de salas asociados
+    const counts = await prisma.priceList.findUnique({
+      where: { id: params.id },
+      select: {
         _count: {
           select: {
             clients: true,
@@ -231,14 +249,13 @@ export async function DELETE(
       },
     });
 
-    if (!existingList) {
+    if (!counts) {
       return ApiResponses.notFound('Lista de precios no encontrada');
     }
 
-    // Verificar si hay clientes o precios de salas asociados
-    if (existingList._count.clients > 0 || existingList._count.roomPricing > 0) {
+    if (counts._count.clients > 0 || counts._count.roomPricing > 0) {
       return ApiResponses.badRequest(
-        `No se puede eliminar esta lista porque tiene ${existingList._count.clients} cliente(s) y ${existingList._count.roomPricing} precio(s) de salas asociados. Desactívala en lugar de eliminarla.`
+        `No se puede eliminar esta lista porque tiene ${counts._count.clients} cliente(s) y ${counts._count.roomPricing} precio(s) de salas asociados. Desactívala en lugar de eliminarla.`
       );
     }
 

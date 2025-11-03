@@ -18,13 +18,17 @@ const updateRoomPricingSchema = z.object({
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string; pricingId: string } }
+  { params }: { params: { id: string | null; pricingId: string | null } }
 ) {
   try {
     const session = await auth();
     
     if (!session?.user) {
       return ApiResponses.unauthorized();
+    }
+    
+    if (!params.id || typeof params.id !== 'string' || !params.pricingId || typeof params.pricingId !== 'string') {
+      return ApiResponses.badRequest('IDs de lista de precios y precio de sala requeridos');
     }
 
     const roomPricing = await prisma.roomPricing.findFirst({
@@ -35,12 +39,7 @@ export async function GET(
           tenantId: session.user.tenantId,
         },
       },
-      select: {
-        id: true,
-        price: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
+      include: {
         room: {
           select: {
             id: true,
@@ -59,13 +58,7 @@ export async function GET(
             description: true,
           },
         },
-        priceList: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-          },
-        },
+        priceList: true,
       },
     });
 
@@ -105,13 +98,17 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string; pricingId: string } }
+  { params }: { params: { id: string | null; pricingId: string | null } }
 ) {
   try {
     const session = await auth();
     
     if (!session?.user) {
       return ApiResponses.unauthorized();
+    }
+    
+    if (!params.id || typeof params.id !== 'string' || !params.pricingId || typeof params.pricingId !== 'string') {
+      return ApiResponses.badRequest('IDs de lista de precios y precio de sala requeridos');
     }
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden actualizar precios
@@ -208,13 +205,17 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; pricingId: string } }
+  { params }: { params: { id: string | null; pricingId: string | null } }
 ) {
   try {
     const session = await auth();
     
     if (!session?.user) {
       return ApiResponses.unauthorized();
+    }
+    
+    if (!params.id || typeof params.id !== 'string' || !params.pricingId || typeof params.pricingId !== 'string') {
+      return ApiResponses.badRequest('IDs de lista de precios y precio de sala requeridos');
     }
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden eliminar precios

@@ -58,10 +58,7 @@ export async function GET(request: NextRequest) {
         },
         ...(includeRoomPricing && {
           roomPricing: {
-            select: {
-              id: true,
-              price: true,
-              isActive: true,
+            include: {
               room: {
                 select: {
                   id: true,

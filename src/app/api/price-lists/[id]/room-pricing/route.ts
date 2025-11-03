@@ -28,13 +28,17 @@ const updateRoomPricingSchema = z.object({
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string | null } }
 ) {
   try {
     const session = await auth();
     
     if (!session?.user) {
       return ApiResponses.unauthorized();
+    }
+    
+    if (!params.id || typeof params.id !== 'string') {
+      return ApiResponses.badRequest('ID de lista de precios requerido');
     }
 
     // Verificar que la lista de precios existe y pertenece al tenant
@@ -132,13 +136,17 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string | null } }
 ) {
   try {
     const session = await auth();
     
     if (!session?.user) {
       return ApiResponses.unauthorized();
+    }
+    
+    if (!params.id || typeof params.id !== 'string') {
+      return ApiResponses.badRequest('ID de lista de precios requerido');
     }
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden asignar precios
