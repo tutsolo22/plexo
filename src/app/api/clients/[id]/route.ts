@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { updateClientSchema } from '@/lib/validations/client';
 import { ApiResponses } from '@/lib/api/responses';
+import { validateTenantSession, getTenantIdFromSession } from '@/lib/utils';
 
 // GET /api/clients/[id] - Obtener cliente por ID
 export async function GET(
@@ -12,15 +13,14 @@ export async function GET(
 ) {
   try {
     const session = await auth();
-    if (!session?.user) {
-      return ApiResponses.unauthorized('No autenticado');
-    }
-
-    const tenantId = session.user.tenantId;
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
     
     if (!params.id || typeof params.id !== 'string') {
       return ApiResponses.badRequest('ID de cliente requerido');
     }
+
+    const tenantId = getTenantIdFromSession(session)!;
 
     const client = await prisma.client.findFirst({
       where: {
@@ -96,15 +96,14 @@ export async function PUT(
 ) {
   try {
     const session = await auth();
-    if (!session?.user) {
-      return ApiResponses.unauthorized('No autenticado');
-    }
-
-    const tenantId = session.user.tenantId;
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
     
     if (!params.id || typeof params.id !== 'string') {
       return ApiResponses.badRequest('ID de cliente requerido');
     }
+
+    const tenantId = getTenantIdFromSession(session)!;
     
     const body = await request.json();
     const validatedData = updateClientSchema.parse(body);
@@ -192,15 +191,14 @@ export async function DELETE(
 ) {
   try {
     const session = await auth();
-    if (!session?.user) {
-      return ApiResponses.unauthorized('No autenticado');
-    }
-
-    const tenantId = session.user.tenantId;
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
     
     if (!params.id || typeof params.id !== 'string') {
       return ApiResponses.badRequest('ID de cliente requerido');
     }
+
+    const tenantId = getTenantIdFromSession(session)!;
 
     // Verificar que el cliente existe y pertenece al tenant
     const client = await prisma.client.findFirst({

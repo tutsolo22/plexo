@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { EventStatus } from '@prisma/client';
 import { ApiResponses } from '@/lib/api/responses';
+import { validateTenantSession, getTenantIdFromSession } from '@/lib/utils';
 
 // Esquema de validación para actualización
 const UpdateEventSchema = z.object({
@@ -30,16 +31,16 @@ const UpdateEventSchema = z.object({
 export async function GET(_request: NextRequest, { params }: { params: { id: string | null } }) {
   try {
     const session = await auth();
-    if (!session?.user) {
-      return ApiResponses.unauthorized('No autenticado');
-    }
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
 
     const { id } = params;
-    const tenantId = session.user.tenantId;
-
+    
     if (!id || typeof id !== 'string') {
       return ApiResponses.badRequest('ID de evento requerido');
     }
+
+    const tenantId = getTenantIdFromSession(session)!;
 
     const event = await prisma.event.findFirst({
       where: { 
@@ -100,16 +101,16 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
 export async function PUT(request: NextRequest, { params }: { params: { id: string | null } }) {
   try {
     const session = await auth();
-    if (!session?.user) {
-      return ApiResponses.unauthorized('No autenticado');
-    }
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
 
     const { id } = params;
-    const tenantId = session.user.tenantId;
-
+    
     if (!id || typeof id !== 'string') {
       return ApiResponses.badRequest('ID de evento requerido');
     }
+
+    const tenantId = getTenantIdFromSession(session)!;
 
     // Verificar que el evento existe y pertenece al tenant
     const existingEvent = await prisma.event.findFirst({
@@ -308,16 +309,16 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 export async function DELETE(_request: NextRequest, { params }: { params: { id: string | null } }) {
   try {
     const session = await auth();
-    if (!session?.user) {
-      return ApiResponses.unauthorized('No autenticado');
-    }
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
 
     const { id } = params;
-    const tenantId = session.user.tenantId;
-
+    
     if (!id || typeof id !== 'string') {
       return ApiResponses.badRequest('ID de evento requerido');
     }
+
+    const tenantId = getTenantIdFromSession(session)!;
 
     // Verificar que el evento existe y pertenece al tenant
     const existingEvent = await prisma.event.findFirst({

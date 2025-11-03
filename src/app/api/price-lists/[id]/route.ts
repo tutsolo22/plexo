@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { ApiResponses } from '@/lib/api/responses';
 import { z } from 'zod';
+import { validateTenantSession, getTenantIdFromSession } from '@/lib/utils';
 
 /**
  * Schema de validación para actualizar lista de precios
@@ -23,19 +24,19 @@ export async function GET(
 ) {
   try {
     const session = await auth();
-    
-    if (!session?.user) {
-      return ApiResponses.unauthorized();
-    }
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
     
     if (!params.id || typeof params.id !== 'string') {
       return ApiResponses.badRequest('ID de lista de precios requerido');
     }
 
+    const tenantId = getTenantIdFromSession(session)!;
+
     const priceList = await prisma.priceList.findFirst({
       where: {
         id: params.id,
-        tenantId: session.user.tenantId,
+        tenantId,
       },
       select: {
         id: true,
@@ -120,14 +121,14 @@ export async function PUT(
 ) {
   try {
     const session = await auth();
-    
-    if (!session?.user) {
-      return ApiResponses.unauthorized();
-    }
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
     
     if (!params.id || typeof params.id !== 'string') {
       return ApiResponses.badRequest('ID de lista de precios requerido');
     }
+
+    const tenantId = getTenantIdFromSession(session)!;
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden actualizar listas de precios
     if (!['SUPER_ADMIN', 'TENANT_ADMIN'].includes(session.user.role)) {
@@ -138,7 +139,7 @@ export async function PUT(
     const existingList = await prisma.priceList.findFirst({
       where: {
         id: params.id,
-        tenantId: session.user.tenantId,
+        tenantId,
       },
     });
 
@@ -154,7 +155,7 @@ export async function PUT(
       const duplicateName = await prisma.priceList.findFirst({
         where: {
           id: { not: params.id },
-          tenantId: session.user.tenantId,
+          tenantId,
           name: validatedData.name,
         },
       });
