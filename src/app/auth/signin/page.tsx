@@ -9,7 +9,7 @@ export default function SignInPage() {
   const router = useRouter();
   const [error, setError] = useState<{ message: string } | null>(null);
 
-  const handleSubmit = async (email, password) => {
+  const handleSubmit = async (email: string, password: string) => {
     setError(null);
 
     const result = await signIn('credentials', {
