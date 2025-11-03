@@ -182,6 +182,7 @@ model Tenant {
   onboardingStep     Int                @default(0)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
+  aiProviderConfigs  AiProviderConfig[]
   auditLogs          AuditLog[]
   businessIdentities BusinessIdentity[]
   clients            Client[]
@@ -1283,4 +1284,21 @@ model QueryExample {
   @@index([entity])
   @@index([success])
   @@map("query_examples")
+}
+
+// AI Provider Configuration por Tenant
+model AiProviderConfig {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  provider     String   // openai, google, anthropic, etc.
+  apiKey       String   // Encriptada en BD
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([tenantId, provider])
+  @@index([tenantId])
+  @@index([provider])
+  @@map("ai_provider_configs")
 }
