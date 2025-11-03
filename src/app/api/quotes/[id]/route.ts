@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { updateQuoteSchema } from '@/lib/validations/mutations';
 import { ApiResponses } from '@/lib/api/responses';
 import { QuoteStatus } from '@prisma/client';
+import { validateTenantSession, getTenantIdFromSession } from '@/lib/utils';
 
 // GET /api/quotes/[id] - Obtener cotización por ID
 export async function GET(
@@ -12,16 +13,16 @@ export async function GET(
 ) {
   try {
     const session = await auth();
-    if (!session?.user) {
-      return ApiResponses.unauthorized('No autenticado');
-    }
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
 
     const { id } = params;
-    const tenantId = session.user.tenantId;
     
     if (!id || typeof id !== 'string') {
       return ApiResponses.badRequest('ID de cotización requerido');
     }
+
+    const tenantId = getTenantIdFromSession(session)!;
 
     const quote = await prisma.quote.findFirst({
       where: {
@@ -79,16 +80,16 @@ export async function PUT(
 ) {
   try {
     const session = await auth();
-    if (!session?.user) {
-      return ApiResponses.unauthorized('No autenticado');
-    }
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
 
     const { id } = params;
-    const tenantId = session.user.tenantId;
     
     if (!id || typeof id !== 'string') {
       return ApiResponses.badRequest('ID de cotización requerido');
     }
+
+    const tenantId = getTenantIdFromSession(session)!;
     
     const body = await request.json();
 

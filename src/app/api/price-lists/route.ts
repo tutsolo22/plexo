@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { ApiResponses } from '@/lib/api/responses';
 import { z } from 'zod';
+import { validateTenantSession, getTenantIdFromSession } from '@/lib/utils';
 
 /**
  * Schema de validación para crear lista de precios
