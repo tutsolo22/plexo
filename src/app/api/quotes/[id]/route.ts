@@ -201,13 +201,13 @@ export async function DELETE(
       return ApiResponses.badRequest('ID de cotización requerido');
     }
 
-    const { id } = params;
+    const quoteId = params.id; // Asignar después de validar type guard
     const tenantId = getTenantIdFromSession(session)!;
 
     // Verificar que la cotización existe y pertenece al tenant
     const existingQuote = await prisma.quote.findFirst({
       where: {
-        id,
+        id: quoteId,
         tenantId,
       },
     });
@@ -223,10 +223,10 @@ export async function DELETE(
 
     // Eliminar cotización (hard delete ya que no tiene deletedAt)
     await prisma.quote.delete({
-      where: { id },
+      where: { id: quoteId },
     });
 
-    console.log('🗑️ Cotización eliminada:', id);
+    console.log('🗑️ Cotización eliminada:', quoteId);
 
     return ApiResponses.success({
       message: 'Cotización eliminada exitosamente',

@@ -269,7 +269,8 @@ export async function POST(
     return ApiResponses.created(formattedPricing, 'Precio de sala asignado exitosamente');
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return ApiResponses.badRequest(error.errors[0].message);
+      const errorMessage = error.errors[0]?.message || 'Datos inválidos';
+      return ApiResponses.badRequest(errorMessage);
     }
     
     console.error('Error al asignar precio de sala:', error);
@@ -292,7 +293,7 @@ export async function PUT(
     if (tenantValidation) return tenantValidation;
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden actualizar precios
-    if (!['SUPER_ADMIN', 'TENANT_ADMIN'].includes(session.user.role)) {
+    if (!['SUPER_ADMIN', 'TENANT_ADMIN'].includes((session as any).user.role)) {
       return ApiResponses.forbidden('No tienes permisos para actualizar precios');
     }
 
@@ -353,7 +354,8 @@ export async function PUT(
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return ApiResponses.badRequest(error.errors[0].message);
+      const errorMessage = error.errors[0]?.message || 'Datos inválidos';
+      return ApiResponses.badRequest(errorMessage);
     }
     
     console.error('Error al actualizar precios:', error);

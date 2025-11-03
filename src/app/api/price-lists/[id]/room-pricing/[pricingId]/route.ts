@@ -113,7 +113,7 @@ export async function PUT(
     const tenantId = getTenantIdFromSession(session)!;
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden actualizar precios
-    if (!['SUPER_ADMIN', 'TENANT_ADMIN'].includes(session.user.role)) {
+    if (!['SUPER_ADMIN', 'TENANT_ADMIN'].includes((session as any).user.role)) {
       return ApiResponses.forbidden('No tienes permisos para actualizar precios');
     }
 
@@ -192,7 +192,8 @@ export async function PUT(
     return ApiResponses.success(formattedPricing, 'Precio de sala actualizado exitosamente');
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return ApiResponses.badRequest(error.errors[0].message);
+      const errorMessage = error.errors[0]?.message || 'Datos inválidos';
+      return ApiResponses.badRequest(errorMessage);
     }
     
     console.error('Error al actualizar precio de sala:', error);
@@ -220,7 +221,7 @@ export async function DELETE(
     const tenantId = getTenantIdFromSession(session)!;
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden eliminar precios
-    if (!['SUPER_ADMIN', 'TENANT_ADMIN'].includes(session.user.role)) {
+    if (!['SUPER_ADMIN', 'TENANT_ADMIN'].includes((session as any).user.role)) {
       return ApiResponses.forbidden('No tienes permisos para eliminar precios');
     }
 

@@ -131,7 +131,7 @@ export async function PUT(
     const tenantId = getTenantIdFromSession(session)!;
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden actualizar listas de precios
-    if (!['SUPER_ADMIN', 'TENANT_ADMIN'].includes(session.user.role)) {
+    if (!['SUPER_ADMIN', 'TENANT_ADMIN'].includes((session as any).user.role)) {
       return ApiResponses.forbidden('No tienes permisos para actualizar listas de precios');
     }
 
@@ -193,7 +193,8 @@ export async function PUT(
     return ApiResponses.success(updatedList, 'Lista de precios actualizada exitosamente');
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return ApiResponses.badRequest(error.errors[0].message);
+      const errorMessage = error.errors[0]?.message || 'Datos inválidos';
+      return ApiResponses.badRequest(errorMessage);
     }
     
     console.error('Error al actualizar lista de precios:', error);

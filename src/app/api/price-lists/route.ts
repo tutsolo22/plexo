@@ -39,48 +39,58 @@ export async function GET(request: NextRequest) {
       where.isActive = isActive === 'true';
     }
 
-    const priceLists = await prisma.priceList.findMany({
-      where,
-      orderBy: {
-        name: 'asc',
-      },
-      include: {
-        _count: {
-          select: {
-            clients: true,
-            roomPricing: true,
-          },
-        },
-        ...(includeRoomPricing && {
-          roomPricing: {
-            include: {
-              room: {
-                select: {
-                  id: true,
-                  name: true,
-                },
+    // Hacer dos queries dependiendo de si incluye roomPricing
+    const priceLists = includeRoomPricing
+      ? await prisma.priceList.findMany({
+          where,
+          orderBy: { name: 'asc' },
+          include: {
+            _count: {
+              select: {
+                clients: true,
+                roomPricing: true,
               },
-              workShift: {
-                select: {
-                  id: true,
-                  name: true,
-                  startTime: true,
-                  endTime: true,
+            },
+            roomPricing: {
+              include: {
+                room: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+                workShift: {
+                  select: {
+                    id: true,
+                    name: true,
+                    startTime: true,
+                    endTime: true,
+                  },
                 },
               },
             },
           },
-        }),
-      },
-    });
+        })
+      : await prisma.priceList.findMany({
+          where,
+          orderBy: { name: 'asc' },
+          include: {
+            _count: {
+              select: {
+                clients: true,
+                roomPricing: true,
+              },
+            },
+          },
+        });
 
     // Formatear respuesta
-    const formattedLists = priceLists.map(list => ({
+    const formattedLists = priceLists.map((list: any) => ({
       ...list,
       clientsCount: list._count.clients,
       roomPricingCount: list._count.roomPricing,
-      roomPricing: includeRoomPricing
-        ? list.roomPricing?.map(rp => ({
+      roomPricing: includeRoomPricing && list.roomPricing
+        ? list.roomPricing.map((rp: any) => ({
             ...rp,
             price: parseFloat(rp.price.toString()),
             workShift: {
@@ -119,7 +129,7 @@ export async function POST(request: NextRequest) {
     if (tenantValidation) return tenantValidation;
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden crear listas de precios
-    if (!['SUPER_ADMIN', 'TENANT_ADMIN'].includes(session.user.role)) {
+    if (!['SUPER_ADMIN', 'TENANT_ADMIN'].includes((session as any).user.role)) {
       return ApiResponses.forbidden('No tienes permisos para crear listas de precios');
     }
 
@@ -143,7 +153,7 @@ export async function POST(request: NextRequest) {
     const priceList = await prisma.priceList.create({
       data: {
         name: validatedData.name,
-        description: validatedData.description,
+        description: (validatedData.description || null) as string | null,
         isActive: validatedData.isActive,
         tenantId,
       },
@@ -159,7 +169,8 @@ export async function POST(request: NextRequest) {
     return ApiResponses.created(priceList, 'Lista de precios creada exitosamente');
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return ApiResponses.badRequest(error.errors[0].message);
+      const errorMessage = error.errors[0]?.message || 'Datos inválidos';
+      return ApiResponses.badRequest(errorMessage);
     }
     
     console.error('Error al crear lista de precios:', error);

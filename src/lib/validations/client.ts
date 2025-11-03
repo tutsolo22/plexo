@@ -12,6 +12,7 @@ export const clientSchema = z.object({
   }),
   discountPercent: z.number().min(0).max(100).optional(),
   notes: z.string().optional(),
+  priceListId: z.string().cuid().optional(),
 });
 
 // Schema para crear cliente
