@@ -44,13 +44,7 @@ export async function GET(request: NextRequest) {
       orderBy: {
         name: 'asc',
       },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
+      include: {
         _count: {
           select: {
             clients: true,
@@ -121,10 +115,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-    
-    if (!session?.user) {
-      return ApiResponses.unauthorized();
-    }
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden crear listas de precios
     if (!['SUPER_ADMIN', 'TENANT_ADMIN'].includes(session.user.role)) {
@@ -134,10 +126,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = createPriceListSchema.parse(body);
 
+    const tenantId = getTenantIdFromSession(session)!;
+
     // Verificar que no exista una lista con el mismo nombre
     const existingList = await prisma.priceList.findFirst({
       where: {
-        tenantId: session.user.tenantId,
+        tenantId,
         name: validatedData.name,
       },
     });
@@ -151,7 +145,7 @@ export async function POST(request: NextRequest) {
         name: validatedData.name,
         description: validatedData.description,
         isActive: validatedData.isActive,
-        tenantId: session.user.tenantId,
+        tenantId,
       },
       select: {
         id: true,

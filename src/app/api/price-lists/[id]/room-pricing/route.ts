@@ -42,11 +42,13 @@ export async function GET(
       return ApiResponses.badRequest('ID de lista de precios requerido');
     }
 
+    const tenantId = getTenantIdFromSession(session)!;
+
     // Verificar que la lista de precios existe y pertenece al tenant
     const priceList = await prisma.priceList.findFirst({
       where: {
         id: params.id,
-        tenantId: session.user.tenantId,
+        tenantId,
       },
     });
 
@@ -155,11 +157,13 @@ export async function POST(
       return ApiResponses.forbidden('No tienes permisos para asignar precios');
     }
 
+    const tenantId = getTenantIdFromSession(session)!;
+
     // Verificar que la lista de precios existe y pertenece al tenant
     const priceList = await prisma.priceList.findFirst({
       where: {
         id: params.id,
-        tenantId: session.user.tenantId,
+        tenantId,
       },
     });
 
@@ -176,7 +180,7 @@ export async function POST(
         id: validatedData.roomId,
         location: {
           businessIdentity: {
-            tenantId: session.user.tenantId,
+            tenantId,
           },
         },
       },
@@ -190,7 +194,7 @@ export async function POST(
     const workShift = await prisma.workShift.findFirst({
       where: {
         id: validatedData.workShiftId,
-        tenantId: session.user.tenantId,
+        tenantId,
       },
     });
 
@@ -284,20 +288,21 @@ export async function PUT(
   try {
     const session = await auth();
     
-    if (!session?.user) {
-      return ApiResponses.unauthorized();
-    }
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden actualizar precios
     if (!['SUPER_ADMIN', 'TENANT_ADMIN'].includes(session.user.role)) {
       return ApiResponses.forbidden('No tienes permisos para actualizar precios');
     }
 
+    const tenantId = getTenantIdFromSession(session)!;
+
     // Verificar que la lista de precios existe y pertenece al tenant
     const priceList = await prisma.priceList.findFirst({
       where: {
         id: params.id,
-        tenantId: session.user.tenantId,
+        tenantId,
       },
     });
 

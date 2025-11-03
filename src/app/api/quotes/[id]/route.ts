@@ -190,16 +190,19 @@ export async function PUT(
 // DELETE /api/quotes/[id] - Eliminar cotización
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string | null } }
 ) {
   try {
     const session = await auth();
-    if (!session?.user) {
-      return ApiResponses.unauthorized('No autenticado');
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
+    
+    if (!params.id || typeof params.id !== 'string') {
+      return ApiResponses.badRequest('ID de cotización requerido');
     }
 
     const { id } = params;
-    const tenantId = session.user.tenantId;
+    const tenantId = getTenantIdFromSession(session)!;
 
     // Verificar que la cotización existe y pertenece al tenant
     const existingQuote = await prisma.quote.findFirst({

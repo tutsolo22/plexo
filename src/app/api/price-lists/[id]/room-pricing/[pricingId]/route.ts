@@ -23,21 +23,21 @@ export async function GET(
 ) {
   try {
     const session = await auth();
-    
-    if (!session?.user) {
-      return ApiResponses.unauthorized();
-    }
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
     
     if (!params.id || typeof params.id !== 'string' || !params.pricingId || typeof params.pricingId !== 'string') {
       return ApiResponses.badRequest('IDs de lista de precios y precio de sala requeridos');
     }
+
+    const tenantId = getTenantIdFromSession(session)!;
 
     const roomPricing = await prisma.roomPricing.findFirst({
       where: {
         id: params.pricingId,
         priceListId: params.id,
         priceList: {
-          tenantId: session.user.tenantId,
+          tenantId,
         },
       },
       include: {
@@ -103,14 +103,14 @@ export async function PUT(
 ) {
   try {
     const session = await auth();
-    
-    if (!session?.user) {
-      return ApiResponses.unauthorized();
-    }
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
     
     if (!params.id || typeof params.id !== 'string' || !params.pricingId || typeof params.pricingId !== 'string') {
       return ApiResponses.badRequest('IDs de lista de precios y precio de sala requeridos');
     }
+
+    const tenantId = getTenantIdFromSession(session)!;
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden actualizar precios
     if (!['SUPER_ADMIN', 'TENANT_ADMIN'].includes(session.user.role)) {
@@ -123,7 +123,7 @@ export async function PUT(
         id: params.pricingId,
         priceListId: params.id,
         priceList: {
-          tenantId: session.user.tenantId,
+          tenantId,
         },
       },
     });
@@ -210,14 +210,14 @@ export async function DELETE(
 ) {
   try {
     const session = await auth();
-    
-    if (!session?.user) {
-      return ApiResponses.unauthorized();
-    }
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
     
     if (!params.id || typeof params.id !== 'string' || !params.pricingId || typeof params.pricingId !== 'string') {
       return ApiResponses.badRequest('IDs de lista de precios y precio de sala requeridos');
     }
+
+    const tenantId = getTenantIdFromSession(session)!;
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden eliminar precios
     if (!['SUPER_ADMIN', 'TENANT_ADMIN'].includes(session.user.role)) {
@@ -230,7 +230,7 @@ export async function DELETE(
         id: params.pricingId,
         priceListId: params.id,
         priceList: {
-          tenantId: session.user.tenantId,
+          tenantId,
         },
       },
     });

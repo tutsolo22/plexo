@@ -225,11 +225,13 @@ export async function DELETE(
       return ApiResponses.forbidden('No tienes permisos para eliminar listas de precios');
     }
 
+    const tenantId = getTenantIdFromSession(session)!;
+
     // Verificar que la lista existe y pertenece al tenant
     const existingList = await prisma.priceList.findFirst({
       where: {
         id: params.id,
-        tenantId: session.user.tenantId,
+        tenantId,
       },
     });
 
