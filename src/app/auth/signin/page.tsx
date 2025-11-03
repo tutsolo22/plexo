@@ -16,6 +16,7 @@ export default function SignInPage() {
       email: email.trim().toLowerCase(),
       password: password,
       redirect: false,
+      callbackUrl: '/dashboard',
     });
 
     if (result?.error) {
@@ -24,25 +25,11 @@ export default function SignInPage() {
       } else {
         setError({ message: "Error al iniciar sesión. Intenta nuevamente." });
       }
-    } else if (result?.ok || result?.url) {
-      // NextAuth v5 (beta) puede devolver `url` en lugar de `ok`.
-      const target = result?.url || '/dashboard';
-      // Redirigir al callbackUrl si existe, sino al dashboard
-      router.push(target);
-      router.refresh();
+    } else if (result?.ok) {
+      // Redirigir al dashboard tras autenticación exitosa
+      router.push('/dashboard');
     }
   };
-
-  const testCredentials = (
-    <div className="text-sm text-muted-foreground bg-secondary p-4 rounded-lg border">
-      <p className="font-semibold mb-2 text-primary">Credenciales de prueba:</p>
-      <div className="space-y-1">
-        <p><span className="font-medium">Administrador:</span> admin@gestioneventos.com</p>
-        <p><span className="font-medium">Manager:</span> manager@gestioneventos.com</p>
-        <p className="text-xs opacity-75 mt-2">Contraseña para ambos: admin123 / manager123</p>
-      </div>
-    </div>
-  );
 
   return (
     <AuthForm
@@ -51,7 +38,6 @@ export default function SignInPage() {
       buttonText="Iniciar Sesión"
       onSubmit={handleSubmit}
       error={error}
-      formContent={testCredentials}
     />
   );
 }
