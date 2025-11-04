@@ -13,7 +13,7 @@ interface AuthFormProps {
   title: string;
   description: string;
   buttonText: string;
-  onSubmit: (email, password) => Promise<void>;
+  onSubmit: (email: string, password: string) => Promise<void>;
   error?: { message: string; isUnverified?: boolean } | null;
   children?: ReactNode;
   formContent?: ReactNode;

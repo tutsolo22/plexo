@@ -4,15 +4,14 @@
  */
 
 import { NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth.config';
+import { auth } from '@/lib/auth';
 import { learningSystem } from '@/lib/ai/learning-system';
 import { ApiResponses } from '@/lib/api/response-builder';
 import { withErrorHandling } from '@/lib/api/middleware';
 
 async function learningStatsHandler(_req: NextRequest) {
   // Obtener sesión
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user) {
     return ApiResponses.unauthorized('No autenticado');

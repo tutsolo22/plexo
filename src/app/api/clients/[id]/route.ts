@@ -1,23 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getServerSession } from 'next-auth/next';
-import authOptions from '@/lib/auth.config';
+import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { updateClientSchema } from '@/lib/validations/client';
 import { ApiResponses } from '@/lib/api/responses';
+import { validateTenantSession, getTenantIdFromSession } from '@/lib/utils';
 
 // GET /api/clients/[id] - Obtener cliente por ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string | null } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return ApiResponses.unauthorized('No autenticado');
+    const session = await auth();
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
+    
+    if (!params.id || typeof params.id !== 'string') {
+      return ApiResponses.badRequest('ID de cliente requerido');
     }
 
-    const tenantId = session.user.tenantId;
+    const tenantId = getTenantIdFromSession(session)!;
 
     const client = await prisma.client.findFirst({
       where: {
@@ -89,15 +92,19 @@ export async function GET(
 // PUT /api/clients/[id] - Actualizar cliente
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string | null } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return ApiResponses.unauthorized('No autenticado');
+    const session = await auth();
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
+    
+    if (!params.id || typeof params.id !== 'string') {
+      return ApiResponses.badRequest('ID de cliente requerido');
     }
 
-    const tenantId = session.user.tenantId;
+    const tenantId = getTenantIdFromSession(session)!;
+    
     const body = await request.json();
     const validatedData = updateClientSchema.parse(body);
 
@@ -180,15 +187,18 @@ export async function PUT(
 // DELETE /api/clients/[id] - Soft delete cliente
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string | null } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return ApiResponses.unauthorized('No autenticado');
+    const session = await auth();
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
+    
+    if (!params.id || typeof params.id !== 'string') {
+      return ApiResponses.badRequest('ID de cliente requerido');
     }
 
-    const tenantId = session.user.tenantId;
+    const tenantId = getTenantIdFromSession(session)!;
 
     // Verificar que el cliente existe y pertenece al tenant
     const client = await prisma.client.findFirst({

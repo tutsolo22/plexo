@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import authOptions from '@/lib/auth.config';
+import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { ApiResponses } from '@/lib/api/responses';
 import { z } from 'zod';
+import { validateTenantSession, getTenantIdFromSession } from '@/lib/utils';
 
 /**
  * Schema de validación para actualizar precio individual
@@ -19,29 +19,28 @@ const updateRoomPricingSchema = z.object({
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string; pricingId: string } }
+  { params }: { params: { id: string | null; pricingId: string | null } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
     
-    if (!session?.user) {
-      return ApiResponses.unauthorized();
+    if (!params.id || typeof params.id !== 'string' || !params.pricingId || typeof params.pricingId !== 'string') {
+      return ApiResponses.badRequest('IDs de lista de precios y precio de sala requeridos');
     }
+
+    const tenantId = getTenantIdFromSession(session)!;
 
     const roomPricing = await prisma.roomPricing.findFirst({
       where: {
         id: params.pricingId,
         priceListId: params.id,
         priceList: {
-          tenantId: session.user.tenantId,
+          tenantId,
         },
       },
-      select: {
-        id: true,
-        price: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
+      include: {
         room: {
           select: {
             id: true,
@@ -60,13 +59,7 @@ export async function GET(
             description: true,
           },
         },
-        priceList: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-          },
-        },
+        priceList: true,
       },
     });
 
@@ -106,17 +99,21 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string; pricingId: string } }
+  { params }: { params: { id: string | null; pricingId: string | null } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
     
-    if (!session?.user) {
-      return ApiResponses.unauthorized();
+    if (!params.id || typeof params.id !== 'string' || !params.pricingId || typeof params.pricingId !== 'string') {
+      return ApiResponses.badRequest('IDs de lista de precios y precio de sala requeridos');
     }
 
+    const tenantId = getTenantIdFromSession(session)!;
+
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden actualizar precios
-    if (!['SUPER_ADMIN', 'TENANT_ADMIN'].includes(session.user.role)) {
+    if (!['SUPER_ADMIN', 'TENANT_ADMIN'].includes((session as any).user.role)) {
       return ApiResponses.forbidden('No tienes permisos para actualizar precios');
     }
 
@@ -126,7 +123,7 @@ export async function PUT(
         id: params.pricingId,
         priceListId: params.id,
         priceList: {
-          tenantId: session.user.tenantId,
+          tenantId,
         },
       },
     });
@@ -195,7 +192,8 @@ export async function PUT(
     return ApiResponses.success(formattedPricing, 'Precio de sala actualizado exitosamente');
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return ApiResponses.badRequest(error.errors[0].message);
+      const errorMessage = error.errors[0]?.message || 'Datos inválidos';
+      return ApiResponses.badRequest(errorMessage);
     }
     
     console.error('Error al actualizar precio de sala:', error);
@@ -209,17 +207,21 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; pricingId: string } }
+  { params }: { params: { id: string | null; pricingId: string | null } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
     
-    if (!session?.user) {
-      return ApiResponses.unauthorized();
+    if (!params.id || typeof params.id !== 'string' || !params.pricingId || typeof params.pricingId !== 'string') {
+      return ApiResponses.badRequest('IDs de lista de precios y precio de sala requeridos');
     }
 
+    const tenantId = getTenantIdFromSession(session)!;
+
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden eliminar precios
-    if (!['SUPER_ADMIN', 'TENANT_ADMIN'].includes(session.user.role)) {
+    if (!['SUPER_ADMIN', 'TENANT_ADMIN'].includes((session as any).user.role)) {
       return ApiResponses.forbidden('No tienes permisos para eliminar precios');
     }
 
@@ -229,7 +231,7 @@ export async function DELETE(
         id: params.pricingId,
         priceListId: params.id,
         priceList: {
-          tenantId: session.user.tenantId,
+          tenantId,
         },
       },
     });

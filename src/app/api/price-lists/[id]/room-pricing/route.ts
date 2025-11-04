@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import authOptions from '@/lib/auth.config';
+import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { ApiResponses } from '@/lib/api/responses';
 import { z } from 'zod';
+import { validateTenantSession, getTenantIdFromSession } from '@/lib/utils';
 
 /**
  * Schema de validación para asignar precio a sala en turno específico
@@ -29,20 +29,26 @@ const updateRoomPricingSchema = z.object({
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string | null } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user) {
       return ApiResponses.unauthorized();
     }
+    
+    if (!params.id || typeof params.id !== 'string') {
+      return ApiResponses.badRequest('ID de lista de precios requerido');
+    }
+
+    const tenantId = getTenantIdFromSession(session)!;
 
     // Verificar que la lista de precios existe y pertenece al tenant
     const priceList = await prisma.priceList.findFirst({
       where: {
         id: params.id,
-        tenantId: session.user.tenantId,
+        tenantId,
       },
     });
 
@@ -133,13 +139,17 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string | null } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user) {
       return ApiResponses.unauthorized();
+    }
+    
+    if (!params.id || typeof params.id !== 'string') {
+      return ApiResponses.badRequest('ID de lista de precios requerido');
     }
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden asignar precios
@@ -147,11 +157,13 @@ export async function POST(
       return ApiResponses.forbidden('No tienes permisos para asignar precios');
     }
 
+    const tenantId = getTenantIdFromSession(session)!;
+
     // Verificar que la lista de precios existe y pertenece al tenant
     const priceList = await prisma.priceList.findFirst({
       where: {
         id: params.id,
-        tenantId: session.user.tenantId,
+        tenantId,
       },
     });
 
@@ -168,7 +180,7 @@ export async function POST(
         id: validatedData.roomId,
         location: {
           businessIdentity: {
-            tenantId: session.user.tenantId,
+            tenantId,
           },
         },
       },
@@ -182,7 +194,7 @@ export async function POST(
     const workShift = await prisma.workShift.findFirst({
       where: {
         id: validatedData.workShiftId,
-        tenantId: session.user.tenantId,
+        tenantId,
       },
     });
 
@@ -257,7 +269,8 @@ export async function POST(
     return ApiResponses.created(formattedPricing, 'Precio de sala asignado exitosamente');
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return ApiResponses.badRequest(error.errors[0].message);
+      const errorMessage = error.errors[0]?.message || 'Datos inválidos';
+      return ApiResponses.badRequest(errorMessage);
     }
     
     console.error('Error al asignar precio de sala:', error);
@@ -274,22 +287,23 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
-    if (!session?.user) {
-      return ApiResponses.unauthorized();
-    }
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
 
     // Solo SUPER_ADMIN y TENANT_ADMIN pueden actualizar precios
-    if (!['SUPER_ADMIN', 'TENANT_ADMIN'].includes(session.user.role)) {
+    if (!['SUPER_ADMIN', 'TENANT_ADMIN'].includes((session as any).user.role)) {
       return ApiResponses.forbidden('No tienes permisos para actualizar precios');
     }
+
+    const tenantId = getTenantIdFromSession(session)!;
 
     // Verificar que la lista de precios existe y pertenece al tenant
     const priceList = await prisma.priceList.findFirst({
       where: {
         id: params.id,
-        tenantId: session.user.tenantId,
+        tenantId,
       },
     });
 
@@ -340,7 +354,8 @@ export async function PUT(
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return ApiResponses.badRequest(error.errors[0].message);
+      const errorMessage = error.errors[0]?.message || 'Datos inválidos';
+      return ApiResponses.badRequest(errorMessage);
     }
     
     console.error('Error al actualizar precios:', error);

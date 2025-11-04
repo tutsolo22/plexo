@@ -1,24 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import authOptions from '@/lib/auth.config';
+import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { updateQuoteSchema } from '@/lib/validations/mutations';
 import { ApiResponses } from '@/lib/api/responses';
 import { QuoteStatus } from '@prisma/client';
+import { validateTenantSession, getTenantIdFromSession } from '@/lib/utils';
 
 // GET /api/quotes/[id] - Obtener cotización por ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string | null } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return ApiResponses.unauthorized('No autenticado');
-    }
+    const session = await auth();
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
 
     const { id } = params;
-    const tenantId = session.user.tenantId;
+    
+    if (!id || typeof id !== 'string') {
+      return ApiResponses.badRequest('ID de cotización requerido');
+    }
+
+    const tenantId = getTenantIdFromSession(session)!;
 
     const quote = await prisma.quote.findFirst({
       where: {
@@ -72,16 +76,21 @@ export async function GET(
 // PUT /api/quotes/[id] - Actualizar cotización
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string | null } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return ApiResponses.unauthorized('No autenticado');
-    }
+    const session = await auth();
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
 
     const { id } = params;
-    const tenantId = session.user.tenantId;
+    
+    if (!id || typeof id !== 'string') {
+      return ApiResponses.badRequest('ID de cotización requerido');
+    }
+
+    const tenantId = getTenantIdFromSession(session)!;
+    
     const body = await request.json();
 
     // Validar con Zod
@@ -181,21 +190,24 @@ export async function PUT(
 // DELETE /api/quotes/[id] - Eliminar cotización
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string | null } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return ApiResponses.unauthorized('No autenticado');
+    const session = await auth();
+    const tenantValidation = validateTenantSession(session);
+    if (tenantValidation) return tenantValidation;
+    
+    if (!params.id || typeof params.id !== 'string') {
+      return ApiResponses.badRequest('ID de cotización requerido');
     }
 
-    const { id } = params;
-    const tenantId = session.user.tenantId;
+    const quoteId = params.id; // Asignar después de validar type guard
+    const tenantId = getTenantIdFromSession(session)!;
 
     // Verificar que la cotización existe y pertenece al tenant
     const existingQuote = await prisma.quote.findFirst({
       where: {
-        id,
+        id: quoteId,
         tenantId,
       },
     });
@@ -205,16 +217,16 @@ export async function DELETE(
     }
 
     // Verificar que no esté aceptada
-    if (existingQuote.status === QuoteStatus.ACCEPTED) {
+    if (existingQuote.status === QuoteStatus.ACCEPTED_BY_CLIENT) {
       return ApiResponses.badRequest('No se puede eliminar una cotización aceptada');
     }
 
     // Eliminar cotización (hard delete ya que no tiene deletedAt)
     await prisma.quote.delete({
-      where: { id },
+      where: { id: quoteId },
     });
 
-    console.log('🗑️ Cotización eliminada:', id);
+    console.log('🗑️ Cotización eliminada:', quoteId);
 
     return ApiResponses.success({
       message: 'Cotización eliminada exitosamente',
