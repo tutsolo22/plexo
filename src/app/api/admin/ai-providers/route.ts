@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { ApiResponses } from '@/lib/api/response-builder';
 import { validateTenantSession } from '@/lib/utils';
+import { logAiProviderChange, getClientIpAddress, generateAuditDescription, getChangedFields } from '@/lib/ai-provider-audit';
 import crypto from 'crypto';
 
 const ENCRYPTION_KEY = (process.env['ENCRYPTION_KEY'] as string) || 'your-encryption-key-32-chars-long!';
@@ -99,6 +100,8 @@ export async function POST(request: NextRequest) {
     const encryptedKey = encryptApiKey(validatedData.apiKey);
 
     let config;
+    let action: 'CREATE' | 'UPDATE' = 'CREATE';
+    
     if (existing) {
       // Actualizar
       config = await prisma.aiProviderConfig.update({
@@ -115,6 +118,7 @@ export async function POST(request: NextRequest) {
           updatedAt: true,
         },
       });
+      action = 'UPDATE';
     } else {
       // Crear
       config = await prisma.aiProviderConfig.create({
@@ -132,6 +136,29 @@ export async function POST(request: NextRequest) {
           updatedAt: true,
         },
       });
+      action = 'CREATE';
+    }
+
+    // Registrar en auditoría
+    try {
+      await logAiProviderChange({
+        tenantId,
+        aiProviderConfigId: config.id,
+        userId: session?.user?.id || '',
+        action,
+        provider: validatedData.provider,
+        changesDetails: {
+          newValues: {
+            provider: validatedData.provider,
+            isActive: true,
+          },
+        },
+        description: generateAuditDescription(action, validatedData.provider),
+        ipAddress: getClientIpAddress(request.headers),
+      });
+    } catch (auditError) {
+      console.error('Error logging audit:', auditError);
+      // No bloquear la operación si falla la auditoría
     }
 
     return ApiResponses.created(config, `Configuración de ${validatedData.provider} guardada exitosamente`);

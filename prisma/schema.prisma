@@ -68,6 +68,7 @@ model User {
   tenantId           String
   accounts           Account[]
   auditLogs          AuditLog[]
+  aiConfigAuditLogs  AiProviderConfigAudit[] @relation("UserAiConfigAudit")
   clientCredits      ClientCredits[]
   client             Client?
   emailChanges       EmailChange[]
@@ -174,41 +175,42 @@ model Permission {
 }
 
 model Tenant {
-  id                 String             @id @default(cuid())
-  name               String
-  domain             String             @unique
-  isActive           Boolean            @default(true)
-  onboardingCompleted Boolean           @default(false)
-  onboardingStep     Int                @default(0)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  aiProviderConfigs  AiProviderConfig[]
-  auditLogs          AuditLog[]
-  businessIdentities BusinessIdentity[]
-  clients            Client[]
-  configurations     Configuration[]
-  emailTemplates     EmailTemplate[]
-  events             Event[]
-  expenses           Expense[]
-  masterEvents       MasterEvent[]
-  packageTemplates   PackageTemplate[]
-  packages           Package[]
-  payments           Payment[]
-  priceLists         PriceList[]
-  products           Product[]
-  queryExamples      QueryExample[]
-  quoteTemplates     QuoteTemplate[]
-  quotes             Quote[]
-  roles              Role[]
-  services           Service[]
-  suppliers          Supplier[]
-  tenantEmailConfigs TenantEmailConfig[]
-  userRoles          UserRole[]
-  users              User[]
-  venues             Venue[]
-  widgetApiKeys      WidgetApiKey[]
-  widgetConfigs      WidgetConfig[]
-  workShifts         WorkShift[]
+  id                   String                    @id @default(cuid())
+  name                 String
+  domain               String                    @unique
+  isActive             Boolean                   @default(true)
+  onboardingCompleted  Boolean                   @default(false)
+  onboardingStep       Int                       @default(0)
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+  aiProviderConfigs    AiProviderConfig[]
+  aiConfigAudits       AiProviderConfigAudit[]   @relation("AiConfigAudit")
+  auditLogs            AuditLog[]
+  businessIdentities   BusinessIdentity[]
+  clients              Client[]
+  configurations       Configuration[]
+  emailTemplates       EmailTemplate[]
+  events               Event[]
+  expenses             Expense[]
+  masterEvents         MasterEvent[]
+  packageTemplates     PackageTemplate[]
+  packages             Package[]
+  payments             Payment[]
+  priceLists           PriceList[]
+  products             Product[]
+  queryExamples        QueryExample[]
+  quoteTemplates       QuoteTemplate[]
+  quotes               Quote[]
+  roles                Role[]
+  services             Service[]
+  suppliers            Supplier[]
+  tenantEmailConfigs   TenantEmailConfig[]
+  userRoles            UserRole[]
+  users                User[]
+  venues               Venue[]
+  widgetApiKeys        WidgetApiKey[]
+  widgetConfigs        WidgetConfig[]
+  workShifts           WorkShift[]
 
   @@map("tenants")
 }
@@ -1296,9 +1298,34 @@ model AiProviderConfig {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  auditLogs    AiProviderConfigAudit[] @relation("AiProviderConfigAudit")
 
   @@unique([tenantId, provider])
   @@index([tenantId])
   @@index([provider])
   @@map("ai_provider_configs")
 }
+
+model AiProviderConfigAudit {
+  id                    String             @id @default(cuid())
+  tenantId              String
+  tenant                Tenant             @relation("AiConfigAudit", fields: [tenantId], references: [id], onDelete: Cascade)
+  aiProviderConfigId    String?
+  aiProviderConfig      AiProviderConfig?  @relation("AiProviderConfigAudit", fields: [aiProviderConfigId], references: [id], onDelete: SetNull)
+  userId                String
+  user                  User               @relation("UserAiConfigAudit", fields: [userId], references: [id], onDelete: Cascade)
+  action                String             // CREATE, UPDATE, DELETE, ACTIVATE, DEACTIVATE
+  provider              String             // Copia del proveedor por si se elimina la config
+  changesDetails        Json?              // { oldValues: {...}, newValues: {...} }
+  description           String?            // Descripción legible del cambio
+  ipAddress             String?            // IP del usuario que hizo el cambio
+  createdAt             DateTime           @default(now())
+
+  @@index([tenantId])
+  @@index([aiProviderConfigId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([action])
+  @@map("ai_provider_config_audits")
+}
+

@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { ApiResponses } from '@/lib/api/response-builder';
 import { validateTenantSession, getTenantIdFromSession } from '@/lib/utils';
+import { logAiProviderChange, getClientIpAddress, generateAuditDescription } from '@/lib/ai-provider-audit';
 
 // DELETE /api/admin/ai-providers/[id] - Eliminar configuración de AI
 export async function DELETE(
@@ -40,6 +41,22 @@ export async function DELETE(
     await prisma.aiProviderConfig.delete({
       where: { id: configId },
     });
+
+    // Registrar en auditoría
+    try {
+      await logAiProviderChange({
+        tenantId,
+        aiProviderConfigId: configId,
+        userId: session?.user?.id || '',
+        action: 'DELETE',
+        provider: config.provider,
+        description: generateAuditDescription('DELETE', config.provider),
+        ipAddress: getClientIpAddress(request.headers),
+      });
+    } catch (auditError) {
+      console.error('Error logging audit:', auditError);
+      // No bloquear la operación si falla la auditoría
+    }
 
     return ApiResponses.success(
       null,
@@ -99,6 +116,27 @@ export async function PATCH(
         updatedAt: true,
       },
     });
+
+    // Registrar en auditoría
+    try {
+      const action = isActive ? 'ACTIVATE' : 'DEACTIVATE';
+      await logAiProviderChange({
+        tenantId,
+        aiProviderConfigId: configId,
+        userId: session?.user?.id || '',
+        action,
+        provider: config.provider,
+        changesDetails: {
+          oldValues: { isActive: config.isActive },
+          newValues: { isActive },
+        },
+        description: generateAuditDescription(action, config.provider),
+        ipAddress: getClientIpAddress(request.headers),
+      });
+    } catch (auditError) {
+      console.error('Error logging audit:', auditError);
+      // No bloquear la operación si falla la auditoría
+    }
 
     return ApiResponses.success(
       updated,
