@@ -3,12 +3,12 @@
 const { execSync } = require("child_process");
 
 try {
-  console.log(" Iniciando secuencia de startup...");
+  console.log("[STARTUP] Iniciando secuencia de startup...");
 
   if (!process.env.DATABASE_URL) {
-    console.warn("  DATABASE_URL no configurada, omitiendo migraciones");
+    console.warn("[STARTUP] DATABASE_URL no configurada, omitiendo migraciones");
   } else {
-    console.log(" Ejecutando migraciones de Prisma...");
+    console.log("[STARTUP] Ejecutando migraciones de Prisma...");
 
     try {
       execSync("npx prisma migrate deploy --skip-generate", {
@@ -18,18 +18,18 @@ try {
           NODE_ENV: "production"
         }
       });
-      console.log(" Migraciones completadas");
+      console.log("[STARTUP] Migraciones completadas");
     } catch (error) {
-      console.warn("  Advertencia en migraciones (continuando):", error.message);
+      console.warn("[STARTUP] Advertencia en migraciones (continuando):", error.message);
     }
   }
 
-  console.log(" Iniciando Next.js...");
+  console.log("[STARTUP] Iniciando Next.js...");
   execSync("next start", {
     stdio: "inherit",
     cwd: process.cwd()
   });
 } catch (error) {
-  console.error(" Error:", error.message);
+  console.error("[ERROR] Error:", error.message);
   process.exit(1);
 }
