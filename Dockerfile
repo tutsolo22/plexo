@@ -81,5 +81,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3000/api/health || exit 1
 
-# Comando de inicio
-CMD ["node", "server.js"]
+# Comando de inicio: ejecutar migraciones y luego Next.js
+CMD sh -c "npx prisma migrate deploy --skip-generate || true && node server.js"

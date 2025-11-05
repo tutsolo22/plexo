@@ -14,7 +14,7 @@
     "postinstall": "npm run db:generate",
     "dev": "next dev -p 3200",
     "build": "next build",
-    "start": "node scripts/migrate.js",
+    "start": "next start",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate deploy",
