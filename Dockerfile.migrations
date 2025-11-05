@@ -1,0 +1,17 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm ci
+
+COPY prisma ./prisma
+
+RUN npm run db:generate
+
+COPY scripts/run-migrations.sh ./scripts/
+
+RUN chmod +x ./scripts/run-migrations.sh
+
+ENTRYPOINT ["./scripts/run-migrations.sh"]
