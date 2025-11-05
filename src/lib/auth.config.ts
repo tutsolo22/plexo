@@ -48,6 +48,19 @@ export const authConfig: NextAuthConfig = {
   ],
   session: {
     strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 días
+  },
+  cookies: {
+    sessionToken: {
+      name: 'next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        domain: process.env.NODE_ENV === 'production' ? undefined : undefined, // Let NextAuth handle domain
+      },
+    },
   },
   callbacks: {
     async jwt({ token, user }) {
